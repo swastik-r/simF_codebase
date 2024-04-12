@@ -1,10 +1,12 @@
-import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import { StyleSheet, View, Text, Pressable } from "react-native";
 import { Card, Chip, Icon } from "@rneui/themed";
 import { CardDivider } from "@rneui/base/dist/Card/Card.Divider";
+import { useNavigation } from "@react-navigation/native";
 
 export default function AdjustmentCard({ item }) {
+   const navigation = useNavigation();
    function dateString(date) {
-      // Convert date string to the format "1 May, 2024"
+      // Convert date string to the format "1 May 2024"
       return new Date(date).toLocaleDateString("en-GB", {
          day: "numeric",
          month: "short",
@@ -28,7 +30,22 @@ export default function AdjustmentCard({ item }) {
 
          <CardDivider />
 
-         <TouchableOpacity style={styles.cardContentContainer}>
+         <Pressable
+            onPress={
+               item.progress === "complete"
+                  ? () => {
+                       navigation.navigate("Adjustment Summary", {
+                          id: item.id,
+                       });
+                    }
+                  : () => {
+                       navigation.navigate("Adjustment Detail", {
+                          id: item.id,
+                       });
+                    }
+            }
+            style={styles.cardContentContainer}
+         >
             <View>
                <View style={styles.cardContent}>
                   <Text style={styles.cardTitle}>Date</Text>
@@ -58,7 +75,7 @@ export default function AdjustmentCard({ item }) {
                size={25}
                color="black"
             />
-         </TouchableOpacity>
+         </Pressable>
       </Card>
    );
 }
@@ -105,8 +122,8 @@ function ProgressChip({ progress }) {
 
 const styles = StyleSheet.create({
    cardId: {
-      fontFamily: "Montserrat-Bold",
-      fontSize: 16,
+      fontFamily: "Montserrat-Medium",
+      fontSize: 18,
       color: "black",
    },
    cardHeader: {

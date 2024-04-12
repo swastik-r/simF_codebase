@@ -1,18 +1,25 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { Card, Icon, Overlay, Button } from "@rneui/themed";
 import { Text, StyleSheet, View, TouchableOpacity } from "react-native";
 import Dropdown from "../../../comps/Dropdown";
 import { useAdjustmentDetail } from "../../../context/DataContext";
 
-export default function DetailCard({ item, deleteFun }) {
+export default function DetailCard({ item, parentItemId }) {
    const [deleteOverlay, setDeleteOverlay] = useState(false);
-   const { addQty, subQty } = useAdjustmentDetail();
+   const { addQty, subQty, deleteItem } = useAdjustmentDetail();
+
    function toggleOverlay() {
       setDeleteOverlay(!deleteOverlay);
    }
-   function deleteItem(id) {
-      deleteFun(id);
+   function handleDelete(itemId) {
       toggleOverlay();
+      deleteItem(itemId, parentItemId);
+   }
+   function handleAddQty(itemId) {
+      addQty(itemId, parentItemId);
+   }
+   function handleSubQty(itemId) {
+      subQty(itemId, parentItemId);
    }
 
    return (
@@ -21,9 +28,11 @@ export default function DetailCard({ item, deleteFun }) {
             <View style={styles.cardTitleContainer}>
                <Text style={styles.cardTitleText}>{item.id}</Text>
                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <TouchableOpacity onPress={() => toggleOverlay()}>
+                  <TouchableOpacity
+                     onPress={() => setDeleteOverlay(!deleteOverlay)}
+                  >
                      <Icon
-                        name="delete-circle-outline"
+                        name="delete-circle"
                         type="material-community"
                         size={25}
                         color="#C80815"
@@ -55,14 +64,14 @@ export default function DetailCard({ item, deleteFun }) {
             <View style={styles.itemInfoContainer2}>
                <Dropdown staticTitle={item.reason} />
                <View style={styles.qtyContainer}>
-                  <TouchableOpacity onPress={() => subQty(item.id)}>
+                  <TouchableOpacity onPress={() => handleSubQty(item.id)}>
                      <Icon name="minus" type="material-community" size={30} />
                   </TouchableOpacity>
 
                   <View style={styles.qtyNumContainer}>
                      <Text style={styles.qtyNum}>{item.qty}</Text>
                   </View>
-                  <TouchableOpacity onPress={() => addQty(item.id)}>
+                  <TouchableOpacity onPress={() => handleAddQty(item.id)}>
                      <Icon name="plus" type="material-community" size={30} />
                   </TouchableOpacity>
                </View>
@@ -120,7 +129,7 @@ export default function DetailCard({ item, deleteFun }) {
                      color: "white",
                      marginHorizontal: 20,
                   }}
-                  onPress={() => deleteItem(item.id)}
+                  onPress={() => handleDelete(item.id)}
                />
             </View>
          </Overlay>
@@ -131,7 +140,7 @@ export default function DetailCard({ item, deleteFun }) {
 const styles = StyleSheet.create({
    card: {
       borderRadius: 10,
-      // paddingVertical: 10,
+      paddingVertical: 10,
       backgroundColor: "white",
       elevation: 5,
    },

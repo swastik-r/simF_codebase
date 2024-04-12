@@ -1,91 +1,141 @@
-import React, { useState } from "react";
-import { FlatList, StyleSheet } from "react-native";
-import { Button, ListItem } from "@rneui/themed";
-import PageHeader from "../../comps/PageHeader";
-import SearchBar_FS from "../../comps/SearchBar_FS";
+import { Text, FlatList, StyleSheet, View } from "react-native";
 import SummaryCard from "./comps/SummaryCard";
-import SortModal from "./comps/SortModal";
+import { useAdjustmentDetail } from "../../context/DataContext";
+import { Button, Icon } from "@rneui/themed";
 
-export default function AdjustmentSummaryPage() {
-   function randomData() {
-      function generateRandomData(numItems) {
-         const data = [];
+export default function AdjustmentSummaryPage({ route }) {
+   const { data } = useAdjustmentDetail();
+   const { id } = route.params;
+   const adjustment = data.find((item) => item.id === id);
+   const listData = adjustment.detailItems;
 
-         for (let i = 0; i < numItems; i++) {
-            const id = generateRandomId();
-            const itemInfo = [
-               randomItem(["Polo T-Shirt", "Jeans", "Hoodie", "Dress"]),
-               randomItem(["Red", "Blue", "Green", "Black"]),
-               randomItem(["Size S", "Size M", "Size L"]),
-            ];
-            const qty = Math.floor(Math.random() * 50) + 1;
-            const reason = randomItem([
-               "Damaged",
-               "Theft",
-               "Sellable",
-               "Stock - In",
-               "Stock - Out",
-            ]);
-
-            data.push({ id, itemInfo, qty, reason });
+   return (
+      <FlatList
+         data={listData}
+         keyExtractor={(item) => item.id}
+         renderItem={({ item, index }) => (
+            <SummaryCard item={item} serialNumber={index + 1} />
+         )}
+         ListHeaderComponent={
+            <>
+               <SummaryDetails adjustment={adjustment} />
+               <SummaryPageButtons />
+            </>
          }
+      />
+   );
+}
 
-         return data;
-      }
-
-      function generateRandomId() {
-         const characters = "ABCD0123456789";
-         let id = "";
-         const idLength = 10;
-
-         for (let i = 0; i < idLength; i++) {
-            const randomIndex = Math.floor(Math.random() * characters.length);
-            id += characters.charAt(randomIndex);
-         }
-
-         return id;
-      }
-
-      function randomItem(array) {
-         const randomIndex = Math.floor(Math.random() * array.length);
-         return array[randomIndex];
-      }
-
-      return generateRandomData(10);
+function SummaryDetails({ adjustment }) {
+   function dateString(date) {
+      // Convert date string to the format "1 May 2024"
+      return new Date(date).toLocaleDateString("en-GB", {
+         day: "numeric",
+         month: "short",
+         year: "numeric",
+      });
    }
 
-   const [sortVisible, setSortVisible] = useState(false);
+   const info = [
+      {
+         title: "ID",
+         text: adjustment.id,
+      },
+      {
+         title: "Total SKU",
+         text: adjustment.totalSKU,
+      },
+      {
+         title: "Reason Code",
+         text: adjustment.reason,
+      },
+      {
+         title: "Adjustment Date",
+         text: dateString(adjustment.date),
+      },
+   ];
+
+   return (
+      <View style={styles.detailsContainer}>
+         {info.map((item, index) => (
+            <View key={index} style={styles.infoContainer}>
+               <Text style={styles.detailTitle}>{item.title}</Text>
+               <Text style={styles.detailText}>{item.text}</Text>
+            </View>
+         ))}
+      </View>
+   );
+}
+
+function SummaryPageButtons() {
+   const buttonList = [
+      {
+         title: "Email",
+         icon: "email",
+         iconType: "material",
+      },
+      {
+         title: "Print",
+         icon: "print",
+         iconType: "material",
+      },
+   ];
 
    return (
       <>
-         {/* Page Title */}
-         <PageHeader title="Adjustment Summary" />
-
-         {/* Search Bar */}
-         <SearchBar_FS
-            placeholder="Search for an item..."
-            onSearch={() => {}}
-            onClear={() => {}}
-         />
-
-         {/* Adjustment Summary List */}
-         <FlatList
-            data={randomData()}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <SummaryCard item={item} />}
-         />
-
-         {/* Sort Modal */}
-         <SortModal
-            visible={sortVisible}
-            // onClose={() => setSortVisible(false)}
-         />
+         <View style={styles.buttonContainer}>
+            {buttonList.map((button, index) => (
+               <Button
+                  key={index}
+                  size="sm"
+                  icon={
+                     <Icon
+                        name={button.icon}
+                        type={button.iconType}
+                        color="white"
+                     />
+                  }
+                  title={button.title}
+                  titleStyle={{
+                     fontFamily: "Montserrat-Medium",
+                     marginHorizontal: 5,
+                  }}
+                  buttonStyle={{
+                     backgroundColor: "dodgerblue",
+                  }}
+               />
+            ))}
+         </View>
       </>
    );
 }
 
 const styles = StyleSheet.create({
-   sortButton: {
-      marginVertical: 10,
+   buttonContainer: {
+      flexDirection: "row",
+      justifyContent: "space-evenly",
+      padding: 10,
+   },
+   detailsContainer: {
+      margin: 15,
+      padding: 10,
+      borderWidth: 1,
+      borderRadius: 5,
+   },
+   infoContainer: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginVertical: 2,
+   },
+   detailTitle: {
+      fontFamily: "Montserrat-Bold",
+      fontSize: 12,
+      color: "rgba(0, 0, 0, 0.8)",
+   },
+   detailText: {
+      fontFamily: "Montserrat-Medium",
+      fontSize: 15,
+      color: "rgba(0, 0, 0, 0.8)",
    },
 });

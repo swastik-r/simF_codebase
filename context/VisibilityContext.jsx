@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState } from "react";
 
 const VisibilityContext = createContext();
 
-export const useVisibility = () => {
+export const useVisibilityContext = () => {
    const context = useContext(VisibilityContext);
    if (!context) {
       throw new Error("useVisibility must be used within a VisibilityProvider");
@@ -14,15 +14,12 @@ export const useVisibility = () => {
 
 export const VisibilityProvider = ({ children }) => {
    const [searchVisible, setSearchVisible] = useState(false);
-   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
 
    return (
       <VisibilityContext.Provider
          value={{
             searchVisible,
             setSearchVisible,
-            bottomSheetVisible,
-            setBottomSheetVisible,
          }}
       >
          {children}

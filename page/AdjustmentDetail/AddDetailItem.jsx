@@ -4,8 +4,6 @@ import { Button } from "@rneui/themed";
 import barcodeIllustration from "../../assets/barcodeIllustration.jpg";
 import { useTheme } from "@rneui/themed";
 import { useNavigation } from "@react-navigation/native";
-import CameraView from "./CameraView";
-import ManualSearch from "./ManualSearch";
 
 export default function AddDetailItem({ route }) {
    const { theme } = useTheme();
@@ -60,7 +58,7 @@ export default function AddDetailItem({ route }) {
                   }}
                   iconPosition="right"
                   buttonStyle={{
-                     backgroundColor: theme.colors.tertiary,
+                     backgroundColor: theme.colors.primary,
                   }}
                   containerStyle={{
                      borderRadius: 10,

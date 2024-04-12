@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Button } from "@rneui/themed";
 import { useAdjustmentDetail } from "../../context/DataContext";
+import { useNavigation } from "@react-navigation/native";
 
 export default function ManualSearch({ route }) {
    const { sampleDetailItems } = useAdjustmentDetail();
@@ -57,12 +58,19 @@ export default function ManualSearch({ route }) {
 }
 
 function SuggestionTab({ item, parentItemId }) {
-   const { addDetailItem } = useAdjustmentDetail();
+   const { addDetailItem, removeDetailItem } = useAdjustmentDetail();
+   const navigation = useNavigation();
    // capitalise the first letter of the color
    const color =
       item.info.color.charAt(0).toUpperCase() + item.info.color.slice(1);
    // define size based on this data: s = Small, m = Medium, l = Large, xl = Extra Large
-   const size = item.info.size;
+   const size = {
+      s: "Small",
+      m: "Medium",
+      l: "Large",
+      xl: "Extra Large",
+   }[item.info.size];
+
    return (
       <Pressable
          style={styles.suggestionTab}
@@ -77,13 +85,19 @@ function SuggestionTab({ item, parentItemId }) {
             <View>
                <Text style={styles.tabContent}>{item.info.name}</Text>
                <Text style={styles.tabContent}>
-                  {color} / {item.info.size}
+                  {color} / {size}
                </Text>
             </View>
             <Button
                title="Add"
                titleStyle={{ fontFamily: "Montserrat-Bold", fontSize: 12 }}
-               onPress={() => addDetailItem(item, parentItemId)}
+               onPress={() => {
+                  addDetailItem(item, parentItemId),
+                     removeDetailItem(item.id),
+                     navigation.navigate("Adjustment Detail", {
+                        id: parentItemId,
+                     });
+               }}
             />
          </View>
       </Pressable>
