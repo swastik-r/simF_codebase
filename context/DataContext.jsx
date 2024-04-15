@@ -6,7 +6,41 @@ export function useAdjustmentDetail() {
 }
 
 export default function AdjustmentDetailProvider({ children }) {
-   // Function to generate data
+   const adjustmentInfo = {
+      progress: ["complete", "inProgress"],
+      reasons: ["damaged", "theft", "stockIn", "stockOut", "multiple"],
+   };
+   const itemInfo = {
+      size: ["small", "medium", "large", "extraLarge"],
+      color: ["red", "blue", "green", "black", "grey"],
+      name: [
+         "Polo T-Shirt",
+         "Slim Fit Jeans",
+         "Oversized Hoodie",
+         "Floral Long Dress",
+      ],
+      reasons: ["damaged", "theft", "stockIn", "stockOut"],
+   };
+   const reasonMap = {
+      damaged: "Damaged",
+      stockIn: "Stock In",
+      stockOut: "Stock Out",
+      theft: "Theft",
+      multiple: "Multiple",
+   };
+   const sizeMap = {
+      small: "S",
+      medium: "M",
+      large: "L",
+      extraLarge: "XL",
+   };
+
+   // ---------------------- Data Generation Functions ----------------------
+
+   function randomItem(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+   } // provide a random value from an array
+
    function generateData() {
       function randomAdjustmentData(numItems) {
          function getRandomNumUpto(num) {
@@ -25,28 +59,27 @@ export default function AdjustmentDetailProvider({ children }) {
             );
          }
          function getRandomProgress() {
-            const progress = ["complete", "inProgress"];
-            return progress[Math.floor(Math.random() * progress.length)];
+            return randomItem(adjustmentInfo.progress);
          }
-
-         // let id = getRandomId();
          return Array.from({ length: numItems }, () => {
-            const { data, totalSKU, reason } = randomDetailData(
+            const { data, totalSKU, adjustmentReason } = randomDetailData(
                getRandomNumUpto(20)
             );
+
             return {
-               // id should start from a random number and added 1 for each item
                id: getRandomId(),
                progress: getRandomProgress(),
                date: String(getRandomDate()),
-               reason: reason,
+               reason: adjustmentReason,
                detailItems: data,
                totalSKU: totalSKU,
             };
          });
       }
-      return randomAdjustmentData(20);
-   }
+
+      return randomAdjustmentData(10);
+   } // generate random adjustment data
+
    function randomDetailData(numItems) {
       function generateRandomId() {
          const characters = "ABCD0123456789";
@@ -61,46 +94,58 @@ export default function AdjustmentDetailProvider({ children }) {
          return id;
       }
 
-      function randomItem(array) {
-         const randomIndex = Math.floor(Math.random() * array.length);
-         return array[randomIndex];
-      }
-
       function generateRandomData(numItems) {
          const data = [];
          let totalSKU = 0;
-
-         // Generate random reason for the data
-         const reasons = ["Damaged", "Theft", "Stock In", "Stock Out"];
-         const reason = randomItem(reasons);
+         const adjustmentReason = randomItem(adjustmentInfo.reasons);
 
          for (let i = 0; i < numItems; i++) {
             const id = generateRandomId();
             const info = {
-               name: randomItem([
-                  "Polo T-Shirt",
-                  "Slim Fit Jeans",
-                  "Oversized Hoodie",
-                  "Floral Long Dress",
-               ]),
-               color: randomItem(["red", "blue", "green", "black", "grey"]),
-               size: randomItem(["S", "M", "L", "XL"]),
+               name: randomItem(itemInfo.name),
+               color: randomItem(itemInfo.color),
+               size: randomItem(itemInfo.size),
             };
             const qty = Math.floor(Math.random() * 10) + 1;
+            // reason to be adjustment's reason if it's not multiple, else random reason
+            const reason =
+               adjustmentReason === "multiple"
+                  ? randomItem(itemInfo.reasons)
+                  : adjustmentReason;
             data.push({ id, info, qty, reason });
             totalSKU += qty;
          }
-         return { data, totalSKU, reason };
+         return { data, totalSKU, adjustmentReason };
       }
 
       return generateRandomData(numItems);
-   }
+   } // generate random detail items data
+
+   // ---------------------- States Management ----------------------
+
+   const [initialData] = useState(generateData());
+   const [data, setData] = useState(initialData);
+   const [sortApplied, setSortApplied] = useState(false);
+   const [filterApplied, setFilterApplied] = useState(false);
+   const [sampleDetailItems, setSampleDetailItems] = useState(
+      randomDetailData(20)
+   );
+   sampleDetailItems.data.forEach((item) => (item.qty = 1)); // <--- To fix the qty issue, mod gen func later
+   const [searchStr, setSearchStr] = useState("");
+   const initialFilterParams = {
+      reason: [],
+      progress: [],
+   };
+   const [filterParams, setFilterParams] = useState(initialFilterParams);
+
+   // ---------------------- Data Manipulation ----------------------
+
    function createNewAdjustment(newId) {
       const newAdjustment = {
          id: newId,
          progress: "inProgress",
          date: new Date(),
-         reason: "Undefined",
+         reason: "No Items Added",
          detailItems: [],
          totalSKU: 0,
       };
@@ -108,18 +153,6 @@ export default function AdjustmentDetailProvider({ children }) {
       console.log("New Adjustment Created");
    }
 
-   // Data and Other Data State
-   const [initialData] = useState(generateData());
-   const [data, setData] = useState(initialData);
-   const [sampleDetailItems, setSampleDetailItems] = useState(
-      randomDetailData(20)
-   );
-   // for all items in sampleDetailItems, set the quantity to 1
-   const [sortApplied, setSortApplied] = useState(false);
-   const [filterApplied, setFilterApplied] = useState(false);
-   const [searchStr, setSearchStr] = useState("");
-
-   // ---------------------- Data Manipulation Functions ----------------------
    function deleteItem(itemId, parentItemId) {
       const updatedData = data.map((item) => {
          if (item.id === parentItemId) {
@@ -138,6 +171,7 @@ export default function AdjustmentDetailProvider({ children }) {
       setData(updatedData);
       console.log("Deleted: " + itemId + " > " + parentItemId);
    }
+
    function addQty(itemId, parentItemId) {
       // find the item with parentId in the data
       const updatedData = data.map((item) => {
@@ -161,6 +195,7 @@ export default function AdjustmentDetailProvider({ children }) {
       setData(updatedData);
       console.log("Added 1 to item with ID: " + itemId);
    }
+
    function subQty(itemId, parentItemId) {
       // find the item with parentId in the data
       const updatedData = data.map((item) => {
@@ -190,6 +225,7 @@ export default function AdjustmentDetailProvider({ children }) {
       setData(updatedData);
       console.log("Subtracted 1 from item with ID: " + itemId);
    }
+
    function completeAdjustment(id) {
       const updatedData = data.map((item) => {
          if (item.id === id) {
@@ -200,6 +236,7 @@ export default function AdjustmentDetailProvider({ children }) {
       setData(updatedData);
       console.log("Completed Adjustment with ID: " + id);
    }
+
    function addDetailItem(item, parentItemId) {
       const updatedData = data.map((parentItem) => {
          if (parentItem.id === parentItemId) {
@@ -211,6 +248,7 @@ export default function AdjustmentDetailProvider({ children }) {
       setData(updatedData);
       console.log("Added Detail Item to Adjustment with ID: " + parentItemId);
    }
+
    function removeDetailItem(id) {
       // remove the item with the given id from the sampleDetailItems
       const updatedSampleDetailItems = sampleDetailItems.data.filter(
@@ -218,6 +256,7 @@ export default function AdjustmentDetailProvider({ children }) {
       );
       setSampleDetailItems({ data: updatedSampleDetailItems });
    }
+
    function setDefaultReasonCode(reasonCode, id) {
       const updatedData = data.map((item) => {
          if (item.id === id) {
@@ -230,10 +269,51 @@ export default function AdjustmentDetailProvider({ children }) {
          return item;
       });
       setData(updatedData);
-      console.log("Set Reason Code to: " + reasonCode + " for ID: " + id);
+      console.log(
+         "Set Reason Code to: " + reasonCode + " for Adjustment: " + id
+      );
    }
 
-   // ---------------------- Sort and Filter Functions ----------------------
+   function setItemReasonCode(reasonCode, parentId, childId) {
+      const updatedData = data.map((item) => {
+         if (item.id === parentId) {
+            item.detailItems = item.detailItems.map((detailItem) => {
+               if (detailItem.id === childId) {
+                  detailItem.reason = reasonCode;
+               }
+               return detailItem;
+            });
+         }
+         return item;
+      });
+
+      // update the adjustment's reason code if all the detailItems have the same reason code
+      updatedData.forEach((item) => {
+         if (item.id === parentId) {
+            const reasons = item.detailItems.map(
+               (detailItem) => detailItem.reason
+            );
+            const uniqueReasons = [...new Set(reasons)];
+            if (uniqueReasons.length === 1) {
+               item.reason = uniqueReasons[0];
+            } else {
+               item.reason = "Multiple";
+            }
+         }
+      });
+
+      setData(updatedData);
+      console.log(
+         "Set Reason Code to: " +
+            reasonCode +
+            " for item: " +
+            childId +
+            " in Adjustment: " +
+            parentId
+      );
+   }
+
+   // ---------------------- Sort and Filter ----------------------
    function handleSearch(text) {
       console.log("Searching for ID: ", text);
       // find all the adjustments that contain the text in their id
@@ -242,6 +322,7 @@ export default function AdjustmentDetailProvider({ children }) {
       );
       setData(searchResults);
    }
+
    function sortByDate(sortType) {
       if (sortType === "reset") {
          resetSort();
@@ -257,39 +338,44 @@ export default function AdjustmentDetailProvider({ children }) {
       setSortApplied(true);
       console.log("Sorted by: " + sortType);
    }
+
    function resetSort() {
       setData(initialData);
       setSortApplied(false);
       console.log("Sort reset");
    }
+
+   function pushFilterParams(filterType) {
+      const newFilterParams = { ...filterParams };
+      newFilterParams.push(filterType);
+      setFilterParams(newFilterParams);
+   }
+
    function filterData() {
       const filteredData = [...initialData]
          .filter((item) => {
-            if (filterParams.reason.length === 0) return true;
+            if (filterParams.reason.length === 0) {
+               return true;
+            }
             return filterParams.reason.includes(item.reason);
          })
          .filter((item) => {
-            if (filterParams.progress.length === 0) return true;
+            if (filterParams.progress.length === 0) {
+               return true;
+            }
             return filterParams.progress.includes(item.progress);
          });
       setData(filteredData);
       setFilterApplied(true);
    }
+
    function resetFilter() {
-      setFilterParams(filterParamsInitial);
+      setFilterParams(initialFilterParams);
       setFilterApplied(false);
    }
 
-   const filterParamsInitial = {
-      reason: [],
-      progress: [],
-   };
-   const [filterParams, setFilterParams] = useState(filterParamsInitial);
-   useEffect(() => {
-      filterData();
-   }, [filterParams]);
-
    // ---------------------- Bottom Sheet Options ----------------------
+
    const sortOpts = [
       {
          title: "Sort by latest",
@@ -331,6 +417,7 @@ export default function AdjustmentDetailProvider({ children }) {
          sortType: "reset",
       },
    ];
+
    const filterOpts = [
       {
          title: "Status",
@@ -383,6 +470,7 @@ export default function AdjustmentDetailProvider({ children }) {
          onPress: () => resetFilter(),
       },
    ];
+
    const statusFilterOpts = [
       {
          title: "In Progress",
@@ -394,12 +482,7 @@ export default function AdjustmentDetailProvider({ children }) {
          },
          titleStyle: styles.sortOpt,
          containerStyle: styles.sortOptContainer,
-         onPress: () => {
-            // add "pending" to filterParams.reason
-            const newFilterParams = filterParams;
-            newFilterParams.reason.push("inProgress");
-            setFilterParams(newFilterParams);
-         },
+         filterType: "inProgress",
       },
       {
          title: "Completed",
@@ -411,14 +494,24 @@ export default function AdjustmentDetailProvider({ children }) {
          },
          titleStyle: styles.sortOpt,
          containerStyle: styles.sortOptContainer,
-         onPress: () => {
-            // add "pending" to filterParams.reason
-            const newFilterParams = filterParams;
-            newFilterParams.reason.push("completed");
-            setFilterParams(newFilterParams);
+         filterType: "complete",
+      },
+      // reset filter
+      {
+         title: "Reset",
+         icon: {
+            name: "refresh",
+            type: "material",
+            color: "white",
          },
+         containerStyle: [
+            styles.sortOptContainer,
+            { backgroundColor: "darkred" },
+         ],
+         titleStyle: styles.sortOptCancel,
       },
    ];
+
    const reasonFilterOpts = [
       {
          title: "Damaged",
@@ -431,9 +524,8 @@ export default function AdjustmentDetailProvider({ children }) {
          titleStyle: styles.sortOpt,
          containerStyle: styles.sortOptContainer,
          onPress: () => {
-            // add "pending" to filterParams.reason
             const newFilterParams = filterParams;
-            newFilterParams.reason.push("damaged");
+            newFilterParams.reason.push("Damaged");
             setFilterParams(newFilterParams);
          },
       },
@@ -448,7 +540,6 @@ export default function AdjustmentDetailProvider({ children }) {
          titleStyle: styles.sortOpt,
          containerStyle: styles.sortOptContainer,
          onPress: () => {
-            // add "pending" to filterParams.reason
             const newFilterParams = filterParams;
             newFilterParams.reason.push("stockIn");
             setFilterParams(newFilterParams);
@@ -465,7 +556,6 @@ export default function AdjustmentDetailProvider({ children }) {
          titleStyle: styles.sortOpt,
          containerStyle: styles.sortOptContainer,
          onPress: () => {
-            // add "pending" to filterParams.reason
             const newFilterParams = filterParams;
             newFilterParams.reason.push("stockOut");
             setFilterParams(newFilterParams);
@@ -482,7 +572,6 @@ export default function AdjustmentDetailProvider({ children }) {
          titleStyle: styles.sortOpt,
          containerStyle: styles.sortOptContainer,
          onPress: () => {
-            // add "pending" to filterParams.reason
             const newFilterParams = filterParams;
             newFilterParams.reason.push("theft");
             setFilterParams(newFilterParams);
@@ -490,8 +579,19 @@ export default function AdjustmentDetailProvider({ children }) {
       },
    ];
 
+   // ---------------------- UseEffect Zone ----------------------
+
+   // filter data
+   useEffect(() => {
+      filterData();
+   }, [filterParams]);
+
    // ---------------------- Context Values ----------------------
+
    const value = {
+      itemInfo,
+      reasonMap,
+      sizeMap,
       generateData,
       createNewAdjustment,
       data,
@@ -506,6 +606,7 @@ export default function AdjustmentDetailProvider({ children }) {
       setFilterApplied,
       sortOpts,
       sortByDate,
+      pushFilterParams,
       filterData,
       filterOpts,
       statusFilterOpts,
@@ -517,6 +618,7 @@ export default function AdjustmentDetailProvider({ children }) {
       addDetailItem,
       removeDetailItem,
       setDefaultReasonCode,
+      setItemReasonCode,
       sampleDetailItems,
    };
 

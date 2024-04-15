@@ -1,7 +1,16 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useAdjustmentDetail } from "../../../context/DataContext";
 
 export default function SummaryCard({ item, serialNumber }) {
+   const { sizeMap, reasonMap } = useAdjustmentDetail();
+   function sizeString(size) {
+      return sizeMap[size];
+   }
+   function reasonString(reason) {
+      return reasonMap[reason];
+   }
+
    const info = [
       {
          title: "Name",
@@ -14,16 +23,11 @@ export default function SummaryCard({ item, serialNumber }) {
       },
       {
          title: "Size",
-         text: {
-            S: "Small",
-            M: "Medium",
-            L: "Large",
-            XL: "Extra Large",
-         }[item.info.size],
+         text: sizeString(item.info.size),
       },
       {
          title: "Reason",
-         text: item.reason,
+         text: reasonString(item.reason),
       },
       {
          title: "Quantity",

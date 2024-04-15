@@ -28,7 +28,7 @@ function Header() {
                      name="storefront"
                      type="ionicons"
                      color="#fff"
-                     size={25}
+                     size={27}
                   />
                   <View style={styles.storeInfoContainer}>
                      <Text style={styles.storeId}>101</Text>

@@ -1,12 +1,16 @@
 import React, { useState } from "react";
 import { Card, Icon, Overlay, Button } from "@rneui/themed";
 import { Text, StyleSheet, View, TouchableOpacity } from "react-native";
-import Dropdown from "../../../comps/Dropdown";
 import { useAdjustmentDetail } from "../../../context/DataContext";
+import { useTheme } from "@rneui/themed";
+import ReasonCodeOverlay from "./ReasonCodeOverlay";
 
 export default function DetailCard({ item, parentItemId }) {
+   const { theme } = useTheme();
    const [deleteOverlay, setDeleteOverlay] = useState(false);
-   const { addQty, subQty, deleteItem } = useAdjustmentDetail();
+   const { sizeMap, reasonMap, addQty, subQty, deleteItem } =
+      useAdjustmentDetail();
+   const [showReasonCodes, setShowReasonCodes] = useState(false);
 
    function toggleOverlay() {
       setDeleteOverlay(!deleteOverlay);
@@ -21,6 +25,12 @@ export default function DetailCard({ item, parentItemId }) {
    function handleSubQty(itemId) {
       subQty(itemId, parentItemId);
    }
+   function sizeString(size) {
+      return sizeMap[size];
+   }
+   function reasonString(reason) {
+      return reasonMap[reason];
+   }
 
    return (
       <>
@@ -32,8 +42,8 @@ export default function DetailCard({ item, parentItemId }) {
                      onPress={() => setDeleteOverlay(!deleteOverlay)}
                   >
                      <Icon
-                        name="delete-circle"
-                        type="material-community"
+                        name="delete"
+                        type="feather"
                         size={25}
                         color="#C80815"
                      />
@@ -56,13 +66,29 @@ export default function DetailCard({ item, parentItemId }) {
                   </Text>
                   <Text style={[styles.itemInfo, { borderRightWidth: 0 }]}>
                      {"/ "}
-                     {item.info.size}
+                     {sizeString(item.info.size)}
                   </Text>
                </View>
             </View>
 
             <View style={styles.itemInfoContainer2}>
-               <Dropdown staticTitle={item.reason} />
+               <TouchableOpacity
+                  style={[
+                     styles.dropdownButton,
+                     { backgroundColor: theme.colors.primary },
+                  ]}
+                  onPress={() => setShowReasonCodes(true)}
+               >
+                  <Text style={styles.buttonTitle}>
+                     {reasonString(item.reason)}
+                  </Text>
+                  <Icon
+                     name="chevron-down"
+                     type="material-community"
+                     color={"white"}
+                     size={25}
+                  />
+               </TouchableOpacity>
                <View style={styles.qtyContainer}>
                   <TouchableOpacity onPress={() => handleSubQty(item.id)}>
                      <Icon name="minus" type="material-community" size={30} />
@@ -71,6 +97,7 @@ export default function DetailCard({ item, parentItemId }) {
                   <View style={styles.qtyNumContainer}>
                      <Text style={styles.qtyNum}>{item.qty}</Text>
                   </View>
+
                   <TouchableOpacity onPress={() => handleAddQty(item.id)}>
                      <Icon name="plus" type="material-community" size={30} />
                   </TouchableOpacity>
@@ -93,6 +120,13 @@ export default function DetailCard({ item, parentItemId }) {
                </TouchableOpacity>
             </View>
          </Card>
+
+         <ReasonCodeOverlay
+            route={{ params: { parentId: parentItemId, childId: item.id } }}
+            type="item"
+            showReasonCodes={showReasonCodes}
+            setShowReasonCodes={setShowReasonCodes}
+         />
 
          {/* Delete Confirmation Modal */}
          <Overlay
@@ -140,7 +174,7 @@ export default function DetailCard({ item, parentItemId }) {
 const styles = StyleSheet.create({
    card: {
       borderRadius: 10,
-      paddingVertical: 10,
+      paddingVertical: 5,
       backgroundColor: "white",
       elevation: 5,
    },
@@ -188,6 +222,20 @@ const styles = StyleSheet.create({
    qtyNum: {
       fontFamily: "Montserrat-Bold",
       fontSize: 18,
+   },
+   dropdownButton: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: 5,
+      borderRadius: 10,
+      borderColor: "grey",
+   },
+   buttonTitle: {
+      fontFamily: "Montserrat-Bold",
+      color: "white",
+      fontSize: 14,
+      marginHorizontal: 5,
    },
 
    // Delete Confirmation Modal

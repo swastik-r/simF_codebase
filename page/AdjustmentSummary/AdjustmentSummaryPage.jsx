@@ -27,6 +27,8 @@ export default function AdjustmentSummaryPage({ route }) {
 }
 
 function SummaryDetails({ adjustment }) {
+   const { reasonMap } = useAdjustmentDetail();
+
    function dateString(date) {
       // Convert date string to the format "1 May 2024"
       return new Date(date).toLocaleDateString("en-GB", {
@@ -34,6 +36,10 @@ function SummaryDetails({ adjustment }) {
          month: "short",
          year: "numeric",
       });
+   }
+
+   function reasonString(reason) {
+      return reasonMap[reason];
    }
 
    const info = [
@@ -47,7 +53,7 @@ function SummaryDetails({ adjustment }) {
       },
       {
          title: "Reason Code",
-         text: adjustment.reason,
+         text: reasonString(adjustment.reason),
       },
       {
          title: "Adjustment Date",

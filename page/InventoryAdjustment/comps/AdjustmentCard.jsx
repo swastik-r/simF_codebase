@@ -2,9 +2,16 @@ import { StyleSheet, View, Text, Pressable } from "react-native";
 import { Card, Chip, Icon } from "@rneui/themed";
 import { CardDivider } from "@rneui/base/dist/Card/Card.Divider";
 import { useNavigation } from "@react-navigation/native";
+import { useAdjustmentDetail } from "../../../context/DataContext";
 
 export default function AdjustmentCard({ item }) {
    const navigation = useNavigation();
+   const { reasonMap } = useAdjustmentDetail();
+
+   function reasonString(reason) {
+      return reasonMap[reason];
+   }
+
    function dateString(date) {
       // Convert date string to the format "1 May 2024"
       return new Date(date).toLocaleDateString("en-GB", {
@@ -53,7 +60,9 @@ export default function AdjustmentCard({ item }) {
                </View>
                <View style={styles.cardContent}>
                   <Text style={styles.cardTitle}>Reason</Text>
-                  <Text style={styles.cardData}>{item.reason}</Text>
+                  <Text style={styles.cardData}>
+                     {reasonString(item.reason)}
+                  </Text>
                </View>
             </View>
 

@@ -7,7 +7,7 @@ import {
    Text,
    Pressable,
 } from "react-native";
-import { Button } from "@rneui/themed";
+import { Button, useTheme } from "@rneui/themed";
 import { useAdjustmentDetail } from "../../context/DataContext";
 import { useNavigation } from "@react-navigation/native";
 
@@ -16,6 +16,7 @@ export default function ManualSearch({ route }) {
    const [searchStr, setSearchStr] = useState("");
    const [filteredItems, setFilteredItems] = useState([]);
    const { parentItemId } = route.params;
+   const { theme } = useTheme();
 
    function handleDetailItemSearch(searchStr) {
       if (searchStr === "") return setFilteredItems([]);
@@ -28,6 +29,7 @@ export default function ManualSearch({ route }) {
       setFilteredItems(newFilteredItems);
    }
 
+   // to search for the searchStr
    useEffect(() => {
       handleDetailItemSearch(searchStr);
    }, [searchStr]);
@@ -58,18 +60,12 @@ export default function ManualSearch({ route }) {
 }
 
 function SuggestionTab({ item, parentItemId }) {
-   const { addDetailItem, removeDetailItem } = useAdjustmentDetail();
+   const { sizeMap, addDetailItem, removeDetailItem } = useAdjustmentDetail();
    const navigation = useNavigation();
    // capitalise the first letter of the color
    const color =
       item.info.color.charAt(0).toUpperCase() + item.info.color.slice(1);
-   // define size based on this data: s = Small, m = Medium, l = Large, xl = Extra Large
-   const size = {
-      s: "Small",
-      m: "Medium",
-      l: "Large",
-      xl: "Extra Large",
-   }[item.info.size];
+   const size = sizeMap[item.info.size];
 
    return (
       <Pressable
@@ -88,9 +84,18 @@ function SuggestionTab({ item, parentItemId }) {
                   {color} / {size}
                </Text>
             </View>
+
             <Button
-               title="Add"
+               buttonStyle={{ borderRadius: 5, backgroundColor: "green" }}
+               title="ADD"
                titleStyle={{ fontFamily: "Montserrat-Bold", fontSize: 12 }}
+               icon={{
+                  name: "plus-circle-outline",
+                  size: 18,
+                  type: "material-community",
+                  color: "white",
+               }}
+               iconPosition="right"
                onPress={() => {
                   addDetailItem(item, parentItemId),
                      removeDetailItem(item.id),
@@ -125,7 +130,7 @@ const styles = StyleSheet.create({
    },
    suggestionTab: {
       padding: 10,
-      // backgroundColor: "white",
+      backgroundColor: "silver",
       borderRadius: 5,
       marginVertical: 5,
    },

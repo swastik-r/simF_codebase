@@ -5,7 +5,13 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import "react-native-gesture-handler";
 
 // React Native Elements UI Library
-import { Button, createTheme, ThemeProvider, Icon } from "@rneui/themed";
+import {
+   Button,
+   createTheme,
+   ThemeProvider,
+   Icon,
+   ButtonGroup,
+} from "@rneui/themed";
 
 // Custom Components
 import Header from "./comps/Header";
@@ -96,24 +102,20 @@ export default function App() {
                               backgroundColor: "white",
                            },
                            headerTitleStyle: {
-                              fontFamily: "Montserrat-Medium",
-                              fontSize: 15,
+                              fontFamily: "Montserrat-Bold",
                            },
                         }}
                      >
                         <Stack.Screen
                            name="Inventory Adjustment"
                            component={InventoryAdjustmentPage}
-                           options={{
-                              headerRight: () => <SearchIcon />,
-                           }}
                         />
                         <Stack.Screen
                            name="Adjustment Detail"
                            component={AdjustmentDetailPage}
                            options={(route) => {
                               return {
-                                 title: `ID - ${route.route.params.id}`,
+                                 title: `Adjustment - ${route.route.params.id}`,
                               };
                            }}
                         />

@@ -3,6 +3,7 @@ import { ListItem, BottomSheet, Icon } from "@rneui/themed";
 import { useAdjustmentDetail } from "../context/DataContext";
 
 function CustomBottomSheet({ isVisible, setIsVisible, opts, func }) {
+   const { pushFilterParams } = useAdjustmentDetail();
    return (
       <BottomSheet
          isVisible={isVisible}
@@ -16,7 +17,7 @@ function CustomBottomSheet({ isVisible, setIsVisible, opts, func }) {
                   if (opt.sortType) {
                      func(opt.sortType);
                   } else {
-                     func(opt.filterType);
+                     pushFilterParams(opt.filterType);
                   }
                   setIsVisible(false);
                }}

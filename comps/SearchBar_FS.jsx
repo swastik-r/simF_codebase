@@ -23,6 +23,8 @@ export default function SearchBar_FS() {
       sortOpts,
       filterData,
       filterOpts,
+      reasonFilterOpts,
+      statusFilterOpts,
    } = useAdjustmentDetail();
 
    return (
@@ -80,7 +82,7 @@ export default function SearchBar_FS() {
             <CustomBottomSheet
                isVisible={filterVisible}
                setIsVisible={setFilterVisible}
-               opts={filterOpts}
+               opts={statusFilterOpts}
                func={filterData}
             />
          )}

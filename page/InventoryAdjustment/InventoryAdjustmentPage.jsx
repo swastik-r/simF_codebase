@@ -15,6 +15,7 @@ export default function InventoryAdjustmentPage() {
 
    return (
       <>
+         <SearchBar_FS />
          {/* Inventory Adjustment Cards */}
          <FlatList
             data={data}
@@ -25,7 +26,6 @@ export default function InventoryAdjustmentPage() {
          {/* FAB: Add a new adjustment */}
          <FAB
             color={theme.colors.primary}
-            size="small"
             style={styles.fab}
             icon={{
                name: "plus-thick",
