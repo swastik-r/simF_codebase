@@ -1,28 +1,31 @@
-// this context manages the visibility og overlays, bottom sheets and other comps in the app
-
-import React, { createContext, useContext, useState } from "react";
+// This is the visibility context for managing the visibility of the overlays and modals in the app.
+import { useState } from "react";
+import { createContext, useContext } from "react";
 
 const VisibilityContext = createContext();
 
-export const useVisibilityContext = () => {
-   const context = useContext(VisibilityContext);
-   if (!context) {
-      throw new Error("useVisibility must be used within a VisibilityProvider");
-   }
-   return context;
+export const useVisibility = () => {
+   return useContext(VisibilityContext);
 };
 
 export const VisibilityProvider = ({ children }) => {
-   const [searchVisible, setSearchVisible] = useState(false);
+   const [submitOptions, setSubmitOptions] = useState(false);
+
+   function toggleSubmitOptionsVisibility() {
+      setSubmitOptions(!submitOptions);
+   }
 
    return (
       <VisibilityContext.Provider
          value={{
-            searchVisible,
-            setSearchVisible,
+            submitOptions,
+            setSubmitOptions,
+            toggleSubmitOptionsVisibility,
          }}
       >
          {children}
       </VisibilityContext.Provider>
    );
 };
+
+export default VisibilityContext;

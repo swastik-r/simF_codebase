@@ -7,20 +7,19 @@ import {
    Text,
    Pressable,
 } from "react-native";
-import { Button, useTheme } from "@rneui/themed";
-import { useAdjustmentDetail } from "../../context/DataContext";
+import { Button } from "@rneui/themed";
+import { useAdjustmentDetail } from "../../../context/DataContext";
 import { useNavigation } from "@react-navigation/native";
 
 export default function ManualSearch({ route }) {
    const { sampleDetailItems } = useAdjustmentDetail();
    const [searchStr, setSearchStr] = useState("");
    const [filteredItems, setFilteredItems] = useState([]);
-   const { parentItemId } = route.params;
-   const { theme } = useTheme();
+   const { adjustmentId } = route.params;
 
    function handleDetailItemSearch(searchStr) {
       if (searchStr === "") return setFilteredItems([]);
-      const newFilteredItems = sampleDetailItems.data.filter((item) => {
+      const newFilteredItems = sampleDetailItems.filter((item) => {
          return (
             item.id.toLowerCase().includes(searchStr.toLowerCase()) ||
             item.info.name.toLowerCase().includes(searchStr.toLowerCase())
@@ -41,7 +40,7 @@ export default function ManualSearch({ route }) {
                data={filteredItems}
                keyExtractor={(item) => item.id}
                renderItem={({ item }) => (
-                  <SuggestionTab item={item} parentItemId={parentItemId} />
+                  <SuggestionTab item={item} adjustmentId={adjustmentId} />
                )}
                style={{ width: "100%", marginTop: 20 }}
                ListHeaderComponent={
@@ -59,8 +58,8 @@ export default function ManualSearch({ route }) {
    );
 }
 
-function SuggestionTab({ item, parentItemId }) {
-   const { sizeMap, addDetailItem, removeDetailItem } = useAdjustmentDetail();
+function SuggestionTab({ item, adjustmentId }) {
+   const { sizeMap, addDetailItem } = useAdjustmentDetail();
    const navigation = useNavigation();
    // capitalise the first letter of the color
    const color =
@@ -68,12 +67,7 @@ function SuggestionTab({ item, parentItemId }) {
    const size = sizeMap[item.info.size];
 
    return (
-      <Pressable
-         style={styles.suggestionTab}
-         onPress={() => {
-            addDetailItem(parentItemId, item);
-         }}
-      >
+      <Pressable style={styles.suggestionTab}>
          <Text style={styles.tabTitle}>{item.id}</Text>
          <View
             style={{ flexDirection: "row", justifyContent: "space-between" }}
@@ -86,7 +80,7 @@ function SuggestionTab({ item, parentItemId }) {
             </View>
 
             <Button
-               buttonStyle={{ borderRadius: 5, backgroundColor: "green" }}
+               buttonStyle={{ borderRadius: 5 }}
                title="ADD"
                titleStyle={{ fontFamily: "Montserrat-Bold", fontSize: 12 }}
                icon={{
@@ -95,12 +89,10 @@ function SuggestionTab({ item, parentItemId }) {
                   type: "material-community",
                   color: "white",
                }}
-               iconPosition="right"
                onPress={() => {
-                  addDetailItem(item, parentItemId),
-                     removeDetailItem(item.id),
+                  addDetailItem(item, adjustmentId),
                      navigation.navigate("Adjustment Detail", {
-                        id: parentItemId,
+                        id: adjustmentId,
                      });
                }}
             />
@@ -130,7 +122,6 @@ const styles = StyleSheet.create({
    },
    suggestionTab: {
       padding: 10,
-      backgroundColor: "silver",
       borderRadius: 5,
       marginVertical: 5,
    },

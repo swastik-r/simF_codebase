@@ -1,33 +1,34 @@
 // React Native Imports
-import { SafeAreaView, StyleSheet, StatusBar } from "react-native";
+import { SafeAreaView, StyleSheet, Pressable } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import "react-native-gesture-handler";
 
 // React Native Elements UI Library
-import {
-   Button,
-   createTheme,
-   ThemeProvider,
-   Icon,
-   ButtonGroup,
-} from "@rneui/themed";
+import { createTheme, Icon, ThemeProvider } from "@rneui/themed";
 
 // Custom Components
-import Header from "./comps/Header";
-import Footer from "./comps/Footer";
+import Header from "./globalComps/Header";
+import Footer from "./globalComps/Footer";
+import Toast, { BaseToast } from "react-native-toast-message";
 
-// Page Imports
-import InventoryAdjustmentPage from "./page/InventoryAdjustment/InventoryAdjustmentPage";
-import AdjustmentDetailPage from "./page/AdjustmentDetail/AdjustmentDetailPage";
-import AddDetailItem from "./page/AdjustmentDetail/AddDetailItem";
-import AdjustmentSummaryPage from "./page/AdjustmentSummary/AdjustmentSummaryPage";
+// IA Imports
+import InventoryAdjustmentPage from "./modules/InventoryAdjustment/AdjustmentListing/InventoryAdjustmentPage";
+import AdjustmentDetailPage from "./modules/InventoryAdjustment/AdjustmentDetail/AdjustmentDetailPage";
+import AddDetailItem from "./modules/InventoryAdjustment/AdjustmentDetail/AddDetailItem";
+import AdjustmentSummaryPage from "./modules/InventoryAdjustment/AdjustmentSummary/AdjustmentSummaryPage";
 import { useFonts } from "expo-font";
 import AdjustmentDetailProvider from "./context/DataContext";
-import CameraView from "./page/AdjustmentDetail/CameraView";
-import ManualSearch from "./page/AdjustmentDetail/ManualSearch";
 import { VisibilityProvider } from "./context/VisibilityContext";
-import { useVisibilityContext } from "./context/VisibilityContext";
+import CameraView from "./modules/InventoryAdjustment/AdjustmentDetail/CameraView";
+import ManualSearch from "./modules/InventoryAdjustment/AdjustmentDetail/ManualSearch";
+
+// DSD Imports
+import DsdListing from "./modules/DSD/DsdListing/DsdListing";
+import DsdSummary from "./modules/DSD/DsdSummary/DsdSummary";
+import DsdItemListing from "./modules/DSD/AddDSDItem/DsdItemListing";
+import AddDsdItem from "./modules/DSD/AddDSDItem/AddDetailItem";
+import ManualSearchDSD from "./modules/DSD/AddDSDItem/ManualSearch";
 
 const theme = createTheme({
    mode: "light",
@@ -38,7 +39,48 @@ const theme = createTheme({
       white: "#f0f0f0",
       text: "#000000",
    },
+   fonts: {
+      regular: "Montserrat-Regular",
+      medium: "Montserrat-Medium",
+      bold: "Montserrat-Bold",
+   },
 });
+
+const toastConfig = {
+   success: (props) => (
+      <BaseToast
+         {...props}
+         style={{ borderLeftColor: theme.lightColors.primary }}
+         text1Style={{
+            fontFamily: "Montserrat-Bold",
+            fontSize: 17,
+            color: theme.lightColors.primary,
+         }}
+         text2Style={{
+            fontFamily: "Montserrat-Regular",
+            fontSize: 14,
+            color: theme.lightColors.tertiary,
+         }}
+      />
+   ),
+   error: (props) => (
+      <BaseToast
+         {...props}
+         style={{ borderLeftColor: theme.lightColors.secondary }}
+         text1Style={{
+            fontFamily: "Montserrat-Bold",
+            fontSize: 17,
+            color: theme.lightColors.secondary,
+         }}
+         text2Style={{
+            fontFamily: "Montserrat-Regular",
+            fontSize: 14,
+            color: theme.lightColors.tertiary,
+         }}
+      />
+   ),
+};
+
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -48,100 +90,114 @@ export default function App() {
       return null;
    }
 
-   function SearchIcon() {
-      const { searchVisible, setSearchVisible } = useVisibilityContext();
-      return (
-         <>
-            <Icon
-               // name should be "search" when searchVisible is false, and "close" when searchVisible is true
-               name={searchVisible ? "search-off" : "search"}
-               size={searchVisible ? 20 : 25}
-               color={theme.lightColors.secondary}
-               containerStyle={{
-                  marginLeft: 10,
-               }}
-               onPress={() => {
-                  setSearchVisible(!searchVisible);
-               }}
-            />
-
-            {
-               // If searchVisible is true, show "Close" button, else show "Search" button
-               searchVisible && (
-                  <Button
-                     title="HIDE"
-                     type="clear"
-                     titleStyle={{
-                        color: theme.lightColors.secondary,
-                        fontFamily: "Montserrat-Regular",
-                        fontSize: 12,
-                     }}
-                     onPress={() => {
-                        setSearchVisible(false);
-                     }}
-                  />
-               )
-            }
-         </>
-      );
-   }
-
    return (
-      <ThemeProvider theme={theme}>
-         <StatusBar />
-         <Header />
-         <NavigationContainer>
-            <SafeAreaView style={styles.container}>
-               <AdjustmentDetailProvider>
-                  <VisibilityProvider>
-                     <Stack.Navigator
-                        initialRouteName="Inventory Adjustment"
-                        screenOptions={{
-                           headerTintColor: theme.lightColors.secondary,
-                           headerStyle: {
-                              backgroundColor: "white",
-                           },
-                           headerTitleStyle: {
-                              fontFamily: "Montserrat-Bold",
-                           },
-                        }}
-                     >
-                        <Stack.Screen
-                           name="Inventory Adjustment"
-                           component={InventoryAdjustmentPage}
-                        />
-                        <Stack.Screen
-                           name="Adjustment Detail"
-                           component={AdjustmentDetailPage}
-                           options={(route) => {
-                              return {
-                                 title: `Adjustment - ${route.route.params.id}`,
-                              };
+      <>
+         <ThemeProvider theme={theme}>
+            <Header />
+            <AdjustmentDetailProvider>
+               <VisibilityProvider>
+                  <NavigationContainer>
+                     <SafeAreaView style={styles.container}>
+                        <Stack.Navigator
+                           initialRouteName="Direct Store Deliveries"
+                           screenOptions={{
+                              headerTitleAlign: "center",
+                              headerTintColor: theme.lightColors.primary,
+                              headerTitleStyle: {
+                                 fontFamily: "Montserrat-Bold",
+                                 fontSize: 16,
+                              },
+                              headerShadowVisible: false,
                            }}
-                        />
-                        <Stack.Screen
-                           name="Adjustment Summary"
-                           component={AdjustmentSummaryPage}
-                        />
-                        <Stack.Screen
-                           name="Add Detail Item"
-                           component={AddDetailItem}
-                        />
-                        <Stack.Screen
-                           name="Capture Barcode"
-                           component={CameraView}
-                        />
-                        <Stack.Screen
-                           name="Manual Search"
-                           component={ManualSearch}
-                        />
-                     </Stack.Navigator>
-                  </VisibilityProvider>
-               </AdjustmentDetailProvider>
-            </SafeAreaView>
-            <Footer />
-         </NavigationContainer>
-      </ThemeProvider>
+                        >
+                           {/* Direct Store Delivery */}
+                           <Stack.Screen
+                              name="Direct Store Deliveries"
+                              component={DsdListing}
+                           />
+                           <Stack.Screen
+                              name="DSD Summary"
+                              component={DsdSummary}
+                              options={(route) => {
+                                 return {
+                                    title: `Summary : ${route.route.params.dsdId}`,
+                                 };
+                              }}
+                           />
+                           <Stack.Screen
+                              name="DSD Item List"
+                              component={DsdItemListing}
+                              options={(route) => {
+                                 return {
+                                    title: `DSD Items : ${route.route.params.dsdId}`,
+                                 };
+                              }}
+                           />
+                           <Stack.Screen
+                              name="Add DSD Item"
+                              component={AddDsdItem}
+                              options={(route) => {
+                                 return {
+                                    title: `Add Items : ${route.route.params.dsdId}`,
+                                 };
+                              }}
+                           />
+                           <Stack.Screen
+                              name="ManualSearch/DSD"
+                              component={ManualSearchDSD}
+                           />
+
+                           {/* Inventory Adjustment */}
+                           <Stack.Screen
+                              name="Inventory Adjustment"
+                              component={InventoryAdjustmentPage}
+                           />
+                           <Stack.Screen
+                              name="Adjustment Detail"
+                              component={AdjustmentDetailPage}
+                              options={({ route }) => ({
+                                 title: `Adjustment - ${route.params.id}`,
+                                 headerRight: () => (
+                                    <Pressable onPress={() => {}}>
+                                       <Icon
+                                          name="dots-vertical"
+                                          type="material-community"
+                                          color={theme.lightColors.secondary}
+                                       />
+                                    </Pressable>
+                                 ),
+                              })}
+                           />
+                           <Stack.Screen
+                              name="Adjustment Summary"
+                              component={AdjustmentSummaryPage}
+                           />
+                           <Stack.Screen
+                              name="Add Detail Item"
+                              component={AddDetailItem}
+                              options={(route) => {
+                                 return {
+                                    title: `Add Item - Adjustment ${route.route.params.id}`,
+                                 };
+                              }}
+                           />
+                           <Stack.Screen
+                              name="Capture Barcode"
+                              component={CameraView}
+                           />
+                           <Stack.Screen
+                              name="Manual Search"
+                              component={ManualSearch}
+                           />
+                        </Stack.Navigator>
+                     </SafeAreaView>
+                     <Footer />
+                  </NavigationContainer>
+               </VisibilityProvider>
+            </AdjustmentDetailProvider>
+         </ThemeProvider>
+         <Toast config={toastConfig} />
+      </>
    );
 }
 

@@ -1,7 +1,7 @@
 import React from "react";
 import { Text, View, Image, StyleSheet } from "react-native";
 import { Button } from "@rneui/themed";
-import barcodeIllustration from "../../assets/barcodeIllustration.jpg";
+import barcodeIllustration from "../../../assets/barcodeIllustration.jpg";
 import { useTheme } from "@rneui/themed";
 import { useNavigation } from "@react-navigation/native";
 
@@ -65,7 +65,7 @@ export default function AddDetailItem({ route }) {
                   }}
                   onPress={() => {
                      navigation.navigate(button.redirectTo, {
-                        parentItemId: id,
+                        adjustmentId: id,
                      });
                   }}
                />

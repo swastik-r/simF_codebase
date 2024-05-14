@@ -1,8 +1,8 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { useAdjustmentDetail } from "../../../context/DataContext";
+import { useAdjustmentDetail } from "../../../../context/DataContext";
 
-export default function SummaryCard({ item, serialNumber }) {
+export default function SummaryCard({ item, serialNumber, adjustmentReason }) {
    const { sizeMap, reasonMap } = useAdjustmentDetail();
    function sizeString(size) {
       return sizeMap[size];
@@ -26,10 +26,6 @@ export default function SummaryCard({ item, serialNumber }) {
          text: sizeString(item.info.size),
       },
       {
-         title: "Reason",
-         text: reasonString(item.reason),
-      },
-      {
          title: "Quantity",
          text: item.qty,
       },
@@ -38,16 +34,23 @@ export default function SummaryCard({ item, serialNumber }) {
    return (
       <View style={styles.cardContainer}>
          <View style={styles.cardHeader}>
-            <Text style={styles.serialNumber}>{serialNumber}</Text>
+            <Text style={styles.serialNumber}>{serialNumber} :</Text>
             <Text style={styles.cardHeaderTitle}>{item.id}</Text>
          </View>
-
          {info.map((item, index) => (
             <View key={index} style={styles.cardContent}>
                <Text style={styles.cardContentTitle}>{item.title}</Text>
                <Text style={styles.cardContentText}>{item.text}</Text>
             </View>
          ))}
+         {adjustmentReason === "multiple" && (
+            <View style={styles.cardContent}>
+               <Text style={styles.cardContentTitle}>Reason</Text>
+               <Text style={styles.cardContentText}>
+                  {reasonString(item.reason)}
+               </Text>
+            </View>
+         )}
       </View>
    );
 }
@@ -55,9 +58,9 @@ export default function SummaryCard({ item, serialNumber }) {
 const styles = StyleSheet.create({
    cardContainer: {
       backgroundColor: "white",
-      borderWidth: 1,
-      borderRadius: 10,
-      borderColor: "silver",
+      // borderWidth: 1,
+      borderRadius: 5,
+      // borderColor: "silver",
       marginTop: 10,
       marginHorizontal: 10,
       padding: 10,
@@ -65,18 +68,18 @@ const styles = StyleSheet.create({
    },
    cardHeader: {
       flexDirection: "row",
-      justifyContent: "space-between",
+      justifyContent: "center",
       alignItems: "center",
-      marginBottom: 10,
+      marginBottom: 5,
    },
    cardHeaderTitle: {
       fontSize: 14,
       fontFamily: "Montserrat-Bold",
    },
    serialNumber: {
-      fontSize: 14,
       fontFamily: "Montserrat-Bold",
       color: "dodgerblue",
+      marginRight: 5,
    },
    cardContent: {
       marginBottom: 5,

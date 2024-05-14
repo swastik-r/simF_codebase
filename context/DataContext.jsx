@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import Toast from "react-native-toast-message";
 
 const AdjustmentDetailContext = createContext();
 export function useAdjustmentDetail() {
@@ -8,7 +9,16 @@ export function useAdjustmentDetail() {
 export default function AdjustmentDetailProvider({ children }) {
    const adjustmentInfo = {
       progress: ["complete", "inProgress"],
-      reasons: ["damaged", "theft", "stockIn", "stockOut", "multiple"],
+      reasons: [
+         "damaged",
+         "theft",
+         "stockIn",
+         "stockOut",
+         "multiple",
+         "multiple",
+         "multiple",
+         "multiple",
+      ], // multiple is repeated to increase its probability
    };
    const itemInfo = {
       size: ["small", "medium", "large", "extraLarge"],
@@ -19,14 +29,16 @@ export default function AdjustmentDetailProvider({ children }) {
          "Oversized Hoodie",
          "Floral Long Dress",
       ],
-      reasons: ["damaged", "theft", "stockIn", "stockOut"],
+      reasons: ["damaged", "theft", "stockIn", "stockOut", "sellable"],
    };
    const reasonMap = {
       damaged: "Damaged",
       stockIn: "Stock In",
       stockOut: "Stock Out",
       theft: "Theft",
+      sellable: "Sellable",
       multiple: "Multiple",
+      undefined: "Select Reason",
    };
    const sizeMap = {
       small: "S",
@@ -34,12 +46,18 @@ export default function AdjustmentDetailProvider({ children }) {
       large: "L",
       extraLarge: "XL",
    };
+   function reasonString(reasonCode) {
+      return reasonMap[reasonCode];
+   }
+   function sizeString(size) {
+      return sizeMap[size];
+   }
 
-   // ---------------------- Data Generation Functions ----------------------
+   // ---------------------- Data Generation: IA ----------------------
 
    function randomItem(arr) {
       return arr[Math.floor(Math.random() * arr.length)];
-   } // provide a random value from an array
+   } // select a random value from an array
 
    function generateData() {
       function randomAdjustmentData(numItems) {
@@ -71,13 +89,15 @@ export default function AdjustmentDetailProvider({ children }) {
                progress: getRandomProgress(),
                date: String(getRandomDate()),
                reason: adjustmentReason,
+               defaultReason: adjustmentReason === "multiple" ? false : true,
                detailItems: data,
                totalSKU: totalSKU,
+               proofImages: [],
             };
          });
       }
 
-      return randomAdjustmentData(10);
+      return randomAdjustmentData(30);
    } // generate random adjustment data
 
    function randomDetailData(numItems) {
@@ -110,9 +130,10 @@ export default function AdjustmentDetailProvider({ children }) {
             // reason to be adjustment's reason if it's not multiple, else random reason
             const reason =
                adjustmentReason === "multiple"
-                  ? randomItem(itemInfo.reasons)
+                  ? // the reason must not be sellable
+                    randomItem(itemInfo.reasons.filter((r) => r !== "sellable"))
                   : adjustmentReason;
-            data.push({ id, info, qty, reason });
+            data.push({ id, info, qty, reason, proofImages: [] });
             totalSKU += qty;
          }
          return { data, totalSKU, adjustmentReason };
@@ -121,16 +142,377 @@ export default function AdjustmentDetailProvider({ children }) {
       return generateRandomData(numItems);
    } // generate random detail items data
 
-   // ---------------------- States Management ----------------------
+   // ---------------------- Data Generation: DSD ----------------------
+
+   const dsdStatus = {
+      DRAFT: "draft",
+      COMPLETE: "complete",
+   };
+   const supplierInfo = [
+      // the supplier ids should be numeric
+      {
+         id: "12345678",
+         name: "ABC Inc.",
+      },
+      {
+         id: "87654321",
+         name: "DEF Corp.",
+      },
+      {
+         id: "65432187",
+         name: "Divye Industries",
+      },
+      {
+         id: "43218765",
+         name: "JKL Manufacturing",
+      },
+      {
+         id: "21876543",
+         name: "MNO Enterprises",
+      },
+      {
+         id: "18765432",
+         name: "RST Solutions",
+      },
+      {
+         id: "87654320",
+         name: "Swastik Corp.",
+      },
+      {
+         id: "76543218",
+         name: "XYZ Inc.",
+      },
+   ];
+
+   function generateId(len = 8) {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      let id = "";
+      for (let i = 0; i < len; i++) {
+         id += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return id;
+   }
+
+   function generateDate() {
+      const start = new Date(2024, 0, 1);
+      const end = new Date();
+      return new Date(
+         start.getTime() + Math.random() * (end.getTime() - start.getTime())
+      );
+   }
+
+   function generateSupplier() {
+      const suppliers = [
+         "ABC Inc.",
+         "DEF Corp.",
+         "Divye Industries",
+         "JKL Manufacturing",
+         "MNO Enterprises",
+         "RST Solutions",
+         "Swastik Corp.",
+         "XYZ Inc.",
+      ];
+      return suppliers[Math.floor(Math.random() * suppliers.length)];
+   }
+
+   function generateDsdData(num = 10) {
+      // DSD (ID, Date, Supplier, Total Qty, DSD Items Array, Damage Proof) => DSD Object
+
+      // Sample DSD Items: all the sampleDetailsItems without the reason and proofImages fields and random qty
+      const sampleDsdItems = sampleDetailItems.map((item) => {
+         const { reason, proofImages, ...restFields } = item;
+         return restFields;
+      });
+
+      function generateDsdItems() {
+         // must not have the same item twice
+         const items = sampleDsdItems;
+         // for each item in items, generate a random qty between 1 and 10 and remove the reason field
+         const selectedItems = [];
+         for (let i = 0; i < items.length; i++) {
+            const qty = Math.floor(Math.random() * 10) + 1;
+            // damagedQty is a random number between 0 and qty, but mostly 0
+            const choice = Math.random();
+            const damagedQty =
+               choice < 0.5 ? 0 : Math.floor(Math.random() * qty);
+            selectedItems.push({ ...items[i], qty, damagedQty });
+         }
+         return selectedItems;
+      }
+
+      const dsdData = [];
+      for (let i = 0; i < num; i++) {
+         const dsdItems = generateDsdItems();
+         const units = dsdItems.reduce((acc, curr) => acc + curr.qty, 0);
+         dsdData.push({
+            id: generateId(),
+            status: dsdStatus.COMPLETE,
+            date: generateDate(),
+            units: units,
+            supplier: generateSupplier(),
+            dsdItems: dsdItems,
+            damageProof: [],
+         });
+      }
+      return dsdData;
+   } // generate random DSD data
+
+   function createNewDsd(supplierId) {
+      // if supplierId does not exist in the supplierInfo, Toast error and return
+      if (!supplierInfo.find((supplier) => supplier.id === supplierId)) {
+         Toast.show({
+            type: "error",
+            text1: "Invalid Supplier ID",
+            text2: "Please enter a valid Supplier ID",
+         });
+         return;
+      }
+      const newDsd = {
+         id: generateId(),
+         // a random 10-digit number
+         po: Math.floor(Math.random() * 10000000000),
+         status: dsdStatus.DRAFT,
+         date: new Date(),
+         supplier: supplierInfo.find((supplier) => supplier.id === supplierId)
+            .name,
+         units: 0,
+         dsdItems: [],
+         damageProof: [],
+      };
+      console.log("New DSD Created");
+      console.log(newDsd);
+      setDsdData([newDsd, ...dsdData]);
+      return newDsd.id;
+   } //  generate a new DSD object and add to the dsdData
+
+   // ---------------------- States Management: IA ----------------------
 
    const [initialData] = useState(generateData());
    const [data, setData] = useState(initialData);
    const [sortApplied, setSortApplied] = useState(false);
    const [filterApplied, setFilterApplied] = useState(false);
-   const [sampleDetailItems, setSampleDetailItems] = useState(
-      randomDetailData(20)
-   );
-   sampleDetailItems.data.forEach((item) => (item.qty = 1)); // <--- To fix the qty issue, mod gen func later
+   const sampleDetailItems = [
+      {
+         id: "8B87C9D35BAD",
+         info: {
+            name: "Floral Long Dress",
+            color: "red",
+            size: "extraLarge",
+         },
+         qty: 1,
+         reason: "undefined",
+         proofImages: [],
+      },
+      {
+         id: "A9A09266D66C",
+         info: {
+            name: "Slim Fit Jeans",
+            color: "grey",
+            size: "extraLarge",
+         },
+         qty: 1,
+         reason: "undefined",
+         proofImages: [],
+      },
+      {
+         id: "C0B7D2554DA0",
+         info: {
+            name: "Floral Long Dress",
+            color: "blue",
+            size: "small",
+         },
+         qty: 1,
+         reason: "undefined",
+         proofImages: [],
+      },
+      {
+         id: "B07D67DC17AB",
+         info: {
+            name: "Polo T-Shirt",
+            color: "grey",
+            size: "small",
+         },
+         qty: 1,
+         reason: "undefined",
+         proofImages: [],
+      },
+      {
+         id: "C5B256CB9952",
+         info: {
+            name: "Slim Fit Jeans",
+            color: "black",
+            size: "extraLarge",
+         },
+         qty: 1,
+         reason: "undefined",
+         proofImages: [],
+      },
+      {
+         id: "D2242AA9B773",
+         info: {
+            name: "Polo T-Shirt",
+            color: "grey",
+            size: "small",
+         },
+         qty: 1,
+         reason: "undefined",
+         proofImages: [],
+      },
+      {
+         id: "AC59AA2AD242",
+         info: {
+            name: "Slim Fit Jeans",
+            color: "green",
+            size: "extraLarge",
+         },
+         qty: 1,
+         reason: "undefined",
+         proofImages: [],
+      },
+      {
+         id: "9D8D214D014C",
+         info: {
+            name: "Oversized Hoodie",
+            color: "green",
+            size: "extraLarge",
+         },
+         qty: 1,
+         reason: "undefined",
+         proofImages: [],
+      },
+      {
+         id: "1C2CDAC993B3",
+         info: {
+            name: "Floral Long Dress",
+            color: "red",
+            size: "medium",
+         },
+         qty: 1,
+         reason: "undefined",
+         proofImages: [],
+      },
+      {
+         id: "7A232CC18C08",
+         info: {
+            name: "Oversized Hoodie",
+            color: "grey",
+            size: "extraLarge",
+         },
+         qty: 1,
+         reason: "undefined",
+         proofImages: [],
+      },
+      {
+         id: "5A3230D14923",
+         info: {
+            name: "Slim Fit Jeans",
+            color: "red",
+            size: "extraLarge",
+         },
+         qty: 1,
+         reason: "undefined",
+         proofImages: [],
+      },
+      {
+         id: "930554632195",
+         info: {
+            name: "Slim Fit Jeans",
+            color: "red",
+            size: "small",
+         },
+         qty: 1,
+         reason: "undefined",
+         proofImages: [],
+      },
+      {
+         id: "293093406734",
+         info: {
+            name: "Floral Long Dress",
+            color: "black",
+            size: "medium",
+         },
+         qty: 1,
+         reason: "undefined",
+         proofImages: [],
+      },
+      {
+         id: "026785B43787",
+         info: {
+            name: "Polo T-Shirt",
+            color: "blue",
+            size: "extraLarge",
+         },
+         qty: 1,
+         reason: "undefined",
+         proofImages: [],
+      },
+      {
+         id: "C67C13C1B809",
+         info: {
+            name: "Polo T-Shirt",
+            color: "grey",
+            size: "large",
+         },
+         qty: 1,
+         reason: "undefined",
+         proofImages: [],
+      },
+      {
+         id: "529276973B7D",
+         info: {
+            name: "Polo T-Shirt",
+            color: "black",
+            size: "extraLarge",
+         },
+         qty: 1,
+         reason: "undefined",
+         proofImages: [],
+      },
+      {
+         id: "04B8392BC950",
+         info: {
+            name: "Slim Fit Jeans",
+            color: "green",
+            size: "small",
+         },
+         qty: 1,
+         reason: "undefined",
+         proofImages: [],
+      },
+      {
+         id: "04A6A7213765",
+         info: {
+            name: "Polo T-Shirt",
+            color: "green",
+            size: "large",
+         },
+         qty: 1,
+         reason: "undefined",
+         proofImages: [],
+      },
+      {
+         id: "24475375C68B",
+         info: {
+            name: "Slim Fit Jeans",
+            color: "blue",
+            size: "large",
+         },
+         qty: 1,
+         reason: "undefined",
+         proofImages: [],
+      },
+      {
+         id: "0613929A464A",
+         info: {
+            name: "Oversized Hoodie",
+            color: "black",
+            size: "medium",
+         },
+         qty: 1,
+         reason: "undefined",
+         proofImages: [],
+      },
+   ];
    const [searchStr, setSearchStr] = useState("");
    const initialFilterParams = {
       reason: [],
@@ -138,7 +520,26 @@ export default function AdjustmentDetailProvider({ children }) {
    };
    const [filterParams, setFilterParams] = useState(initialFilterParams);
 
-   // ---------------------- Data Manipulation ----------------------
+   // ---------------------- States Management: DSD ----------------------
+
+   const [dsdData, setDsdData] = useState(generateDsdData());
+   const sampleDsdItems = sampleDetailItems.map((item) => {
+      const { reason, ...restFields } = item;
+      return { ...restFields, damagedQty: 0 };
+   });
+
+   // ---------------------- Data Manipulation: DSD ----------------------
+
+   function getDsdItems(id) {
+      // log error if the id does not exist in the dsdData
+      if (!dsdData.find((dsd) => dsd.id === id)) {
+         console.error("DSD with ID: " + id + " does not exist");
+         return [];
+      }
+      return dsdData.find((dsd) => dsd.id === id).dsdItems;
+   }
+
+   // ---------------------- Data Manipulation: IA ----------------------
 
    function createNewAdjustment(newId) {
       const newAdjustment = {
@@ -146,6 +547,7 @@ export default function AdjustmentDetailProvider({ children }) {
          progress: "inProgress",
          date: new Date(),
          reason: "No Items Added",
+         defaultReason: false,
          detailItems: [],
          totalSKU: 0,
       };
@@ -170,6 +572,27 @@ export default function AdjustmentDetailProvider({ children }) {
 
       setData(updatedData);
       console.log("Deleted: " + itemId + " > " + parentItemId);
+   }
+
+   function refreshReason(id) {
+      const updatedData = data.map((item) => {
+         if (item.id === id) {
+            const reasons = item.detailItems.map(
+               (detailItem) => detailItem.reason
+            );
+            const uniqueReasons = new Set(reasons);
+            if (uniqueReasons.size === 1) {
+               item.reason = uniqueReasons.values().next().value;
+               item.defaultReason = true;
+            } else {
+               item.reason = "multiple";
+               item.defaultReason = false;
+            }
+         }
+         return item;
+      });
+      setData(updatedData);
+      console.log("Refreshed Reason for Adjustment: " + id);
    }
 
    function addQty(itemId, parentItemId) {
@@ -237,30 +660,48 @@ export default function AdjustmentDetailProvider({ children }) {
       console.log("Completed Adjustment with ID: " + id);
    }
 
+   function addAdjustmentProof(image, id) {
+      const updatedData = data.map((item) => {
+         if (item.id === id) {
+            item.proofImages.push(image);
+         }
+         return item;
+      });
+      setData(updatedData);
+   }
+
    function addDetailItem(item, parentItemId) {
       const updatedData = data.map((parentItem) => {
          if (parentItem.id === parentItemId) {
-            parentItem.detailItems.push(item);
-            parentItem.totalSKU += item.qty;
+            // check if the item already exists in the parentItem
+            const existingItem = parentItem.detailItems.find(
+               (detailItem) => detailItem.id === item.id
+            );
+            if (existingItem) {
+               // if the item is already in the parentItem, add 1 to the qty
+               existingItem.qty += item.qty;
+               parentItem.totalSKU += item.qty;
+            } else {
+               parentItem.detailItems.push(item);
+               parentItem.totalSKU += item.qty;
+            }
          }
          return parentItem;
       });
       setData(updatedData);
-      console.log("Added Detail Item to Adjustment with ID: " + parentItemId);
-   }
 
-   function removeDetailItem(id) {
-      // remove the item with the given id from the sampleDetailItems
-      const updatedSampleDetailItems = sampleDetailItems.data.filter(
-         (item) => item.id !== id
-      );
-      setSampleDetailItems({ data: updatedSampleDetailItems });
+      // if parentItemId has defaultReason = true, set the reason of the new item to the parent's reason
+      const parentItem = data.find((item) => item.id === parentItemId);
+      if (parentItem.defaultReason) {
+         setItemReasonCode(parentItem.reason, parentItemId, item.id);
+      }
    }
 
    function setDefaultReasonCode(reasonCode, id) {
       const updatedData = data.map((item) => {
          if (item.id === id) {
             item.reason = reasonCode;
+            item.defaultReason = true;
             item.detailItems = item.detailItems.map((detailItem) => {
                detailItem.reason = reasonCode;
                return detailItem;
@@ -269,9 +710,6 @@ export default function AdjustmentDetailProvider({ children }) {
          return item;
       });
       setData(updatedData);
-      console.log(
-         "Set Reason Code to: " + reasonCode + " for Adjustment: " + id
-      );
    }
 
    function setItemReasonCode(reasonCode, parentId, childId) {
@@ -287,22 +725,8 @@ export default function AdjustmentDetailProvider({ children }) {
          return item;
       });
 
-      // update the adjustment's reason code if all the detailItems have the same reason code
-      updatedData.forEach((item) => {
-         if (item.id === parentId) {
-            const reasons = item.detailItems.map(
-               (detailItem) => detailItem.reason
-            );
-            const uniqueReasons = [...new Set(reasons)];
-            if (uniqueReasons.length === 1) {
-               item.reason = uniqueReasons[0];
-            } else {
-               item.reason = "Multiple";
-            }
-         }
-      });
-
       setData(updatedData);
+      refreshReason(parentId);
       console.log(
          "Set Reason Code to: " +
             reasonCode +
@@ -313,7 +737,84 @@ export default function AdjustmentDetailProvider({ children }) {
       );
    }
 
+   function addItemProof(image, itemId, parentItemId) {
+      const updatedData = data.map((item) => {
+         if (item.id === parentItemId) {
+            item.detailItems = item.detailItems.map((detailItem) => {
+               if (detailItem.id === itemId) {
+                  detailItem.proofImages.push(image);
+               }
+               return detailItem;
+            });
+         }
+         return item;
+      });
+      setData(updatedData);
+   }
+
+   function removeItemProof(index, itemId, parentItemId) {
+      const updatedData = data.map((item) => {
+         if (item.id === parentItemId) {
+            item.detailItems = item.detailItems.map((detailItem) => {
+               if (detailItem.id === itemId) {
+                  detailItem.proofImages.splice(index, 1);
+               }
+               return detailItem;
+            });
+         }
+         return item;
+      });
+      setData(updatedData);
+   }
+
+   function changeItemQty(newQty, modItem, parentItemId) {
+      const updatedData = data.map((item) => {
+         if (item.id === parentItemId) {
+            item.detailItems = item.detailItems.map((detailItem) => {
+               if (detailItem.id === modItem.id) {
+                  const qtyDiff = newQty - detailItem.qty;
+                  detailItem.qty = newQty;
+                  item.totalSKU += qtyDiff;
+               }
+               return detailItem;
+            });
+         }
+         return item;
+      });
+      setData(updatedData);
+   }
+
+   function sellableAdjustment(sellableQty, itemId, parentItemId) {
+      // find the item with parentId in the data
+      const updatedData = data.map((item) => {
+         if (item.id === parentItemId) {
+            // find the item with itemId in the detailItems array
+            item.detailItems = item.detailItems.map((detailItem) => {
+               if (detailItem.id === itemId) {
+                  // and add 1 to the qty
+                  detailItem.qty -= sellableQty;
+               }
+               return detailItem;
+            });
+            // update the totalSKU
+            item.totalSKU = item.detailItems.reduce(
+               (acc, curr) => acc + curr.qty,
+               0
+            );
+         }
+         return item;
+      });
+      setData(updatedData);
+      console.log(
+         "Added " +
+            sellableQty +
+            " sellable quantity to item with ID: " +
+            itemId
+      );
+   }
+
    // ---------------------- Sort and Filter ----------------------
+
    function handleSearch(text) {
       console.log("Searching for ID: ", text);
       // find all the adjustments that contain the text in their id
@@ -328,12 +829,14 @@ export default function AdjustmentDetailProvider({ children }) {
          resetSort();
          return;
       }
-      const sortedData = [...initialData]; // Make a copy of initialData
+
+      const sortedData = [...data]; // Make a copy of initialData
       sortedData.sort((a, b) => {
          const dateA = new Date(a.date);
          const dateB = new Date(b.date);
          return sortType === "latest" ? dateB - dateA : dateA - dateB;
       });
+
       setData(sortedData);
       setSortApplied(true);
       console.log("Sorted by: " + sortType);
@@ -342,12 +845,20 @@ export default function AdjustmentDetailProvider({ children }) {
    function resetSort() {
       setData(initialData);
       setSortApplied(false);
-      console.log("Sort reset");
    }
 
    function pushFilterParams(filterType) {
-      const newFilterParams = { ...filterParams };
-      newFilterParams.push(filterType);
+      const newFilterParams = initialFilterParams;
+      if (["inProgress", "complete"].includes(filterType)) {
+         newFilterParams.progress.push(filterType);
+      } else if (
+         ["damaged", "stockIn", "stockOut", "theft"].includes(filterType)
+      ) {
+         newFilterParams.reason.push(filterType);
+      } else {
+         newFilterParams.progress = [];
+         newFilterParams.reason = [];
+      }
       setFilterParams(newFilterParams);
    }
 
@@ -366,17 +877,23 @@ export default function AdjustmentDetailProvider({ children }) {
             return filterParams.progress.includes(item.progress);
          });
       setData(filteredData);
-      setFilterApplied(true);
    }
 
    function resetFilter() {
       setFilterParams(initialFilterParams);
-      setFilterApplied(false);
    }
 
    // ---------------------- Bottom Sheet Options ----------------------
 
    const sortOpts = [
+      {
+         title: "Sort by",
+         titleStyle: {
+            fontFamily: "Montserrat-Regular",
+            fontSize: 25,
+         },
+         containerStyle: [styles.sortOptContainer, { paddingTop: 0 }],
+      },
       {
          title: "Sort by latest",
          icon: {
@@ -385,7 +902,7 @@ export default function AdjustmentDetailProvider({ children }) {
             color: "black",
             size: 35,
          },
-         titleStyle: styles.sortOpt,
+         titleStyle: styles.bottomSheetOpt,
          containerStyle: styles.sortOptContainer,
          sortType: "latest",
       },
@@ -400,7 +917,7 @@ export default function AdjustmentDetailProvider({ children }) {
                transform: [{ scaleY: -1 }],
             },
          },
-         titleStyle: styles.sortOpt,
+         titleStyle: styles.bottomSheetOpt,
          containerStyle: styles.sortOptContainer,
          sortType: "oldest",
       },
@@ -420,6 +937,14 @@ export default function AdjustmentDetailProvider({ children }) {
 
    const filterOpts = [
       {
+         title: "Filter by",
+         titleStyle: {
+            fontFamily: "Montserrat-Regular",
+            fontSize: 25,
+         },
+         containerStyle: [styles.sortOptContainer, { paddingTop: 0 }],
+      },
+      {
          title: "Status",
          icon: {
             name: "progress-question",
@@ -427,11 +952,19 @@ export default function AdjustmentDetailProvider({ children }) {
             color: "black",
             size: 30,
          },
-         titleStyle: styles.sortOpt,
+         titleStyle: styles.bottomSheetOpt,
          containerStyle: styles.sortOptContainer,
-         onPress: () => {
-            // navigate to status filter
+      },
+      {
+         title: "Reason",
+         icon: {
+            name: "report-problem",
+            type: "material",
+            color: "black",
+            size: 30,
          },
+         titleStyle: styles.bottomSheetOpt,
+         containerStyle: styles.sortOptContainer,
       },
       {
          title: "Date",
@@ -441,33 +974,18 @@ export default function AdjustmentDetailProvider({ children }) {
             color: "black",
             size: 30,
          },
-         titleStyle: styles.sortOpt,
+         titleStyle: styles.bottomSheetOpt,
          containerStyle: styles.sortOptContainer,
       },
       {
-         title: "Reason Code",
-         icon: {
-            name: "report-problem",
-            type: "material",
-            color: "black",
-            size: 30,
-         },
-         titleStyle: styles.sortOpt,
-         containerStyle: styles.sortOptContainer,
-      },
-      {
-         title: filterApplied ? "Cancel" : "Reset",
-         icon: filterApplied
-            ? { name: "cancel", type: "material", color: "white" }
-            : { name: "refresh", type: "material", color: "white" },
+         title: "Reset Filter",
+         icon: { name: "refresh", type: "material", color: "white" },
          containerStyle: [
             styles.sortOptContainer,
-            filterApplied
-               ? { backgroundColor: "darkred" }
-               : { backgroundColor: "black" },
+            { backgroundColor: "darkred" },
          ],
          titleStyle: styles.sortOptCancel,
-         onPress: () => resetFilter(),
+         type: "reset",
       },
    ];
 
@@ -480,7 +998,7 @@ export default function AdjustmentDetailProvider({ children }) {
             color: "black",
             size: 30,
          },
-         titleStyle: styles.sortOpt,
+         titleStyle: styles.bottomSheetOpt,
          containerStyle: styles.sortOptContainer,
          filterType: "inProgress",
       },
@@ -492,7 +1010,7 @@ export default function AdjustmentDetailProvider({ children }) {
             color: "black",
             size: 30,
          },
-         titleStyle: styles.sortOpt,
+         titleStyle: styles.bottomSheetOpt,
          containerStyle: styles.sortOptContainer,
          filterType: "complete",
       },
@@ -509,6 +1027,7 @@ export default function AdjustmentDetailProvider({ children }) {
             { backgroundColor: "darkred" },
          ],
          titleStyle: styles.sortOptCancel,
+         filterType: "reset",
       },
    ];
 
@@ -521,13 +1040,9 @@ export default function AdjustmentDetailProvider({ children }) {
             color: "black",
             size: 30,
          },
-         titleStyle: styles.sortOpt,
+         titleStyle: styles.bottomSheetOpt,
          containerStyle: styles.sortOptContainer,
-         onPress: () => {
-            const newFilterParams = filterParams;
-            newFilterParams.reason.push("Damaged");
-            setFilterParams(newFilterParams);
-         },
+         filterType: "damaged",
       },
       {
          title: "Stock In",
@@ -537,13 +1052,9 @@ export default function AdjustmentDetailProvider({ children }) {
             color: "black",
             size: 30,
          },
-         titleStyle: styles.sortOpt,
+         titleStyle: styles.bottomSheetOpt,
          containerStyle: styles.sortOptContainer,
-         onPress: () => {
-            const newFilterParams = filterParams;
-            newFilterParams.reason.push("stockIn");
-            setFilterParams(newFilterParams);
-         },
+         filterType: "stockIn",
       },
       {
          title: "Stock Out",
@@ -553,13 +1064,9 @@ export default function AdjustmentDetailProvider({ children }) {
             color: "black",
             size: 30,
          },
-         titleStyle: styles.sortOpt,
+         titleStyle: styles.bottomSheetOpt,
          containerStyle: styles.sortOptContainer,
-         onPress: () => {
-            const newFilterParams = filterParams;
-            newFilterParams.reason.push("stockOut");
-            setFilterParams(newFilterParams);
-         },
+         filterType: "stockOut",
       },
       {
          title: "Theft",
@@ -569,13 +1076,25 @@ export default function AdjustmentDetailProvider({ children }) {
             color: "black",
             size: 30,
          },
-         titleStyle: styles.sortOpt,
+         titleStyle: styles.bottomSheetOpt,
          containerStyle: styles.sortOptContainer,
-         onPress: () => {
-            const newFilterParams = filterParams;
-            newFilterParams.reason.push("theft");
-            setFilterParams(newFilterParams);
+         filterType: "theft",
+      },
+      {
+         // this is the reset filter option
+         // it's title, icon and background color are based on whether the filter is applied
+         title: filterApplied ? "Reset" : "Cancel",
+         icon: {
+            name: filterApplied ? "refresh" : "cancel",
+            type: "material",
+            color: "white",
          },
+         containerStyle: [
+            styles.sortOptContainer,
+            { backgroundColor: "darkred" },
+         ],
+         titleStyle: styles.sortOptCancel,
+         filterType: "reset",
       },
    ];
 
@@ -584,6 +1103,11 @@ export default function AdjustmentDetailProvider({ children }) {
    // filter data
    useEffect(() => {
       filterData();
+      setFilterApplied(
+         JSON.stringify(filterParams) === JSON.stringify(initialFilterParams)
+            ? false
+            : true
+      );
    }, [filterParams]);
 
    // ---------------------- Context Values ----------------------
@@ -592,10 +1116,13 @@ export default function AdjustmentDetailProvider({ children }) {
       itemInfo,
       reasonMap,
       sizeMap,
+      reasonString,
+      sizeString,
       generateData,
       createNewAdjustment,
       data,
       setData,
+      initialData,
       deleteItem,
       searchStr,
       setSearchStr,
@@ -608,6 +1135,7 @@ export default function AdjustmentDetailProvider({ children }) {
       sortByDate,
       pushFilterParams,
       filterData,
+      resetFilter,
       filterOpts,
       statusFilterOpts,
       reasonFilterOpts,
@@ -615,11 +1143,22 @@ export default function AdjustmentDetailProvider({ children }) {
       addQty,
       subQty,
       completeAdjustment,
+      addAdjustmentProof,
       addDetailItem,
-      removeDetailItem,
       setDefaultReasonCode,
       setItemReasonCode,
       sampleDetailItems,
+      addItemProof,
+      removeItemProof,
+      changeItemQty,
+      sellableAdjustment,
+
+      // DSD
+      dsdData,
+      setDsdData,
+      sampleDsdItems,
+      createNewDsd,
+      getDsdItems,
    };
 
    return (
@@ -630,7 +1169,7 @@ export default function AdjustmentDetailProvider({ children }) {
 }
 
 const styles = {
-   sortOpt: {
+   bottomSheetOpt: {
       fontFamily: "Montserrat-Medium",
    },
    sortOptCancel: {

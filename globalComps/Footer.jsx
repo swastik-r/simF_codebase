@@ -1,9 +1,11 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Icon } from "@rneui/base";
 import { useTheme } from "@rneui/themed";
+import { useNavigation } from "@react-navigation/native";
 
 export default function Footer() {
    const { theme } = useTheme();
+   const navigation = useNavigation();
    // Footer items with Title and Icon
    const footerItems = [
       {
@@ -15,10 +17,11 @@ export default function Footer() {
       },
       {
          icon: {
-            name: "file-search-outline",
+            name: "book-settings",
             type: "material-community",
          },
-         title: "Item",
+         title: "IA",
+         redirectTo: "Inventory Adjustment",
       },
       {
          icon: {
@@ -42,6 +45,7 @@ export default function Footer() {
             containerStyle: { marginBottom: 5 },
          },
          title: "DSD",
+         redirectTo: "Direct Store Deliveries",
       },
    ];
 
@@ -53,7 +57,11 @@ export default function Footer() {
          }}
       >
          {footerItems.map((item, index) => (
-            <TouchableOpacity key={index} style={styles.footerButton}>
+            <TouchableOpacity
+               key={index}
+               style={styles.footerButton}
+               onPress={() => navigation.navigate(item.redirectTo)}
+            >
                <Icon color="white" size={25} {...item.icon} />
                <Text style={styles.footerContent}>{item.title}</Text>
             </TouchableOpacity>

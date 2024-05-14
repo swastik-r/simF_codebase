@@ -66,44 +66,52 @@ export default function AdjustmentCard({ item }) {
                </View>
             </View>
 
-            <View style={{ alignItems: "center" }}>
-               <Text style={styles.cardTitle}>Total SKU</Text>
-               <Text
-                  style={[
-                     styles.cardData,
-                     { fontFamily: "Montserrat-Bold", fontSize: 18 },
-                  ]}
-               >
-                  {item.totalSKU}
-               </Text>
-            </View>
+            <View
+               style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+               }}
+            >
+               <View style={{ alignItems: "center" }}>
+                  <Text style={styles.cardTitle}>Quantity</Text>
+                  <Text
+                     style={[
+                        styles.cardData,
+                        { fontFamily: "Montserrat-Bold", fontSize: 15 },
+                     ]}
+                  >
+                     {item.totalSKU}
+                  </Text>
+               </View>
 
-            <Icon
-               name="arrow-forward-ios"
-               type="material"
-               size={25}
-               color="black"
-            />
+               <Icon
+                  name="arrow-forward-ios"
+                  type="material"
+                  size={25}
+                  color="black"
+                  style={{ marginLeft: 20 }}
+               />
+            </View>
          </Pressable>
       </Card>
    );
 }
 
-// Chip component to display progress
+// Chip component to display adjustment's progress
 function ProgressChip({ progress }) {
    const chipData = {
       complete: {
-         title: "Complete",
+         title: "COMPLETE",
          color: "#1a8a01",
          titleColor: "white",
       },
       inProgress: {
-         title: "In Progress",
+         title: "IN PROGRESS",
          color: "#ffbb00",
          titleColor: "black",
       },
       pending: {
-         title: "Pending",
+         title: "PENDING",
          color: "#ff0000",
          titleColor: "white",
       },
@@ -131,9 +139,9 @@ function ProgressChip({ progress }) {
 
 const styles = StyleSheet.create({
    cardId: {
-      fontFamily: "Montserrat-Medium",
-      fontSize: 18,
+      fontFamily: "Montserrat-Bold",
       color: "black",
+      fontSize: 16,
    },
    cardHeader: {
       flexDirection: "row",
@@ -146,19 +154,18 @@ const styles = StyleSheet.create({
       alignItems: "center",
    },
    cardContent: {
-      margin: 4,
+      margin: 2,
    },
    cardTitle: {
       color: "black",
-      fontFamily: "Montserrat-Medium",
-   },
-   cardData: {
-      fontSize: 16,
-      color: "black",
       fontFamily: "Montserrat-Regular",
    },
+   cardData: {
+      color: "black",
+      fontFamily: "Montserrat-Medium",
+   },
    chipTitle: {
-      fontSize: 12,
+      fontSize: 10,
       fontFamily: "Montserrat-Bold",
    },
 });

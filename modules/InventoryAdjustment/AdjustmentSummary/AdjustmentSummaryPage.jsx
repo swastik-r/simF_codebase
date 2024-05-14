@@ -1,6 +1,6 @@
 import { Text, FlatList, StyleSheet, View } from "react-native";
 import SummaryCard from "./comps/SummaryCard";
-import { useAdjustmentDetail } from "../../context/DataContext";
+import { useAdjustmentDetail } from "../../../context/DataContext";
 import { Button, Icon } from "@rneui/themed";
 
 export default function AdjustmentSummaryPage({ route }) {
@@ -14,7 +14,11 @@ export default function AdjustmentSummaryPage({ route }) {
          data={listData}
          keyExtractor={(item) => item.id}
          renderItem={({ item, index }) => (
-            <SummaryCard item={item} serialNumber={index + 1} />
+            <SummaryCard
+               item={item}
+               serialNumber={index + 1}
+               adjustmentReason={adjustment.reason}
+            />
          )}
          ListHeaderComponent={
             <>
