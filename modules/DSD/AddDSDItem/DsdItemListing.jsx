@@ -1,10 +1,18 @@
 import React, { useState } from "react";
-import { FlatList, View, Text, StyleSheet, TextInput } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import {
+   FlatList,
+   View,
+   Text,
+   StyleSheet,
+   TextInput,
+   Platform,
+} from "react-native";
+import { useNavigation, useTheme } from "@react-navigation/native";
 import DsdItemCard from "./comps/DsdItemCard";
 import { useAdjustmentDetail } from "../../../context/DataContext";
 import { Overlay, Button, FAB, Icon } from "@rneui/themed";
 import Toast from "react-native-toast-message";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 export default function DsdItemListing({ route }) {
    // States and Vars
@@ -14,7 +22,8 @@ export default function DsdItemListing({ route }) {
    const dsdItems = getDsdItems(dsdId);
    const navigation = useNavigation();
    const supplierName = dsdData.find((dsd) => dsd.id === dsdId).supplier;
-   const [visible, setVisible] = useState(false);
+   const po = dsdData.find((dsd) => dsd.id === dsdId).po;
+   const [invoiceModal, setInvoiceModal] = useState(false);
 
    // Functions
    function handleDelete() {
@@ -27,7 +36,7 @@ export default function DsdItemListing({ route }) {
       navigation.goBack();
    } // Delete DSD
 
-   function handleSubmit() {
+   function handleSubmit(invoiceId, invoiceDate) {
       if (dsdItems.length === 0) {
          Toast.show({
             type: "error",
@@ -39,7 +48,12 @@ export default function DsdItemListing({ route }) {
       }
       const newDsdData = dsdData.map((dsd) => {
          if (dsd.id === dsdId) {
-            return { ...dsd, status: "COMPLETE" };
+            return {
+               ...dsd,
+               status: "COMPLETE",
+               invoiceId: invoiceId,
+               invoiceDate: invoiceDate,
+            };
          }
          return dsd;
       });
@@ -51,6 +65,17 @@ export default function DsdItemListing({ route }) {
       setDsdData(newDsdData);
       navigation.goBack();
    } // Submit DSD
+
+   const dsdInfo = [
+      {
+         label: "Supplier",
+         value: supplierName,
+      },
+      {
+         label: "PO",
+         value: po,
+      },
+   ];
 
    return (
       <View style={{ flex: 1, backgroundColor: "white" }}>
@@ -65,20 +90,42 @@ export default function DsdItemListing({ route }) {
             ListHeaderComponent={
                <View style={styles.headerContainer}>
                   <View>
+                     {/* Heading: DSD Items */}
                      <Text
-                        style={{ fontFamily: "Montserrat-Bold", fontSize: 20 }}
+                        style={{
+                           fontFamily: "Montserrat-Bold",
+                           fontSize: 20,
+                           marginBottom: 10,
+                        }}
                      >
                         DSD Items
                      </Text>
-                     <Text
-                        style={{
-                           fontFamily: "Montserrat-Regular",
-                           fontSize: 16,
-                        }}
-                     >
-                        Supplier: {supplierName}
-                     </Text>
+
+                     {/* DSD Info: Supplier and PO */}
+                     {dsdInfo.map((info, index) => (
+                        <View key={index} style={{ flexDirection: "row" }}>
+                           <Text
+                              style={{
+                                 fontFamily: "Montserrat-Regular",
+                                 fontSize: 14,
+                                 marginRight: 5,
+                              }}
+                           >
+                              {info.label}:
+                           </Text>
+                           <Text
+                              style={{
+                                 fontFamily: "Montserrat-Bold",
+                                 fontSize: 14,
+                              }}
+                           >
+                              {info.value}
+                           </Text>
+                        </View>
+                     ))}
                   </View>
+
+                  {/* Buttons: Delete and Save */}
                   <View style={{ flexDirection: "row" }}>
                      <Button
                         title={"Delete"}
@@ -108,7 +155,7 @@ export default function DsdItemListing({ route }) {
                            size: 20,
                         }}
                         buttonStyle={styles.submitButton}
-                        onPress={handleSubmit}
+                        onPress={() => setInvoiceModal(true)}
                      >
                         Save
                      </Button>
@@ -143,43 +190,116 @@ export default function DsdItemListing({ route }) {
             }}
          />
 
-         {/* <InvoiceOverlay visible={visible} setVisible={setVisible} /> */}
+         <InvoiceOverlay
+            visible={invoiceModal}
+            setVisible={setInvoiceModal}
+            handleSubmit={handleSubmit}
+         />
       </View>
    );
 }
 
-// function InvoiceOverlay({ visible, setVisible }) {
-//    return (
-//       <Overlay
-//          isVisible={visible}
-//          onBackdropPress={() => setVisible(false)}
-//          overlayStyle={{ padding: 20 }}
-//       >
-//          <Text style={{ fontFamily: "Montserrat-Bold", fontSize: 20 }}>
-//             Add DSD Item
-//          </Text>
-//          <TextInput
-//             placeholder="Invoice Number"
-//             style={styles.input}
-//             onChangeText={(text) => setItemName(text)}
-//          />
+function InvoiceOverlay({ visible, setVisible, handleSubmit }) {
+   // States and vars
+   const [invoiceId, setInvoiceNumber] = useState("");
+   const [invoiceDate, setInvoiceDate] = useState(new Date());
+   const [showDatePicker, setShowDatePicker] = useState(false);
 
-//          <Button
-//             title="Add Item"
-//             onPress={handleSubmit}
-//             buttonStyle={{ borderRadius: 50, backgroundColor: "green" }}
-//          />
-//       </Overlay>
-//    );
-// }
+   // Functions
+   function handleInvoiceSubmit() {
+      setVisible(false);
+      // invoice id must not be empty and invoice date must be in the past
+      if (invoiceId === "" || invoiceDate > new Date()) {
+         Toast.show({
+            type: "error",
+            text1: "Missing or incorrect invoice details",
+            text2: "Please fill in all fields and select a valid date",
+            visibilityTime: 2000,
+         });
+         return;
+      }
+      handleSubmit(invoiceId, invoiceDate.toDateString());
+   }
+
+   return (
+      <Overlay
+         isVisible={visible}
+         onBackdropPress={() => setVisible(false)}
+         overlayStyle={{ padding: 20, width: "70%", borderRadius: 20 }}
+      >
+         <Text style={{ fontFamily: "Montserrat-Bold", fontSize: 20 }}>
+            Invoice Details
+         </Text>
+         <View style={{ marginVertical: 30 }}>
+            <Text style={styles.label}>Invoice ID</Text>
+            <TextInput
+               autoCapitalize="characters"
+               placeholder="Invoice ID"
+               style={styles.input}
+               onChangeText={(text) => setInvoiceNumber(text)}
+            />
+            <Text style={styles.label}>Invoice Date</Text>
+            <View
+               style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+               }}
+            >
+               <Text
+                  style={{ fontFamily: "Montserrat-Medium", marginRight: 10 }}
+               >
+                  {invoiceDate.toDateString().split(" ").slice(1).join(" ")}
+               </Text>
+               <Icon
+                  name="calendar"
+                  type="material-community"
+                  onPress={() => setShowDatePicker(true)}
+                  color={useTheme().colors.primary}
+               />
+            </View>
+         </View>
+
+         {showDatePicker && (
+            <DateTimePicker
+               value={invoiceDate}
+               mode="date"
+               display="default"
+               onChange={(event, selectedDate) => {
+                  setShowDatePicker(Platform.OS === "ios");
+                  if (selectedDate) {
+                     setInvoiceDate(selectedDate);
+                  }
+               }}
+            />
+         )}
+
+         <View style={{ flexDirection: "row", justifyContent: "center" }}>
+            <Button
+               title="Submit Details"
+               titleStyle={{ fontFamily: "Montserrat-Bold" }}
+               onPress={handleInvoiceSubmit}
+               buttonStyle={{
+                  borderRadius: 50,
+                  backgroundColor: useTheme().colors.primary,
+               }}
+            />
+         </View>
+      </Overlay>
+   );
+}
 
 const styles = StyleSheet.create({
+   label: {
+      fontFamily: "Montserrat-Bold",
+      fontSize: 16,
+      marginVertical: 5,
+   },
    input: {
-      borderWidth: 1,
-      borderColor: "black",
-      borderRadius: 10,
+      borderBottomWidth: 1,
+      borderColor: "silver",
       padding: 5,
-      margin: 5,
+      marginVertical: 5,
    },
    fab: {
       position: "absolute",
@@ -189,7 +309,6 @@ const styles = StyleSheet.create({
    },
    emptyPageContainer: {
       flex: 1,
-      // ----> not working, to be checked, added custom margin top
       marginTop: 200,
       height: 220,
       justifyContent: "space-evenly",
@@ -199,7 +318,7 @@ const styles = StyleSheet.create({
    headerContainer: {
       flexDirection: "row",
       justifyContent: "space-between",
-      alignItems: "center",
+      alignItems: "flex-start",
       padding: 10,
    },
    deleteButton: {

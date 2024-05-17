@@ -13,7 +13,6 @@ import { useTheme, FAB, Overlay, Button, Icon } from "@rneui/themed";
 import DetailCard from "./comps/DetailCard";
 import ReasonCodeOverlay from "./comps/ReasonCodeOverlay";
 import { useAdjustmentDetail } from "../../../context/DataContext";
-import { useVisibility } from "../../../context/VisibilityContext";
 
 import * as ImagePicker from "expo-image-picker";
 
@@ -23,7 +22,6 @@ export default function AdjustmentDetailPage({ route }) {
    const { id } = route.params;
    const adjustment = data.find((item) => item.id === id);
    const navigation = useNavigation();
-   const { submitOptions, toggleSubmitOptionsVisibility } = useVisibility();
 
    // For Reason Codes Overlay
    const [showReasonCodes, setShowReasonCodes] = useState(
@@ -35,7 +33,7 @@ export default function AdjustmentDetailPage({ route }) {
    const [uploadVisible, setUploadVisible] = useState(false);
 
    return (
-      <>
+      <View style={{ flex: 1, backgroundColor: "white" }}>
          <FlatList
             data={adjustment.detailItems}
             keyExtractor={(item) => item.id}
@@ -84,20 +82,18 @@ export default function AdjustmentDetailPage({ route }) {
                </View>
             }
          />
-         <View style={styles.fabContainer}>
-            <FAB
-               color={theme.colors.primary}
-               style={styles.fab}
-               icon={{
-                  name: "plus-thick",
-                  type: "material-community",
-                  color: "white",
-               }}
-               onPress={() => {
-                  navigation.navigate("Add Detail Item", { id: id });
-               }}
-            />
-         </View>
+         <FAB
+            color={theme.colors.primary}
+            style={styles.fab}
+            icon={{
+               name: "plus-thick",
+               type: "material-community",
+               color: "white",
+            }}
+            onPress={() => {
+               navigation.navigate("Add Detail Item", { id: id });
+            }}
+         />
 
          {/* Reason selection overlay */}
          <ReasonCodeOverlay
@@ -126,7 +122,7 @@ export default function AdjustmentDetailPage({ route }) {
                setSubmitVisible={setSubmitVisible}
             />
          )}
-      </>
+      </View>
    );
 }
 
@@ -405,6 +401,9 @@ const styles = StyleSheet.create({
       flexDirection: "row",
    },
    fab: {
-      margin: 5,
+      position: "absolute",
+      right: 0,
+      bottom: 0,
+      margin: 10,
    },
 });

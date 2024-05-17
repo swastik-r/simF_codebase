@@ -58,13 +58,13 @@ export default function SummaryCard({ item, serialNumber, adjustmentReason }) {
 const styles = StyleSheet.create({
    cardContainer: {
       backgroundColor: "white",
-      // borderWidth: 1,
-      borderRadius: 5,
-      // borderColor: "silver",
-      marginTop: 10,
+      marginVertical: 10,
       marginHorizontal: 10,
+      borderWidth: 1,
+      borderColor: "silver",
+      borderRadius: 10,
       padding: 10,
-      elevation: 5,
+      elevation: 10,
    },
    cardHeader: {
       flexDirection: "row",

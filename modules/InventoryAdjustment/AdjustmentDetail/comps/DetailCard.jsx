@@ -417,7 +417,8 @@ const styles = StyleSheet.create({
    card: {
       paddingVertical: 10,
       backgroundColor: "white",
-      elevation: 5,
+      borderRadius: 10,
+      elevation: 3,
    },
    cardTitleContainer: {
       flexDirection: "row",

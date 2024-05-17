@@ -7,19 +7,34 @@ import { View, Pressable, StyleSheet, Text } from "react-native";
 import { Icon, SearchBar, ListItem, Overlay } from "@rneui/themed";
 
 // Custom Components
-import { useAdjustmentDetail } from "../context/DataContext";
+import { useAdjustmentDetail } from "../../../context/DataContext";
 import { BottomSheet, Button } from "@rneui/base";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 export default function SearchBar_FS() {
    // States and Vars
-   const { searchStr, setSearchStr, handleSearch } = useAdjustmentDetail();
-
+   const [searchStr, setSearchStr] = useState("");
    const [sortVisible, setSortVisible] = useState(false);
    const [filterVisible, setFilterVisible] = useState(false);
    const [dateFilterVisible, setDateFilterVisible] = useState(false);
-   const [reasonFilterVisible, setReasonFilterVisible] = useState(false);
+   const [supplierFilterVisible, setSupplierFilterVisible] = useState(false);
    const [statusFilterVisible, setStatusFilterVisible] = useState(false);
+   const { dsdData, setDsdData, initialDsdData } = useAdjustmentDetail();
+
+   // Functions
+   function handleSearch(text) {
+      if (text === "") {
+         setDsdData(initialDsdData);
+         return;
+      }
+      // search for the text in the item's supplier name or the id
+      const filteredData = dsdData.filter(
+         (item) =>
+            item.supplier.toLowerCase().includes(text.toLowerCase()) ||
+            item.id.toLowerCase().includes(text.toLowerCase())
+      );
+      setDsdData(filteredData);
+   }
 
    return (
       <>
@@ -27,7 +42,7 @@ export default function SearchBar_FS() {
             <SearchBar
                lightTheme={true}
                round={true}
-               placeholder="Search here..."
+               placeholder="Search an ID or a Supplier"
                containerStyle={{
                   flex: 1,
                   backgroundColor: "transparent",
@@ -79,27 +94,19 @@ export default function SearchBar_FS() {
          </View>
 
          {/* Sort Bottom Sheet */}
-
          <SortBottomSheet
             sortVisible={sortVisible}
             setSortVisible={setSortVisible}
          />
 
+         {/* Filter Bottom Sheet */}
          {filterVisible && (
             <FilterBottomSheet
                filterVisible={filterVisible}
                setFilterVisible={setFilterVisible}
-               setReasonFilterVisible={setReasonFilterVisible}
                setStatusFilterVisible={setStatusFilterVisible}
+               setSupplierFilterVisible={setSupplierFilterVisible}
                setDateFilterVisible={setDateFilterVisible}
-            />
-         )}
-
-         {/* Reason Filter Bottom Sheet */}
-         {reasonFilterVisible && (
-            <ReasonFilterBottomSheet
-               reasonFilterVisible={reasonFilterVisible}
-               setReasonFilterVisible={setReasonFilterVisible}
             />
          )}
 
@@ -108,6 +115,14 @@ export default function SearchBar_FS() {
             <StatusFilterBottomSheet
                statusFilterVisible={statusFilterVisible}
                setStatusFilterVisible={setStatusFilterVisible}
+            />
+         )}
+
+         {/* Supplier Filter Bottom Sheet */}
+         {supplierFilterVisible && (
+            <SupplierFilterBottomSheet
+               supplierFilterVisible={supplierFilterVisible}
+               setSupplierFilterVisible={setSupplierFilterVisible}
             />
          )}
 
@@ -131,7 +146,7 @@ function SortBottomSheet({ sortVisible, setSortVisible }) {
             fontFamily: "Montserrat-Regular",
             fontSize: 25,
          },
-         containerStyle: [styles.sortOptContainer, { paddingTop: 0 }],
+         containerStyle: [styles.optContainer, { paddingTop: 0 }],
       },
       {
          title: "Sort by latest",
@@ -142,7 +157,7 @@ function SortBottomSheet({ sortVisible, setSortVisible }) {
             size: 35,
          },
          titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
+         containerStyle: styles.optContainer,
          sortType: "latest",
       },
       {
@@ -157,7 +172,7 @@ function SortBottomSheet({ sortVisible, setSortVisible }) {
             },
          },
          titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
+         containerStyle: styles.optContainer,
          sortType: "oldest",
       },
       {
@@ -165,16 +180,13 @@ function SortBottomSheet({ sortVisible, setSortVisible }) {
          icon: sortApplied
             ? { name: "refresh", type: "material", color: "white" }
             : { name: "cancel", type: "material", color: "white" },
-         containerStyle: [
-            styles.sortOptContainer,
-            { backgroundColor: "darkred" },
-         ],
-         titleStyle: styles.sortOptCancel,
+         containerStyle: [styles.optContainer, { backgroundColor: "darkred" }],
+         titleStyle: styles.optCancel,
          sortType: "reset",
       },
    ];
    const [sortApplied, setSortApplied] = useState(false);
-   const { data, setData, initialData } = useAdjustmentDetail();
+   const { dsdData, setDsdData, initialDsdData } = useAdjustmentDetail();
 
    // Functions
    function sortByDate(sortType) {
@@ -182,21 +194,17 @@ function SortBottomSheet({ sortVisible, setSortVisible }) {
          resetSort();
          return;
       }
-
-      const sortedData = [...data];
+      const sortedData = [...dsdData];
       sortedData.sort((a, b) => {
          const dateA = new Date(a.date);
          const dateB = new Date(b.date);
          return sortType === "latest" ? dateB - dateA : dateA - dateB;
       });
-
-      setData(sortedData);
+      setDsdData(sortedData);
       setSortApplied(true);
-      console.log("Sorted by: " + sortType);
    }
-
    function resetSort() {
-      setData(initialData);
+      setDsdData(initialDsdData);
       setSortApplied(false);
    }
 
@@ -229,11 +237,11 @@ function SortBottomSheet({ sortVisible, setSortVisible }) {
 function FilterBottomSheet({
    filterVisible,
    setFilterVisible,
-   setStatusFilterVisible,
-   setReasonFilterVisible,
+   setSupplierFilterVisible,
    setDateFilterVisible,
 }) {
    // States and Vars
+   const { dsdData, setDsdData, initialDsdData } = useAdjustmentDetail();
    const filterOpts = [
       {
          title: "Filter by",
@@ -241,29 +249,18 @@ function FilterBottomSheet({
             fontFamily: "Montserrat-Regular",
             fontSize: 25,
          },
-         containerStyle: [styles.sortOptContainer, { paddingTop: 0 }],
+         containerStyle: [styles.optContainer, { paddingTop: 0 }],
       },
       {
-         title: "Status",
+         title: "Supplier",
          icon: {
-            name: "progress-question",
+            name: "warehouse",
             type: "material-community",
             color: "black",
             size: 30,
          },
          titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
-      },
-      {
-         title: "Reason",
-         icon: {
-            name: "report-problem",
-            type: "material",
-            color: "black",
-            size: 30,
-         },
-         titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
+         containerStyle: styles.optContainer,
       },
       {
          title: "Date",
@@ -274,19 +271,21 @@ function FilterBottomSheet({
             size: 30,
          },
          titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
+         containerStyle: styles.optContainer,
       },
       {
          title: "Reset Filter",
          icon: { name: "refresh", type: "material", color: "white" },
-         containerStyle: [
-            styles.sortOptContainer,
-            { backgroundColor: "darkred" },
-         ],
-         titleStyle: styles.sortOptCancel,
+         containerStyle: [styles.optContainer, { backgroundColor: "darkred" }],
+         titleStyle: styles.optCancel,
          type: "reset",
       },
    ];
+
+   // Functions
+   function resetFilter() {
+      setDsdData(initialDsdData);
+   }
 
    return (
       <BottomSheet
@@ -300,12 +299,12 @@ function FilterBottomSheet({
                onPress={() => {
                   setFilterVisible(false);
 
-                  if (opt.title === "Status") {
-                     setStatusFilterVisible(true);
-                  } else if (opt.title === "Reason") {
-                     setReasonFilterVisible(true);
+                  if (opt.title === "Supplier") {
+                     setSupplierFilterVisible(true);
                   } else if (opt.title === "Date") {
                      setDateFilterVisible(true);
+                  } else if (opt.title === "Reset Filter") {
+                     resetFilter();
                   }
                }}
             >
@@ -321,88 +320,128 @@ function FilterBottomSheet({
    );
 }
 
-function StatusFilterBottomSheet({
-   statusFilterVisible,
-   setStatusFilterVisible,
+// function StatusFilterBottomSheet({
+//    statusFilterVisible,
+//    setStatusFilterVisible,
+// }) {
+//    // States and Vars
+//    const statusFilterOpts = [
+//       {
+//          title: "Select a status",
+//          titleStyle: {
+//             fontFamily: "Montserrat-Regular",
+//             fontSize: 25,
+//          },
+//          containerStyle: [styles.optContainer, { paddingTop: 0 }],
+//       },
+//       {
+//          title: "Draft",
+//          icon: {
+//             name: "progress-question",
+//             type: "material-community",
+//             color: "black",
+//             size: 30,
+//          },
+//          titleStyle: styles.bottomSheetOpt,
+//          containerStyle: styles.optContainer,
+//          filterType: "draft",
+//       },
+//       {
+//          title: "Completed",
+//          icon: {
+//             name: "progress-check",
+//             type: "material-community",
+//             color: "black",
+//             size: 30,
+//          },
+//          titleStyle: styles.bottomSheetOpt,
+//          containerStyle: styles.optContainer,
+//          filterType: "complete",
+//       },
+//    ];
+//    const { dsdData, setDsdData } = useAdjustmentDetail();
+
+//    // Functions
+//    function filterStatus(status) {
+//       const filteredData = dsdData.filter((item) => item.status === status);
+//       setDsdData(filteredData);
+//    }
+
+//    return (
+//       <BottomSheet
+//          isVisible={statusFilterVisible}
+//          onBackdropPress={() => setStatusFilterVisible(false)}
+//       >
+//          {statusFilterOpts.map((opt, i) => (
+//             <ListItem
+//                key={i}
+//                containerStyle={opt.containerStyle}
+//                onPress={() => {
+//                   filterStatus(opt.filterType);
+//                   setStatusFilterVisible(false);
+//                }}
+//             >
+//                <ListItem.Content>
+//                   <Icon {...opt.icon} />
+//                   <ListItem.Title style={opt.titleStyle}>
+//                      {opt.title}
+//                   </ListItem.Title>
+//                </ListItem.Content>
+//             </ListItem>
+//          ))}
+//       </BottomSheet>
+//    );
+// }
+
+function SupplierFilterBottomSheet({
+   supplierFilterVisible,
+   setSupplierFilterVisible,
 }) {
    // States and Vars
-   const statusFilterOpts = [
+   const { supplierInfo, dsdData, setDsdData } = useAdjustmentDetail();
+   const supplierFilterOpts = [
       {
-         title: "Select a status",
+         title: "Select a supplier",
          titleStyle: {
             fontFamily: "Montserrat-Regular",
             fontSize: 25,
          },
-         containerStyle: [styles.sortOptContainer, { paddingTop: 0 }],
+         containerStyle: [styles.optContainer, { paddingTop: 30 }],
       },
-      {
-         title: "In Progress",
-         icon: {
-            name: "progress-question",
-            type: "material-community",
-            color: "black",
-            size: 30,
-         },
+      ...supplierInfo.map((supplier) => ({
+         title: supplier.name,
          titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
-         filterType: "inProgress",
-      },
-      {
-         title: "Completed",
-         icon: {
-            name: "progress-check",
-            type: "material-community",
-            color: "black",
-            size: 30,
-         },
-         titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
-         filterType: "complete",
-      },
-      // reset filter
-      {
-         title: "Reset",
-         icon: {
-            name: "refresh",
-            type: "material",
-            color: "white",
-         },
-         containerStyle: [
-            styles.sortOptContainer,
-            { backgroundColor: "darkred" },
-         ],
-         titleStyle: styles.sortOptCancel,
-         filterType: "reset",
-      },
+         containerStyle: styles.optContainer,
+         filterType: supplier.name,
+      })),
    ];
-   const { data, setData, initialData } = useAdjustmentDetail();
 
    // Functions
-   function filterStatus(progress) {
-      if (progress === "reset") {
-         setData(initialData);
+   function filterSupplier(supplierName) {
+      if (supplierName === "Select a supplier") {
          return;
       }
-      const filteredData = data.filter((item) => item.progress === progress);
-      setData(filteredData);
+      const filteredData = dsdData.filter(
+         (item) => item.supplier === supplierName
+      );
+      setDsdData(filteredData);
    }
 
    return (
       <BottomSheet
-         isVisible={statusFilterVisible}
-         onBackdropPress={() => setStatusFilterVisible(false)}
+         isVisible={supplierFilterVisible}
+         onBackdropPress={() => setSupplierFilterVisible(false)}
       >
-         {statusFilterOpts.map((opt, i) => (
+         {supplierFilterOpts.map((opt, i) => (
             <ListItem
                key={i}
                containerStyle={opt.containerStyle}
                onPress={() => {
-                  filterStatus(opt.filterType);
-                  setStatusFilterVisible(false);
+                  filterSupplier(opt.filterType);
+                  setSupplierFilterVisible(false);
                }}
             >
                <ListItem.Content>
-                  <Icon {...opt.icon} />
                   <ListItem.Title style={opt.titleStyle}>
                      {opt.title}
                   </ListItem.Title>
@@ -413,139 +452,13 @@ function StatusFilterBottomSheet({
    );
 }
 
-// Function needs to be fixed
-function ReasonFilterBottomSheet({
-   reasonFilterVisible,
-   setReasonFilterVisible,
-}) {
-   // States and Vars
-   const [filterApplied, setFilterApplied] = useState(false);
-   const { data, setData, initialData } = useAdjustmentDetail();
-   const reasonFilterOpts = [
-      {
-         title: "Damaged",
-         icon: {
-            name: "image-broken-variant",
-            type: "material-community",
-            color: "black",
-            size: 30,
-         },
-         titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
-         filterType: "damaged",
-      },
-      {
-         title: "Stock In",
-         icon: {
-            name: "download",
-            type: "font-awesome",
-            color: "black",
-            size: 30,
-         },
-         titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
-         filterType: "stockIn",
-      },
-      {
-         title: "Stock Out",
-         icon: {
-            name: "upload",
-            type: "font-awesome",
-            color: "black",
-            size: 30,
-         },
-         titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
-         filterType: "stockOut",
-      },
-      {
-         title: "Theft",
-         icon: {
-            name: "shield-lock-open",
-            type: "material-community",
-            color: "black",
-            size: 30,
-         },
-         titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
-         filterType: "theft",
-      },
-      {
-         // this is the reset filter option
-         // it's title, icon and background color are based on whether the filter is applied
-         title: filterApplied ? "Reset Filter" : "Cancel",
-         icon: {
-            name: filterApplied ? "refresh" : "cancel",
-            type: "material",
-            color: "white",
-         },
-         containerStyle: [
-            styles.sortOptContainer,
-            { backgroundColor: "darkred" },
-         ],
-         titleStyle: styles.sortOptCancel,
-         filterType: "reset",
-      },
-   ];
-
-   // Functions
-   function filterReason(reason) {
-      if (reason === "reset") {
-         setData(initialData);
-         return;
-      }
-      const filteredData = data.filter((item) => item.reason === reason);
-      setData(filteredData);
-   }
-
-   return (
-      <BottomSheet
-         isVisible={reasonFilterVisible}
-         onBackdropPress={() => setReasonFilterVisible(false)}
-      >
-         {reasonFilterOpts.map((opt, i) => (
-            <ListItem
-               key={i}
-               containerStyle={opt.containerStyle}
-               onPress={() => {
-                  filterReason(opt.filterType);
-                  setReasonFilterVisible(false);
-               }}
-            >
-               <ListItem.Content>
-                  <Icon {...opt.icon} />
-                  <ListItem.Title style={styles.bottomSheetOpt}>
-                     {opt.title}
-                  </ListItem.Title>
-               </ListItem.Content>
-            </ListItem>
-         ))}
-      </BottomSheet>
-   );
-}
-
-// Needs to be developed, later
 function DateFilterBottomSheet({ dateFilterVisible, setDateFilterVisible }) {
-   // use date-time-picker here
-   return (
-      <BottomSheet
-         isVisible={dateFilterVisible}
-         onBackdropPress={() => setDateFilterVisible(false)}
-      >
-         <View style={styles.bottomSheet}>
-            <DateRangePicker />
-         </View>
-      </BottomSheet>
-   );
-}
-
-function DateRangePicker() {
    // States and Vars
+   const { dsdData, setDsdData } = useAdjustmentDetail();
    const [startDate, setStartDate] = useState(new Date());
    const [endDate, setEndDate] = useState(new Date());
    const [showStartPicker, setShowStartPicker] = useState(false);
    const [showEndPicker, setShowEndPicker] = useState(false);
-   const { data, setData, initialData } = useAdjustmentDetail();
 
    // Functions
    function onStartChange(event, selectedDate) {
@@ -561,61 +474,85 @@ function DateRangePicker() {
       }
    }
    function filterDate(startDate, endDate) {
-      const filteredData = data.filter((item) => {
+      const filteredData = dsdData.filter((item) => {
          const itemDate = new Date(item.date);
          return itemDate >= startDate && itemDate <= endDate;
       });
-      setData(filteredData);
+      setDsdData(filteredData);
+   }
+   function resetFilter() {
+      setDsdData(initialData);
    }
 
    return (
-      <View style={{ flexDirection: "row" }}>
-         <View style={styles.container}>
-            <View style={styles.picker}>
-               <Button
-                  onPress={() => setShowStartPicker(true)}
-                  title="Select Start Date"
-                  titleStyle={{ fontFamily: "Montserrat-Bold" }}
-               />
-               {showStartPicker && (
-                  <DateTimePicker
-                     testID="startDateTimePicker"
-                     value={startDate}
-                     mode="date"
-                     display="default"
-                     onChange={onStartChange}
-                  />
-               )}
-               <Text style={styles.dateText}>{startDate.toDateString()}</Text>
-            </View>
-            <View style={styles.picker}>
-               <Button
-                  onPress={() => setShowEndPicker(true)}
-                  title="Select End Date"
-                  titleStyle={{ fontFamily: "Montserrat-Bold" }}
-               />
-               {showEndPicker && (
-                  <DateTimePicker
-                     testID="endDateTimePicker"
-                     value={endDate}
-                     mode="date"
-                     display="default"
-                     onChange={onEndChange}
-                  />
-               )}
+      <BottomSheet
+         isVisible={dateFilterVisible}
+         onBackdropPress={() => setDateFilterVisible(false)}
+      >
+         <View style={styles.bottomSheet}>
+            <View style={{ flexDirection: "row" }}>
+               <View style={styles.container}>
+                  <View style={styles.picker}>
+                     <Button
+                        onPress={() => setShowStartPicker(true)}
+                        title="Start Date"
+                        titleStyle={{ fontFamily: "Montserrat-Bold" }}
+                        icon={{
+                           name: "calendar",
+                           type: "material-community",
+                           color: "white",
+                        }}
+                     />
+                     {showStartPicker && (
+                        <DateTimePicker
+                           testID="startDateTimePicker"
+                           value={startDate}
+                           mode="date"
+                           display="default"
+                           onChange={onStartChange}
+                        />
+                     )}
+                     <Text style={styles.dateText}>
+                        {startDate.toDateString()}
+                     </Text>
+                  </View>
+                  <View style={styles.picker}>
+                     <Button
+                        onPress={() => setShowEndPicker(true)}
+                        title="End Date"
+                        titleStyle={{ fontFamily: "Montserrat-Bold" }}
+                        icon={{
+                           name: "calendar",
+                           type: "material-community",
+                           color: "white",
+                        }}
+                     />
+                     {showEndPicker && (
+                        <DateTimePicker
+                           testID="endDateTimePicker"
+                           value={endDate}
+                           mode="date"
+                           display="default"
+                           onChange={onEndChange}
+                        />
+                     )}
 
-               <Text style={styles.dateText}>{endDate.toDateString()}</Text>
+                     <Text style={styles.dateText}>
+                        {endDate.toDateString()}
+                     </Text>
+                  </View>
+               </View>
+               <View style={styles.container}>
+                  <Button
+                     title="Apply Filter"
+                     titleStyle={{ fontFamily: "Montserrat-Bold" }}
+                     buttonStyle={{ backgroundColor: "green" }}
+                     onPress={() => filterDate(startDate, endDate)}
+                  />
+               </View>
             </View>
          </View>
-         <View style={styles.container}>
-            <Button
-               title="Apply Filter"
-               titleStyle={{ fontFamily: "Montserrat-Bold" }}
-               buttonStyle={{ backgroundColor: "green" }}
-               onPress={() => filterDate(startDate, endDate)}
-            />
-         </View>
-      </View>
+      </BottomSheet>
    );
 }
 
@@ -628,14 +565,14 @@ const styles = StyleSheet.create({
    chipButton: {
       marginHorizontal: 5,
    },
-   sortOptContainer: {
+   optContainer: {
       paddingVertical: 20,
    },
    bottomSheetOpt: {
       fontFamily: "Montserrat-Medium",
       fontSize: 16,
    },
-   sortOptCancel: {
+   optCancel: {
       fontFamily: "Montserrat-Medium",
       fontSize: 16,
       color: "white",

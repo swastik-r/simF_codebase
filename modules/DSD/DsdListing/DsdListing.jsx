@@ -1,31 +1,44 @@
 import { useState } from "react";
 import { Text, View, FlatList, StyleSheet } from "react-native";
 import DsdCard from "./DsdListingCard";
-import { Button, FAB, Input, Overlay } from "@rneui/themed";
+import { Button, FAB, Input, Overlay, Icon } from "@rneui/themed";
 import { useTheme } from "@rneui/themed";
 import { useNavigation } from "@react-navigation/native";
 import { useAdjustmentDetail } from "../../../context/DataContext";
-import SearchBar_FS from "../../../globalComps/SearchBar_FS";
+import SearchBar_FS from "../../DSD/_comps/SearchBar_FS";
 import Toast from "react-native-toast-message";
 
 export default function DsdListing() {
+   // States and Vars
    const { theme } = useTheme();
    const navigation = useNavigation();
-   const { dsdData, createNewDsd } = useAdjustmentDetail();
-
-   // Visibility state and Supplier ID value for the modal
+   const { dsdData, createNewDsd, supplierInfo } = useAdjustmentDetail();
    const [supplierIdModal, setSupplierIdModal] = useState(false);
    const [supplierId, setSupplierId] = useState("");
 
+   // Functions
    function handleNewDsd() {
       setSupplierIdModal(false);
+      const isIdValid = supplierInfo.some(
+         (supplier) => supplier.id === supplierId
+      );
+      if (!isIdValid) {
+         Toast.show({
+            type: "error",
+            text1: "Invalid Supplier ID",
+            text2: "Please enter a valid Supplier ID",
+            position: "bottom",
+         });
+         return;
+      }
       const newDsdId = createNewDsd(supplierId);
       navigation.navigate("DSD Item List", { dsdId: newDsdId });
+      setSupplierId("");
    }
 
-   // return a list of cards
+   // Render
    return (
-      <View style={{ alignItems: "center", backgroundColor: "white" }}>
+      <View style={{ alignItems: "center", backgroundColor: "white", flex: 1 }}>
          {/* DSD Listing */}
          <FlatList
             data={dsdData}
@@ -34,11 +47,11 @@ export default function DsdListing() {
             numColumns={2}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{
-               paddingBottom: 80,
+               paddingBottom: 100,
+               width: 400,
             }}
-            ListHeaderComponent={
-               <SearchBar_FS showFilter={true} showSort={true} />
-            }
+            ListHeaderComponent={<SearchBar_FS />}
+            ListEmptyComponent={<EmptyPageComponent />}
          />
 
          {/* FAB */}
@@ -61,22 +74,25 @@ export default function DsdListing() {
             onBackdropPress={() => setSupplierIdModal(false)}
             overlayStyle={{
                borderRadius: 20,
-               width: "70%",
+               width: "80%",
                backgroundColor: theme.colors.white,
             }}
          >
             <View style={styles.modalContent}>
                <Text style={styles.modalTitle}>Supplier ID</Text>
-               <Text style={styles.subTitle}>Optional</Text>
+               <Text style={styles.subTitle}>
+                  Enter the Supplier ID to create a DSD
+               </Text>
             </View>
 
             <View style={styles.modalContent}>
                <Input
+                  // align text and icon to center
                   containerStyle={{
-                     marginTop: 10,
+                     marginTop: 20,
                   }}
                   inputMode="numeric"
-                  placeholder="Supplier ID"
+                  placeholder="Enter Supplier ID"
                   inputStyle={{
                      fontFamily: "Montserrat-Medium",
                      marginLeft: 10,
@@ -94,27 +110,61 @@ export default function DsdListing() {
             </View>
 
             <View style={styles.buttonContainer}>
-               {/* Skip Button */}
-               <Button
-                  containerStyle={[styles.button, styles.negativeButton]}
-                  onPress={handleNewDsd}
-                  variant="outline"
-                  color="transparent"
-                  title="Skip"
-                  titleStyle={[styles.buttonTitle, styles.negativeButtonTitle]}
-               />
-
                {/* Confirm Button */}
                <Button
                   containerStyle={styles.button}
                   onPress={handleNewDsd}
                   variant="outline"
                   color={theme.colors.tertiary}
-                  title="Confirm"
+                  title="Create DSD"
                   titleStyle={styles.buttonTitle}
                />
             </View>
          </Overlay>
+      </View>
+   );
+}
+
+function EmptyPageComponent() {
+   const { theme } = useTheme();
+   const { setDsdData, initialDsdData } = useAdjustmentDetail();
+   return (
+      // Empty DSD Listing
+      <View
+         style={{
+            flex: 1,
+            width: 400,
+            justifyContent: "center",
+            alignItems: "center",
+            marginVertical: 50,
+         }}
+      >
+         <View style={{ opacity: 0.5 }}>
+            <Icon
+               name="file-search"
+               type="material-community"
+               size={100}
+               color={theme.colors.text}
+               containerStyle={{ marginBottom: 10 }}
+            />
+            <Text
+               style={{
+                  fontFamily: "Montserrat-Regular",
+                  color: theme.colors.text,
+               }}
+            >
+               No DSDs found for you filter criteria
+            </Text>
+         </View>
+         <Button
+            title="Reset Filters"
+            titleStyle={{ fontFamily: "Montserrat-Bold" }}
+            containerStyle={{
+               marginVertical: 40,
+               borderRadius: 20,
+            }}
+            onPress={() => setDsdData(initialDsdData)}
+         />
       </View>
    );
 }
@@ -145,7 +195,7 @@ const styles = StyleSheet.create({
    },
    buttonContainer: {
       flexDirection: "row",
-      marginHorizontal: 20,
+      marginHorizontal: 50,
       marginVertical: 10,
    },
    button: {

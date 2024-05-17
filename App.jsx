@@ -30,6 +30,7 @@ import DsdItemListing from "./modules/DSD/AddDSDItem/DsdItemListing";
 import AddDsdItem from "./modules/DSD/AddDSDItem/AddDetailItem";
 import ManualSearchDSD from "./modules/DSD/AddDSDItem/ManualSearch";
 
+// Theme
 const theme = createTheme({
    mode: "light",
    lightColors: {
@@ -46,36 +47,33 @@ const theme = createTheme({
    },
 });
 
+// Toast Config
 const toastConfig = {
    success: (props) => (
       <BaseToast
          {...props}
-         style={{ borderLeftColor: theme.lightColors.primary }}
+         style={{ borderLeftColor: "green" }}
          text1Style={{
             fontFamily: "Montserrat-Bold",
             fontSize: 17,
-            color: theme.lightColors.primary,
          }}
          text2Style={{
             fontFamily: "Montserrat-Regular",
             fontSize: 14,
-            color: theme.lightColors.tertiary,
          }}
       />
    ),
    error: (props) => (
       <BaseToast
          {...props}
-         style={{ borderLeftColor: theme.lightColors.secondary }}
+         style={{ borderLeftColor: "red" }}
          text1Style={{
             fontFamily: "Montserrat-Bold",
             fontSize: 17,
-            color: theme.lightColors.secondary,
          }}
          text2Style={{
             fontFamily: "Montserrat-Regular",
             fontSize: 14,
-            color: theme.lightColors.tertiary,
          }}
       />
    ),
@@ -105,7 +103,7 @@ export default function App() {
                               headerTintColor: theme.lightColors.primary,
                               headerTitleStyle: {
                                  fontFamily: "Montserrat-Bold",
-                                 fontSize: 16,
+                                 // fontSize: 16,
                               },
                               headerShadowVisible: false,
                            }}
@@ -120,7 +118,7 @@ export default function App() {
                               component={DsdSummary}
                               options={(route) => {
                                  return {
-                                    title: `Summary : ${route.route.params.dsdId}`,
+                                    title: `DSD Summary`,
                                  };
                               }}
                            />
@@ -138,7 +136,7 @@ export default function App() {
                               component={AddDsdItem}
                               options={(route) => {
                                  return {
-                                    title: `Add Items : ${route.route.params.dsdId}`,
+                                    title: `Add Items : DSD ${route.route.params.dsdId}`,
                                  };
                               }}
                            />
@@ -156,16 +154,7 @@ export default function App() {
                               name="Adjustment Detail"
                               component={AdjustmentDetailPage}
                               options={({ route }) => ({
-                                 title: `Adjustment - ${route.params.id}`,
-                                 headerRight: () => (
-                                    <Pressable onPress={() => {}}>
-                                       <Icon
-                                          name="dots-vertical"
-                                          type="material-community"
-                                          color={theme.lightColors.secondary}
-                                       />
-                                    </Pressable>
-                                 ),
+                                 title: `Adjustment ${route.params.id}`,
                               })}
                            />
                            <Stack.Screen

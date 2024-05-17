@@ -36,9 +36,6 @@ export default function DsdCard({ info }) {
 
    return (
       <Pressable
-         // navigation based on DSD status
-         // if the DSD is "draft", navigate to the DSD Item Listing screen
-         // if the DSD is "complete", navigate to the DSD Summary screen
          onPress={() => {
             if (info.status === "draft") {
                navigation.navigate("DSD Item List", { dsdId: info.id });
@@ -59,16 +56,15 @@ export default function DsdCard({ info }) {
                      alignItems: "center",
                   }}
                >
+                  <Text style={styles.id}>{info.id}</Text>
                   {info.status === "draft" && (
                      <Icon
-                        name="file-document-edit"
+                        name="progress-clock"
                         type="material-community"
-                        color={"green"}
-                        size={18}
-                        style={{ marginRight: 5 }}
+                        color={"orange"}
+                        style={{ marginLeft: 5 }}
                      />
                   )}
-                  <Text style={styles.id}>{info.id}</Text>
                </View>
 
                <Text style={styles.supplierInfo}>
@@ -112,7 +108,7 @@ const styles = StyleSheet.create({
       width: 170,
       backgroundColor: "white",
       borderRadius: 15,
-      borderColor: "dodgerblue",
+      borderColor: "orange",
       borderWidth: 2,
    },
    cardContent: {

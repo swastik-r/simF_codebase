@@ -1,6 +1,13 @@
 import { Button, Card, Icon, Overlay } from "@rneui/themed";
 import { useState } from "react";
-import { View, Text, TextInput, StyleSheet, Pressable } from "react-native";
+import {
+   View,
+   Text,
+   TextInput,
+   StyleSheet,
+   Pressable,
+   Image,
+} from "react-native";
 import { useAdjustmentDetail } from "../../../../context/DataContext";
 import * as ImagePicker from "expo-image-picker";
 import Toast from "react-native-toast-message";
@@ -229,12 +236,16 @@ function ReportDamagedOverlay({
                            await ImagePicker.launchImageLibraryAsync({
                               mediaTypes: ImagePicker.MediaTypeOptions.Images,
                               allowsEditing: true,
-                              aspect: [4, 3],
+                              aspect: [1, 1],
                               quality: 1,
                            });
 
                         if (!result.canceled) {
-                           setImages([...images, result.uri]);
+                           setImages((prevImages) => [
+                              ...prevImages,
+                              result.uri,
+                           ]);
+                           console.log(images);
                         }
                      }}
                      icon={{
@@ -262,6 +273,7 @@ function ReportDamagedOverlay({
                   ]}
                   onPress={() => {
                      setDamageOverlay(false);
+                     setImages([]);
                   }}
                   buttonStyle={[styles.modalButton, styles.modalButtonCancel]}
                />

@@ -10,23 +10,25 @@ export default function AdjustmentSummaryPage({ route }) {
    const listData = adjustment.detailItems;
 
    return (
-      <FlatList
-         data={listData}
-         keyExtractor={(item) => item.id}
-         renderItem={({ item, index }) => (
-            <SummaryCard
-               item={item}
-               serialNumber={index + 1}
-               adjustmentReason={adjustment.reason}
-            />
-         )}
-         ListHeaderComponent={
-            <>
-               <SummaryDetails adjustment={adjustment} />
-               <SummaryPageButtons />
-            </>
-         }
-      />
+      <View style={{ backgroundColor: "white" }}>
+         <FlatList
+            data={listData}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item, index }) => (
+               <SummaryCard
+                  item={item}
+                  serialNumber={index + 1}
+                  adjustmentReason={adjustment.reason}
+               />
+            )}
+            ListHeaderComponent={
+               <>
+                  <SummaryDetails adjustment={adjustment} />
+                  {/* <SummaryPageButtons /> */}
+               </>
+            }
+         />
+      </View>
    );
 }
 
@@ -34,7 +36,6 @@ function SummaryDetails({ adjustment }) {
    const { reasonMap } = useAdjustmentDetail();
 
    function dateString(date) {
-      // Convert date string to the format "1 May 2024"
       return new Date(date).toLocaleDateString("en-GB", {
          day: "numeric",
          month: "short",
@@ -130,7 +131,8 @@ const styles = StyleSheet.create({
       margin: 15,
       padding: 10,
       borderWidth: 1,
-      borderRadius: 5,
+      borderColor: "silver",
+      borderRadius: 10,
    },
    infoContainer: {
       flexDirection: "row",
@@ -140,12 +142,12 @@ const styles = StyleSheet.create({
    },
    detailTitle: {
       fontFamily: "Montserrat-Bold",
-      fontSize: 12,
+      fontSize: 14,
       color: "rgba(0, 0, 0, 0.8)",
    },
    detailText: {
       fontFamily: "Montserrat-Medium",
-      fontSize: 15,
+      fontSize: 16,
       color: "rgba(0, 0, 0, 0.8)",
    },
 });

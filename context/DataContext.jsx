@@ -148,6 +148,7 @@ export default function AdjustmentDetailProvider({ children }) {
       DRAFT: "draft",
       COMPLETE: "complete",
    };
+
    const supplierInfo = [
       // the supplier ids should be numeric
       {
@@ -157,18 +158,6 @@ export default function AdjustmentDetailProvider({ children }) {
       {
          id: "87654321",
          name: "DEF Corp.",
-      },
-      {
-         id: "65432187",
-         name: "Divye Industries",
-      },
-      {
-         id: "43218765",
-         name: "JKL Manufacturing",
-      },
-      {
-         id: "21876543",
-         name: "MNO Enterprises",
       },
       {
          id: "18765432",
@@ -215,7 +204,7 @@ export default function AdjustmentDetailProvider({ children }) {
       return suppliers[Math.floor(Math.random() * suppliers.length)];
    }
 
-   function generateDsdData(num = 10) {
+   function generateDsdData(num = 30) {
       // DSD (ID, Date, Supplier, Total Qty, DSD Items Array, Damage Proof) => DSD Object
 
       // Sample DSD Items: all the sampleDetailsItems without the reason and proofImages fields and random qty
@@ -252,6 +241,8 @@ export default function AdjustmentDetailProvider({ children }) {
             supplier: generateSupplier(),
             dsdItems: dsdItems,
             damageProof: [],
+            po: Math.floor(Math.random() * 10000000000),
+            invoiceId: generateId(),
          });
       }
       return dsdData;
@@ -269,7 +260,6 @@ export default function AdjustmentDetailProvider({ children }) {
       }
       const newDsd = {
          id: generateId(),
-         // a random 10-digit number
          po: Math.floor(Math.random() * 10000000000),
          status: dsdStatus.DRAFT,
          date: new Date(),
@@ -522,7 +512,8 @@ export default function AdjustmentDetailProvider({ children }) {
 
    // ---------------------- States Management: DSD ----------------------
 
-   const [dsdData, setDsdData] = useState(generateDsdData());
+   const [initialDsdData] = useState(generateDsdData());
+   const [dsdData, setDsdData] = useState(initialDsdData);
    const sampleDsdItems = sampleDetailItems.map((item) => {
       const { reason, ...restFields } = item;
       return { ...restFields, damagedQty: 0 };
@@ -546,12 +537,12 @@ export default function AdjustmentDetailProvider({ children }) {
          id: newId,
          progress: "inProgress",
          date: new Date(),
-         reason: "No Items Added",
+         reason: "NA",
          defaultReason: false,
          detailItems: [],
          totalSKU: 0,
       };
-      setData([...data, newAdjustment]);
+      setData([newAdjustment, ...data]);
       console.log("New Adjustment Created");
    }
 
@@ -1156,9 +1147,11 @@ export default function AdjustmentDetailProvider({ children }) {
       // DSD
       dsdData,
       setDsdData,
+      initialDsdData,
       sampleDsdItems,
       createNewDsd,
       getDsdItems,
+      supplierInfo,
    };
 
    return (

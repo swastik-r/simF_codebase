@@ -24,8 +24,8 @@ export default function AdjustmentCard({ item }) {
    return (
       <Card
          containerStyle={{
-            borderRadius: 15,
-            marginVertical: 10,
+            width: "43%",
+            borderRadius: 10,
             backgroundColor: "white",
             elevation: 5,
          }}
@@ -35,7 +35,7 @@ export default function AdjustmentCard({ item }) {
             <ProgressChip progress={item.progress} />
          </View>
 
-         <CardDivider />
+         {/* <CardDivider /> */}
 
          <Pressable
             onPress={
@@ -73,24 +73,16 @@ export default function AdjustmentCard({ item }) {
                }}
             >
                <View style={{ alignItems: "center" }}>
-                  <Text style={styles.cardTitle}>Quantity</Text>
                   <Text
                      style={[
                         styles.cardData,
-                        { fontFamily: "Montserrat-Bold", fontSize: 15 },
+                        { fontFamily: "Montserrat-Bold", fontSize: 18 },
                      ]}
                   >
                      {item.totalSKU}
                   </Text>
+                  <Text style={styles.cardTitle}>Units</Text>
                </View>
-
-               <Icon
-                  name="arrow-forward-ios"
-                  type="material"
-                  size={25}
-                  color="black"
-                  style={{ marginLeft: 20 }}
-               />
             </View>
          </Pressable>
       </Card>
@@ -99,42 +91,73 @@ export default function AdjustmentCard({ item }) {
 
 // Chip component to display adjustment's progress
 function ProgressChip({ progress }) {
-   const chipData = {
+   const chipData2 = {
       complete: {
-         title: "COMPLETE",
+         icon: "check",
          color: "#1a8a01",
-         titleColor: "white",
+         iconColor: "white",
       },
       inProgress: {
-         title: "IN PROGRESS",
+         icon: "progress-clock",
          color: "#ffbb00",
-         titleColor: "black",
-      },
-      pending: {
-         title: "PENDING",
-         color: "#ff0000",
-         titleColor: "white",
+         iconColor: "black",
       },
    };
 
    return (
-      <Chip
-         title={chipData[progress].title}
-         type="solid"
-         color={chipData[progress].color}
-         titleStyle={[
-            {
-               color: chipData[progress].titleColor,
-            },
-            styles.chipTitle,
-         ]}
-         radius="sm"
-         buttonStyle={{
-            // Decrease padding for chip
+      <View
+         style={{
+            borderWidth: 1,
             padding: 2,
+            borderColor: chipData2[progress].color,
+            borderRadius: 5,
+            backgroundColor: chipData2[progress].color,
          }}
-      />
+      >
+         <Icon
+            name={chipData2[progress].icon}
+            type="material-community"
+            size={20}
+            color={chipData2[progress].iconColor}
+         />
+      </View>
    );
+
+   // const chipData = {
+   //    complete: {
+   //       title: "COMPLETE",
+   //       color: "#1a8a01",
+   //       titleColor: "white",
+   //    },
+   //    inProgress: {
+   //       title: "IN PROGRESS",
+   //       color: "#ffbb00",
+   //       titleColor: "black",
+   //    },
+   //    pending: {
+   //       title: "PENDING",
+   //       color: "#ff0000",
+   //       titleColor: "white",
+   //    },
+   // };
+
+   // return (
+   //    <Chip
+   //       title={chipData[progress].title}
+   //       type="solid"
+   //       color={chipData[progress].color}
+   //       titleStyle={[
+   //          {
+   //             color: chipData[progress].titleColor,
+   //          },
+   //          styles.chipTitle,
+   //       ]}
+   //       radius="sm"
+   //       buttonStyle={{
+   //          padding: 2,
+   //       }}
+   //    />
+   // );
 }
 
 const styles = StyleSheet.create({
@@ -154,7 +177,8 @@ const styles = StyleSheet.create({
       alignItems: "center",
    },
    cardContent: {
-      margin: 2,
+      marginHorizontal: 2,
+      marginVertical: 5,
    },
    cardTitle: {
       color: "black",

@@ -9,7 +9,7 @@ export default function DsdSummary({ route }) {
    const data = getDsdItems(dsdId);
 
    return (
-      <View style={{ alignItems: "center", backgroundColor: "white" }}>
+      <View style={{ alignItems: "center", backgroundColor: "white", flex: 1 }}>
          <FlatList
             data={data}
             numColumns={2}
@@ -20,16 +20,18 @@ export default function DsdSummary({ route }) {
             ListHeaderComponent={
                <>
                   <SummaryDetails dsdId={dsdId} />
-                  <SummaryPageButtons />
+                  {/* <SummaryPageButtons /> */}
                </>
             }
             showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ width: 400 }}
          />
       </View>
    );
 }
 
 function SummaryDetails({ dsdId }) {
+   // States and constants
    const { dsdData } = useAdjustmentDetail();
    const dsd = dsdData.find((dsd) => dsd.id === dsdId);
    const totalItems = dsd.units;
@@ -38,6 +40,7 @@ function SummaryDetails({ dsdId }) {
       0
    );
 
+   // Functions
    function renderDate(date) {
       const dateObj = new Date(date);
       return `${dateObj.getDate()} ${dateObj.toLocaleString("default", {
@@ -84,15 +87,28 @@ function SummaryDetails({ dsdId }) {
          </View>
          <View style={styles.summaryContentContainer}>
             <Text style={styles.summaryText}>
-               Sellable:{" "}
+               Total Sellable:{" "}
                <Text style={{ fontFamily: "Montserrat-Bold" }}>
                   {totalItems - damagedItems}
                </Text>
             </Text>
             <Text style={styles.summaryText}>
-               Damaged:{" "}
+               Total Damaged:{" "}
                <Text style={{ fontFamily: "Montserrat-Bold" }}>
                   {damagedItems}
+               </Text>
+            </Text>
+         </View>
+
+         <View style={styles.summaryContentContainer}>
+            <Text style={styles.summaryText}>
+               PO Number:{" "}
+               <Text style={{ fontFamily: "Montserrat-Bold" }}>{dsd.po}</Text>
+            </Text>
+            <Text style={styles.summaryText}>
+               Invoice ID:{" "}
+               <Text style={{ fontFamily: "Montserrat-Bold" }}>
+                  {dsd.invoiceId}
                </Text>
             </Text>
          </View>
@@ -122,7 +138,7 @@ function SummaryDetails({ dsdId }) {
                   <Icon
                      name="image-broken-variant"
                      type="material-community"
-                     color="orange"
+                     color="crimson"
                      size={20}
                      style={{ marginRight: 5 }}
                   />
@@ -134,7 +150,6 @@ function SummaryDetails({ dsdId }) {
             <LinearProgress
                value={(totalItems - damagedItems) / totalItems}
                color="green"
-               trackColor="orange"
                style={{ height: 10 }}
             />
             <View style={{ flexDirection: "row", justifyContent: "center" }}>
@@ -198,10 +213,11 @@ function SummaryCard({ serialNum, item }) {
    }
 
    return (
-      <View style={styles.card}>
+      <View style={damaged ? styles.damagedCard : styles.card}>
          <Text style={styles.cardTitle}>
             {compressText(item.info.name, 15)}
          </Text>
+
          <Text style={styles.cardId}>{item.id}</Text>
 
          <View style={styles.cardContent}>
@@ -214,7 +230,7 @@ function SummaryCard({ serialNum, item }) {
                <Text
                   style={{
                      fontFamily: "Montserrat-Bold",
-                     color: damaged ? "orange" : "white",
+                     color: damaged && "red",
                   }}
                >
                   {item.damagedQty}
@@ -238,9 +254,9 @@ const styles = StyleSheet.create({
       color: "grey",
    },
    chipDate: {
-      fontSize: 12,
+      fontSize: 15,
       fontFamily: "Montserrat-Bold",
-      color: "black",
+      color: "grey",
    },
    summaryText: {
       fontSize: 15,
@@ -259,30 +275,38 @@ const styles = StyleSheet.create({
 
    // Card Styles
    card: {
-      backgroundColor: "#848884",
+      backgroundColor: "white",
       width: 180,
       padding: 15,
       margin: 10,
       borderRadius: 10,
-      elevation: 3,
+      borderWidth: 1,
+      borderColor: "silver",
+      elevation: 5,
    },
    damagedCard: {
       backgroundColor: "white",
       width: 180,
       padding: 15,
       margin: 10,
+      borderRadius: 10,
       borderWidth: 1,
-      borderColor: "red",
+      borderColor: "crimson",
+      elevation: 5,
+   },
+   dmgChipText: {
+      fontFamily: "Montserrat-Regular",
+      fontSize: 8,
    },
    cardTitle: {
       fontSize: 15,
       fontFamily: "Montserrat-Bold",
-      color: "white",
+      color: "black",
    },
    cardId: {
       fontSize: 14,
       fontFamily: "Montserrat-Regular",
-      color: "#f0f0f0",
+      color: "black",
    },
    cardContent: {
       marginTop: 10,
@@ -290,7 +314,7 @@ const styles = StyleSheet.create({
    cardContentText: {
       fontSize: 14,
       fontFamily: "Montserrat-Regular",
-      color: "white",
+      color: "black",
    },
 
    // Button Styles
