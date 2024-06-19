@@ -1,20 +1,16 @@
-import { Icon } from "@rneui/themed";
 import { Camera, CameraType } from "expo-camera";
-import { useState } from "react";
-import { Button, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Button, StyleSheet, Text, View } from "react-native";
 import { useAdjustmentDetail } from "../../../context/DataContext";
 import { useNavigation } from "@react-navigation/native";
 
-export default function BarcodeScanner({ route }) {
+export default function BarcodeCamera({ route }) {
    const navigation = useNavigation();
-   const [type, setType] = useState(CameraType.back);
    const [permission, requestPermission] = Camera.useCameraPermissions();
    const { adjustmentId } = route.params;
-   const { data, sampleDetailItems, addDetailItem } = useAdjustmentDetail();
+   const { sampleDetailItems, addDetailItem } = useAdjustmentDetail();
 
-   function handleBarcode({ data }) {
+   function searchBarcode({ data }) {
       const item = sampleDetailItems.find((item) => item.id === data);
-      // if item found in the sampleDetailItems
       if (item) {
          console.log("Item found", item);
          console.log("Adjustment ID", adjustmentId);
@@ -26,12 +22,10 @@ export default function BarcodeScanner({ route }) {
    }
 
    if (!permission) {
-      // Camera permissions are still loading
       return <View />;
    }
 
    if (!permission.granted) {
-      // Camera permissions are not granted yet
       return (
          <View style={styles.container}>
             <Text style={{ textAlign: "center", marginBottom: 30 }}>
@@ -43,13 +37,11 @@ export default function BarcodeScanner({ route }) {
    }
 
    return (
-      <View style={styles.container}>
-         <Camera
-            style={styles.camera}
-            type={CameraType.back}
-            onBarCodeScanned={handleBarcode}
-         />
-      </View>
+      <Camera
+         style={styles.camera}
+         type={CameraType.back}
+         onBarCodeScanned={searchBarcode}
+      />
    );
 }
 
@@ -76,5 +68,13 @@ const styles = StyleSheet.create({
       fontSize: 24,
       fontWeight: "bold",
       color: "white",
+   },
+   scanHelperText: {
+      fontFamily: "Montserrat-Bold",
+      textAlign: "center",
+      color: "white",
+      padding: 10,
+      borderRadius: 10,
+      margin: 20,
    },
 });

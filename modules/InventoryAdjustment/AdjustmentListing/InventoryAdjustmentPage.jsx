@@ -1,41 +1,48 @@
-import SearchBar_FS from "../_comps/SearchBar_FS";
+import SearchBar_FS from "./SearchBar_FS";
 import { useAdjustmentDetail } from "../../../context/DataContext";
-import { View, StyleSheet, FlatList, Text } from "react-native";
+import {
+   View,
+   StyleSheet,
+   FlatList,
+   Text,
+   ImageBackground,
+} from "react-native";
 import { FAB } from "@rneui/themed";
-import AdjustmentCard from "../_comps/AdjustmentCard";
+import AdjustmentCard2 from "../_comps/AdjustmentCard2";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme, Icon, Button } from "@rneui/themed";
 
 export default function InventoryAdjustmentPage() {
-   const { theme } = useTheme();
    const { data, createNewAdjustment } = useAdjustmentDetail();
    const navigation = useNavigation();
 
    return (
-      <View style={{ backgroundColor: "white", flex: 1 }}>
+      // <ImageBackground
+      //    source={require("../../../assets/pageBg.png")}
+      //    style={{ flex: 1 }}
+      // >
+      <View style={{ flex: 0.88 }}>
          {/* Inventory Adjustment Cards */}
          <FlatList
             data={data}
-            numColumns={2}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <AdjustmentCard item={item} />}
+            renderItem={({ item }) => <AdjustmentCard2 item={item} />}
             ListHeaderComponent={SearchBar_FS}
             ListEmptyComponent={<EmptyPageComponent />}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{
-               paddingBottom: 100,
-               width: 400,
-            }}
          />
 
          {/* FAB: Add a new adjustment */}
          <FAB
-            color={theme.colors.tertiary}
+            title={"Create"}
+            titleStyle={{ fontFamily: "Montserrat-Bold", color: "grey" }}
+            color={"white"}
             style={styles.fab}
             icon={{
                name: "plus-thick",
                type: "material-community",
-               color: "white",
+               color: "grey",
+               size: 20,
             }}
             onPress={() => {
                const newId = data[data.length - 1].id + 1;
@@ -44,6 +51,7 @@ export default function InventoryAdjustmentPage() {
             }}
          />
       </View>
+      // </ImageBackground>
    );
 }
 
@@ -99,8 +107,7 @@ const styles = StyleSheet.create({
    },
    fab: {
       position: "absolute",
-      right: 0,
+      right: 10,
       bottom: 0,
-      margin: 20,
    },
 });

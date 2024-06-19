@@ -9,16 +9,7 @@ export function useAdjustmentDetail() {
 export default function AdjustmentDetailProvider({ children }) {
    const adjustmentInfo = {
       progress: ["complete", "inProgress"],
-      reasons: [
-         "damaged",
-         "theft",
-         "stockIn",
-         "stockOut",
-         "multiple",
-         "multiple",
-         "multiple",
-         "multiple",
-      ], // multiple is repeated to increase its probability
+      reasons: ["damaged", "theft", "stockIn", "stockOut"], // multiple is repeated to increase its probability
    };
    const itemInfo = {
       size: ["small", "medium", "large", "extraLarge"],
@@ -29,7 +20,7 @@ export default function AdjustmentDetailProvider({ children }) {
          "Oversized Hoodie",
          "Floral Long Dress",
       ],
-      reasons: ["damaged", "theft", "stockIn", "stockOut", "sellable"],
+      reasons: ["damaged", "theft", "stockIn", "stockOut"],
    };
    const reasonMap = {
       damaged: "Damaged",
@@ -39,12 +30,19 @@ export default function AdjustmentDetailProvider({ children }) {
       sellable: "Sellable",
       multiple: "Multiple",
       undefined: "Select Reason",
+      NA: "N/A",
    };
    const sizeMap = {
       small: "S",
       medium: "M",
       large: "L",
       extraLarge: "XL",
+   };
+   const itemImage = {
+      "Polo T-Shirt": require("../assets/polo-tshirt.jpeg"),
+      "Slim Fit Jeans": require("../assets/slim-jeans.jpeg"),
+      "Oversized Hoodie": require("../assets/hoodie.jpeg"),
+      "Floral Long Dress": require("../assets/floral-dress.jpeg"),
    };
    function reasonString(reasonCode) {
       return reasonMap[reasonCode];
@@ -83,13 +81,12 @@ export default function AdjustmentDetailProvider({ children }) {
             const { data, totalSKU, adjustmentReason } = randomDetailData(
                getRandomNumUpto(20)
             );
-
             return {
                id: getRandomId(),
                progress: getRandomProgress(),
                date: String(getRandomDate()),
                reason: adjustmentReason,
-               defaultReason: adjustmentReason === "multiple" ? false : true,
+               defaultReason: true,
                detailItems: data,
                totalSKU: totalSKU,
                proofImages: [],
@@ -113,7 +110,6 @@ export default function AdjustmentDetailProvider({ children }) {
 
          return id;
       }
-
       function generateRandomData(numItems) {
          const data = [];
          let totalSKU = 0;
@@ -126,19 +122,19 @@ export default function AdjustmentDetailProvider({ children }) {
                color: randomItem(itemInfo.color),
                size: randomItem(itemInfo.size),
             };
+            info.image = itemImage[info.name];
             const qty = Math.floor(Math.random() * 10) + 1;
-            // reason to be adjustment's reason if it's not multiple, else random reason
-            const reason =
-               adjustmentReason === "multiple"
-                  ? // the reason must not be sellable
-                    randomItem(itemInfo.reasons.filter((r) => r !== "sellable"))
-                  : adjustmentReason;
-            data.push({ id, info, qty, reason, proofImages: [] });
+            data.push({
+               id,
+               info,
+               qty,
+               reason: adjustmentReason,
+               proofImages: [],
+            });
             totalSKU += qty;
          }
          return { data, totalSKU, adjustmentReason };
       }
-
       return generateRandomData(numItems);
    } // generate random detail items data
 
@@ -205,7 +201,7 @@ export default function AdjustmentDetailProvider({ children }) {
    }
 
    function generateDsdData(num = 30) {
-      // DSD (ID, Date, Supplier, Total Qty, DSD Items Array, Damage Proof) => DSD Object
+      // DSD (ID, Date, Supplier, Total Qty, DSD Items Array, Damage Proof)
 
       // Sample DSD Items: all the sampleDetailsItems without the reason and proofImages fields and random qty
       const sampleDsdItems = sampleDetailItems.map((item) => {
@@ -288,9 +284,9 @@ export default function AdjustmentDetailProvider({ children }) {
             name: "Floral Long Dress",
             color: "red",
             size: "extraLarge",
+            image: require("../assets/floral-dress.jpeg"),
          },
          qty: 1,
-         reason: "undefined",
          proofImages: [],
       },
       {
@@ -299,9 +295,9 @@ export default function AdjustmentDetailProvider({ children }) {
             name: "Slim Fit Jeans",
             color: "grey",
             size: "extraLarge",
+            image: require("../assets/slim-jeans.jpeg"),
          },
          qty: 1,
-         reason: "undefined",
          proofImages: [],
       },
       {
@@ -310,9 +306,9 @@ export default function AdjustmentDetailProvider({ children }) {
             name: "Floral Long Dress",
             color: "blue",
             size: "small",
+            image: require("../assets/floral-dress.jpeg"),
          },
          qty: 1,
-         reason: "undefined",
          proofImages: [],
       },
       {
@@ -321,9 +317,9 @@ export default function AdjustmentDetailProvider({ children }) {
             name: "Polo T-Shirt",
             color: "grey",
             size: "small",
+            image: require("../assets/polo-tshirt.jpeg"),
          },
          qty: 1,
-         reason: "undefined",
          proofImages: [],
       },
       {
@@ -332,9 +328,9 @@ export default function AdjustmentDetailProvider({ children }) {
             name: "Slim Fit Jeans",
             color: "black",
             size: "extraLarge",
+            image: require("../assets/slim-jeans.jpeg"),
          },
          qty: 1,
-         reason: "undefined",
          proofImages: [],
       },
       {
@@ -343,9 +339,9 @@ export default function AdjustmentDetailProvider({ children }) {
             name: "Polo T-Shirt",
             color: "grey",
             size: "small",
+            image: require("../assets/polo-tshirt.jpeg"),
          },
          qty: 1,
-         reason: "undefined",
          proofImages: [],
       },
       {
@@ -354,9 +350,9 @@ export default function AdjustmentDetailProvider({ children }) {
             name: "Slim Fit Jeans",
             color: "green",
             size: "extraLarge",
+            image: require("../assets/slim-jeans.jpeg"),
          },
          qty: 1,
-         reason: "undefined",
          proofImages: [],
       },
       {
@@ -365,9 +361,9 @@ export default function AdjustmentDetailProvider({ children }) {
             name: "Oversized Hoodie",
             color: "green",
             size: "extraLarge",
+            image: require("../assets/hoodie.jpeg"),
          },
          qty: 1,
-         reason: "undefined",
          proofImages: [],
       },
       {
@@ -376,9 +372,9 @@ export default function AdjustmentDetailProvider({ children }) {
             name: "Floral Long Dress",
             color: "red",
             size: "medium",
+            image: require("../assets/floral-dress.jpeg"),
          },
          qty: 1,
-         reason: "undefined",
          proofImages: [],
       },
       {
@@ -387,9 +383,9 @@ export default function AdjustmentDetailProvider({ children }) {
             name: "Oversized Hoodie",
             color: "grey",
             size: "extraLarge",
+            image: require("../assets/hoodie.jpeg"),
          },
          qty: 1,
-         reason: "undefined",
          proofImages: [],
       },
       {
@@ -398,9 +394,9 @@ export default function AdjustmentDetailProvider({ children }) {
             name: "Slim Fit Jeans",
             color: "red",
             size: "extraLarge",
+            image: require("../assets/slim-jeans.jpeg"),
          },
          qty: 1,
-         reason: "undefined",
          proofImages: [],
       },
       {
@@ -409,9 +405,9 @@ export default function AdjustmentDetailProvider({ children }) {
             name: "Slim Fit Jeans",
             color: "red",
             size: "small",
+            image: require("../assets/slim-jeans.jpeg"),
          },
          qty: 1,
-         reason: "undefined",
          proofImages: [],
       },
       {
@@ -420,9 +416,9 @@ export default function AdjustmentDetailProvider({ children }) {
             name: "Floral Long Dress",
             color: "black",
             size: "medium",
+            image: require("../assets/floral-dress.jpeg"),
          },
          qty: 1,
-         reason: "undefined",
          proofImages: [],
       },
       {
@@ -431,9 +427,9 @@ export default function AdjustmentDetailProvider({ children }) {
             name: "Polo T-Shirt",
             color: "blue",
             size: "extraLarge",
+            image: require("../assets/polo-tshirt.jpeg"),
          },
          qty: 1,
-         reason: "undefined",
          proofImages: [],
       },
       {
@@ -442,9 +438,9 @@ export default function AdjustmentDetailProvider({ children }) {
             name: "Polo T-Shirt",
             color: "grey",
             size: "large",
+            image: require("../assets/polo-tshirt.jpeg"),
          },
          qty: 1,
-         reason: "undefined",
          proofImages: [],
       },
       {
@@ -453,9 +449,9 @@ export default function AdjustmentDetailProvider({ children }) {
             name: "Polo T-Shirt",
             color: "black",
             size: "extraLarge",
+            image: require("../assets/polo-tshirt.jpeg"),
          },
          qty: 1,
-         reason: "undefined",
          proofImages: [],
       },
       {
@@ -464,9 +460,9 @@ export default function AdjustmentDetailProvider({ children }) {
             name: "Slim Fit Jeans",
             color: "green",
             size: "small",
+            image: require("../assets/slim-jeans.jpeg"),
          },
          qty: 1,
-         reason: "undefined",
          proofImages: [],
       },
       {
@@ -475,9 +471,9 @@ export default function AdjustmentDetailProvider({ children }) {
             name: "Polo T-Shirt",
             color: "green",
             size: "large",
+            image: require("../assets/polo-tshirt.jpeg"),
          },
          qty: 1,
-         reason: "undefined",
          proofImages: [],
       },
       {
@@ -486,9 +482,9 @@ export default function AdjustmentDetailProvider({ children }) {
             name: "Slim Fit Jeans",
             color: "blue",
             size: "large",
+            image: require("../assets/slim-jeans.jpeg"),
          },
          qty: 1,
-         reason: "undefined",
          proofImages: [],
       },
       {
@@ -497,12 +493,13 @@ export default function AdjustmentDetailProvider({ children }) {
             name: "Oversized Hoodie",
             color: "black",
             size: "medium",
+            image: require("../assets/hoodie.jpeg"),
          },
          qty: 1,
-         reason: "undefined",
          proofImages: [],
       },
    ];
+
    const [searchStr, setSearchStr] = useState("");
    const initialFilterParams = {
       reason: [],
@@ -662,6 +659,8 @@ export default function AdjustmentDetailProvider({ children }) {
    }
 
    function addDetailItem(item, parentItemId) {
+      console.log("Adding item: ", item);
+      item.info.image = itemImage[item.info.name];
       const updatedData = data.map((parentItem) => {
          if (parentItem.id === parentItemId) {
             // check if the item already exists in the parentItem
@@ -680,15 +679,9 @@ export default function AdjustmentDetailProvider({ children }) {
          return parentItem;
       });
       setData(updatedData);
-
-      // if parentItemId has defaultReason = true, set the reason of the new item to the parent's reason
-      const parentItem = data.find((item) => item.id === parentItemId);
-      if (parentItem.defaultReason) {
-         setItemReasonCode(parentItem.reason, parentItemId, item.id);
-      }
    }
 
-   function setDefaultReasonCode(reasonCode, id) {
+   function setDefaultReasonCode(id, reasonCode) {
       const updatedData = data.map((item) => {
          if (item.id === id) {
             item.reason = reasonCode;
@@ -809,8 +802,22 @@ export default function AdjustmentDetailProvider({ children }) {
    function handleSearch(text) {
       console.log("Searching for ID: ", text);
       // find all the adjustments that contain the text in their id
-      const searchResults = initialData.filter((item) =>
-         String(item.id).includes(text)
+      const searchResults = initialData.filter(
+         (item) =>
+            // if the item id matches with the text
+            String(item.id).toLowerCase().includes(text.toLowerCase()) ||
+            // or if any detail item names match with the text
+            item.detailItems.some((detailItem) =>
+               detailItem.info.name.toLowerCase().includes(text.toLowerCase())
+            ) ||
+            // or if any detail item id match with the text
+            item.detailItems.some((detailItem) =>
+               detailItem.id.toLowerCase().includes(text.toLowerCase())
+            ) ||
+            // or if any item.progess match with the text
+            item.progress.toLowerCase().includes(text.toLowerCase()) ||
+            // or if any item.reason match with the text
+            item.reason.toLowerCase().includes(text.toLowerCase())
       );
       setData(searchResults);
    }
@@ -821,7 +828,7 @@ export default function AdjustmentDetailProvider({ children }) {
          return;
       }
 
-      const sortedData = [...data]; // Make a copy of initialData
+      const sortedData = [...data];
       sortedData.sort((a, b) => {
          const dateA = new Date(a.date);
          const dateB = new Date(b.date);
@@ -1105,6 +1112,7 @@ export default function AdjustmentDetailProvider({ children }) {
 
    const value = {
       itemInfo,
+      itemImage,
       reasonMap,
       sizeMap,
       reasonString,

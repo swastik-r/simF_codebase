@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { View, Pressable, StyleSheet, Text } from "react-native";
 
 // React Native Elements UI Library
-import { Icon, SearchBar, ListItem, Overlay } from "@rneui/themed";
+import { Icon, SearchBar, ListItem } from "@rneui/themed";
 
 // Custom Components
 import { useAdjustmentDetail } from "../../../context/DataContext";
@@ -15,6 +15,7 @@ export default function SearchBar_FS() {
    // States and Vars
    const { searchStr, setSearchStr, handleSearch } = useAdjustmentDetail();
 
+   // Visibility States
    const [sortVisible, setSortVisible] = useState(false);
    const [filterVisible, setFilterVisible] = useState(false);
    const [dateFilterVisible, setDateFilterVisible] = useState(false);
@@ -25,57 +26,43 @@ export default function SearchBar_FS() {
       <>
          <View style={styles.searchBarAndOpts}>
             <SearchBar
-               lightTheme={true}
-               round={true}
-               placeholder="Search an Adjustment ID"
+               placeholder="Enter an Item name/ID, Reason or Status"
                containerStyle={{
                   flex: 1,
                   backgroundColor: "transparent",
-                  borderTopColor: "transparent",
-                  borderBottomColor: "transparent",
+                  borderColor: "transparent",
+                  paddingHorizontal: 3,
                }}
                inputStyle={{
                   fontFamily: "Montserrat-Medium",
-                  fontSize: 14,
+                  fontSize: 10,
                }}
                inputContainerStyle={{
                   height: 40,
                   borderRadius: 50,
+                  backgroundColor: "white",
                }}
-               searchIcon={{ size: 20 }}
                value={searchStr}
                onChangeText={(text) => {
                   setSearchStr(text), handleSearch(text);
                }}
-               keyboardType="numeric"
             />
 
             {/* Filter Button */}
             <Pressable
-               style={styles.chipButton}
+               style={styles.buttonContainer}
                onPress={() => setFilterVisible(true)}
             >
                <Icon name="filter" type="material-community" />
-               <Text
-                  style={{
-                     fontFamily: "Montserrat-Medium",
-                     fontSize: 10,
-                  }}
-               >
-                  FILTER
-               </Text>
             </Pressable>
 
             {/* Sort Button */}
             <Pressable
-               style={styles.chipButton}
+               style={styles.buttonContainer}
                color="blue"
                onPress={() => setSortVisible(true)}
             >
                <Icon name="sort" type="materialcommunity" size={25} />
-               <Text style={{ fontFamily: "Montserrat-Medium", fontSize: 10 }}>
-                  SORT
-               </Text>
             </Pressable>
          </View>
 
@@ -528,7 +515,7 @@ function ReasonFilterBottomSheet({
    );
 }
 
-// Needs to be developed, later
+// Needs to be developed later
 function DateFilterBottomSheet({ dateFilterVisible, setDateFilterVisible }) {
    // use date-time-picker here
    return (
@@ -675,5 +662,13 @@ const styles = StyleSheet.create({
    bottomSheet: {
       backgroundColor: "white",
       padding: 10,
+   },
+
+   buttonContainer: {
+      paddingVertical: 5,
+      paddingHorizontal: 6,
+      marginHorizontal: 5,
+      backgroundColor: "white",
+      borderRadius: 10,
    },
 });

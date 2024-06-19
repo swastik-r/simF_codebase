@@ -1,99 +1,86 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // React Native Imports
 import { View, StyleSheet, FlatList, Text, Pressable } from "react-native";
+
+// React Native Paper Imports
+import { FAB, Portal, Provider } from "react-native-paper";
 
 // React Navigation Imports
 import { useNavigation } from "@react-navigation/native";
 
 // React Native Elements UI Library
-import { useTheme, FAB, Overlay, Button, Icon } from "@rneui/themed";
+import { useTheme, Overlay, Button, Icon } from "@rneui/themed";
 
 // Custom Components
-import DetailCard from "./comps/DetailCard";
+import DetailCard2 from "./comps/DetailCard2";
 import ReasonCodeOverlay from "./comps/ReasonCodeOverlay";
 import { useAdjustmentDetail } from "../../../context/DataContext";
+import SearchBar_FS from "./comps/SearchBar_FS";
+import { SummaryDetails } from "../AdjustmentSummary/AdjustmentSummaryPage";
 
 import * as ImagePicker from "expo-image-picker";
 
 export default function AdjustmentDetailPage({ route }) {
-   const { theme } = useTheme();
+   // States and vars
    const { data } = useAdjustmentDetail();
    const { id } = route.params;
    const adjustment = data.find((item) => item.id === id);
    const navigation = useNavigation();
-
-   // For Reason Codes Overlay
    const [showReasonCodes, setShowReasonCodes] = useState(
       !adjustment.defaultReason && adjustment.detailItems.length === 0
    );
-   // For Submit Overlay
    const [submitVisible, setSubmitVisible] = useState(false);
-   // For Image Upload Overlay
    const [uploadVisible, setUploadVisible] = useState(false);
+   const [excelUploadVisible, setExcelUploadVisible] = useState(false);
+   const [searchResults, setSearchResults] = useState(adjustment.detailItems);
+   const [searchText, setSearchText] = useState("");
+
+   // useEffect to handle search results and reset when text changes
+   useEffect(() => {
+      if (searchText === "") {
+         setSearchResults(adjustment.detailItems);
+      } else {
+         const results = adjustment.detailItems.filter(
+            (item) =>
+               item.info.name
+                  .toLowerCase()
+                  .includes(searchText.toLowerCase()) ||
+               item.id.toLowerCase().includes(searchText.toLowerCase())
+         );
+         setSearchResults(results);
+      }
+   }, [searchText, adjustment.detailItems]);
+
+   function search(text) {
+      setSearchText(text);
+   }
 
    return (
-      <View style={{ flex: 1, backgroundColor: "white" }}>
-         <FlatList
-            data={adjustment.detailItems}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-               <DetailCard
-                  item={item}
-                  parentItemId={id}
-                  setShowReasonCodes={setShowReasonCodes}
-               />
-            )}
-            ListHeaderComponent={
-               <ButtonGroup
-                  adjustment={adjustment}
-                  setShowReasonCodes={setShowReasonCodes}
-                  setSubmitVisible={setSubmitVisible}
-                  setUploadVisible={setUploadVisible}
-               />
-            }
-            ListEmptyComponent={
-               <View
-                  style={{
-                     marginTop: 200,
-                  }}
-               >
-                  <Text style={styles.emptyListText}>
-                     No items in this adjustment
-                  </Text>
-                  <View
-                     style={{
-                        flexDirection: "row",
-                        justifyContent: "center",
-                        alignItems: "start",
-                     }}
-                  >
-                     <Text style={styles.emptyListText}>Click the</Text>
-                     <Icon
-                        name="plus-thick"
-                        type="material-community"
-                        size={18}
-                        color={theme.colors.primary}
+      <Provider>
+         <View style={{ flex: 0.88, backgroundColor: "rgb(225,225,225)" }}>
+            <FlatList
+               data={searchResults}
+               keyExtractor={(item) => item.id}
+               renderItem={({ item }) => (
+                  <DetailCard2 item={item} parentItemId={id} route={route} />
+               )}
+               ListHeaderComponent={
+                  <>
+                     <SummaryDetails adjustment={adjustment} />
+                     <SearchBar_FS search={search} />
+                     <ButtonGroup
+                        adjustment={adjustment}
+                        setShowReasonCodes={setShowReasonCodes}
+                        setSubmitVisible={setSubmitVisible}
+                        setUploadVisible={setUploadVisible}
                      />
-                     <Text style={styles.emptyListText}>
-                        button to add items
-                     </Text>
-                  </View>
-               </View>
-            }
-         />
-         <FAB
-            color={theme.colors.primary}
-            style={styles.fab}
-            icon={{
-               name: "plus-thick",
-               type: "material-community",
-               color: "white",
-            }}
-            onPress={() => {
-               navigation.navigate("Add Detail Item", { id: id });
-            }}
-         />
+                  </>
+               }
+               ListEmptyComponent={<EmptyPage />}
+            />
+            <CustomFAB navigation={navigation} id={id} />
+         </View>
 
          {/* Reason selection overlay */}
          <ReasonCodeOverlay
@@ -118,10 +105,147 @@ export default function AdjustmentDetailPage({ route }) {
             <SubmitOverlay
                id={id}
                submitVisible={submitVisible}
-               setUploadVisible={setUploadVisible}
                setSubmitVisible={setSubmitVisible}
             />
          )}
+
+         {/* Excel Upload Modal */}
+         <ExcelUploadModal
+            excelUploadVisible={excelUploadVisible}
+            setExcelUploadVisible={setExcelUploadVisible}
+         />
+      </Provider>
+   );
+}
+
+function CustomFAB({ navigation, id }) {
+   const [open, setOpen] = useState(false);
+   const onStateChange = ({ open }) => setOpen(open);
+
+   return (
+      <Portal>
+         <FAB.Group
+            fabStyle={{
+               width: 60,
+               height: 60,
+               borderRadius: 50,
+               backgroundColor: "white",
+               justifyContent: "center",
+               alignItems: "center",
+            }}
+            open={open}
+            icon={open ? "close" : "plus"}
+            actions={[
+               {
+                  icon: "qrcode-scan",
+                  label: "Scan",
+                  onPress: () => navigation.navigate("Add Detail Item", { id }),
+               },
+               {
+                  icon: "upload",
+                  label: "Upload XLSX",
+                  onPress: () => console.log("Pressed upload"),
+               },
+            ]}
+            onStateChange={onStateChange}
+            onPress={() => {
+               if (open) {
+                  // Do something if the speed dial is open
+               }
+            }}
+            style={styles.fab}
+         />
+      </Portal>
+   );
+}
+
+function ExcelUploadModal({ excelUploadVisible, setExcelUploadVisible }) {
+   return (
+      <Overlay
+         isVisible={excelUploadVisible}
+         onBackdropPress={() => {
+            setExcelUploadVisible(false);
+         }}
+         overlayStyle={{
+            width: "80%",
+            height: "35%",
+            justifyContent: "space-around",
+            alignItems: "center",
+            borderRadius: 20,
+         }}
+      >
+         <Pressable onPress={() => {}} style={{ alignItems: "center" }}>
+            <Icon
+               name="cloud-upload-outline"
+               type="material-community"
+               color={"lightblue"}
+               size={100}
+            />
+            <Text
+               style={{
+                  fontFamily: "Montserrat-Bold",
+                  fontSize: 18,
+                  color: "grey",
+               }}
+            >
+               Upload Adjustment Proof
+            </Text>
+            <Text
+               style={{
+                  fontFamily: "Montserrat-Regular",
+                  marginVertical: 10,
+                  textAlign: "center",
+               }}
+            >
+               Do you want to upload a proof of this adjustment?
+            </Text>
+         </Pressable>
+
+         <View style={{ flexDirection: "row" }}>
+            <Button
+               buttonStyle={[
+                  styles.button,
+                  {
+                     backgroundColor: "transparent",
+                     borderWidth: 1,
+                     borderColor: "grey",
+                  },
+               ]}
+               title="Skip"
+               titleStyle={{ color: "grey", fontFamily: "Montserrat-Medium" }}
+               onPress={() => {
+                  setExcelUploadVisible(false);
+               }}
+            />
+            <Button
+               buttonStyle={styles.button}
+               title="Upload"
+               titleStyle={{ fontFamily: "Montserrat-Medium" }}
+               onPress={() => {}}
+            />
+         </View>
+      </Overlay>
+   );
+}
+
+function EmptyPage() {
+   return (
+      <View
+         style={{
+            marginTop: 120,
+         }}
+      >
+         <Icon
+            name="file-document"
+            type="material-community"
+            size={100}
+            iconStyle={{
+               opacity: 0.5,
+            }}
+         />
+         <Text style={styles.emptyListText}>
+            No items added to this adjustment yet
+         </Text>
       </View>
    );
 }
@@ -162,7 +286,7 @@ function ButtonGroup({ adjustment, setShowReasonCodes, setUploadVisible }) {
                }
                title={
                   adjustment.defaultReason
-                     ? "Default: " + reasonString(adjustment.reason)
+                     ? "Reason: " + reasonString(adjustment.reason)
                      : "Select Default Reason"
                }
                titleStyle={[
@@ -306,7 +430,6 @@ function ProofUploadOverlay({
 
 function SubmitOverlay({ id, submitVisible, setSubmitVisible }) {
    const navigation = useNavigation();
-   const { theme } = useTheme();
    const { completeAdjustment } = useAdjustmentDetail();
 
    return (
@@ -362,7 +485,7 @@ function SubmitOverlay({ id, submitVisible, setSubmitVisible }) {
                onPress={() => {
                   completeAdjustment(id);
                   setSubmitVisible(false);
-                  navigation.navigate("Inventory Adjustment");
+                  navigation.goBack();
                }}
             />
          </View>
@@ -372,7 +495,7 @@ function SubmitOverlay({ id, submitVisible, setSubmitVisible }) {
 
 const styles = StyleSheet.create({
    buttonContainer: {
-      marginTop: 10,
+      marginVertical: 10,
       marginHorizontal: 20,
       flexDirection: "row",
       justifyContent: "space-evenly",
@@ -393,17 +516,8 @@ const styles = StyleSheet.create({
       alignItems: "center",
       marginTop: 210,
    },
-   fabContainer: {
-      position: "absolute",
-      right: 0,
-      bottom: 0,
-      margin: 10,
-      flexDirection: "row",
-   },
    fab: {
-      position: "absolute",
-      right: 0,
-      bottom: 0,
-      margin: 10,
+      right: 10,
+      bottom: 70,
    },
 });

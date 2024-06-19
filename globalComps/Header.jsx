@@ -2,6 +2,18 @@ import { StyleSheet, View, TouchableOpacity, Image, Text } from "react-native";
 import { Header as HeaderRNE, Icon } from "@rneui/themed";
 
 function Header() {
+   const details = [
+      {
+         icon: "storefront",
+         iconType: "ionicons",
+         label: "Store 101",
+      },
+      {
+         icon: "user",
+         iconType: "feather",
+         label: "amit003",
+      },
+   ];
    return (
       <HeaderRNE
          containerStyle={styles.header}
@@ -10,7 +22,7 @@ function Header() {
          rightContainerStyle={styles.headerContainer}
          leftComponent={
             <TouchableOpacity>
-               <Icon name="menu" color="#f0f0f0" size={25} />
+               <Icon name="menu" color="#f0f0f0" size={33} />
             </TouchableOpacity>
          }
          centerComponent={
@@ -21,20 +33,22 @@ function Header() {
          }
          rightComponent={
             <View>
-               <TouchableOpacity
-                  style={{ flexDirection: "row", alignItems: "center" }}
-               >
-                  <Icon
-                     name="storefront"
-                     type="ionicons"
-                     color="#fff"
-                     size={27}
-                  />
-                  <View style={styles.storeInfoContainer}>
-                     <Text style={styles.storeId}>101</Text>
-                     <Text style={styles.storeName}>Delhi</Text>
-                  </View>
-               </TouchableOpacity>
+               {details.map((detail, index) => (
+                  <TouchableOpacity
+                     key={index}
+                     style={{ flexDirection: "row", alignItems: "center" }}
+                  >
+                     <Icon
+                        name={detail.icon}
+                        type={detail.iconType}
+                        color="#fff"
+                        size={17}
+                     />
+                     <View style={styles.storeInfoContainer}>
+                        <Text style={styles.storeId}>{detail.label}</Text>
+                     </View>
+                  </TouchableOpacity>
+               ))}
             </View>
          }
       />
@@ -42,8 +56,12 @@ function Header() {
 }
 
 const styles = StyleSheet.create({
+   header: {
+      borderBottomWidth: 0,
+   },
    headerContainer: {
-      marginTop: 10,
+      marginTop: 15,
+      justifyContent: "center",
    },
    logo: {
       height: 25,

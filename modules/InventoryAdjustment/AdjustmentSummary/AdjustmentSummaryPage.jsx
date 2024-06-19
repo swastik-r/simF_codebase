@@ -1,44 +1,77 @@
-import { Text, FlatList, StyleSheet, View } from "react-native";
-import SummaryCard from "./comps/SummaryCard";
+import React, { useState, useEffect } from "react";
+import {
+   Text,
+   FlatList,
+   StyleSheet,
+   View,
+   ImageBackground,
+} from "react-native";
+import DetailCard2 from "../AdjustmentDetail/comps/DetailCard2";
 import { useAdjustmentDetail } from "../../../context/DataContext";
-import { Button, Icon } from "@rneui/themed";
+import SearchBar_FS from "./comps/SearchBar_FS";
 
 export default function AdjustmentSummaryPage({ route }) {
    const { data } = useAdjustmentDetail();
    const { id } = route.params;
    const adjustment = data.find((item) => item.id === id);
-   const listData = adjustment.detailItems;
+   const [searchResults, setSearchResults] = useState(adjustment.detailItems);
+   const [searchText, setSearchText] = useState("");
+
+   // useEffect: handle search results and reset when text changes
+   useEffect(() => {
+      if (searchText === "") {
+         setSearchResults(adjustment.detailItems);
+      } else {
+         const results = adjustment.detailItems.filter(
+            (item) =>
+               item.info.name
+                  .toLowerCase()
+                  .includes(searchText.toLowerCase()) ||
+               item.id.toLowerCase().includes(searchText.toLowerCase())
+         );
+         setSearchResults(results);
+      }
+   }, [searchText, adjustment.detailItems]);
+
+   function search(text) {
+      setSearchText(text);
+   }
 
    return (
-      <View style={{ backgroundColor: "white" }}>
+      // <ImageBackground
+      //    source={require("../../../assets/pageBg.png")}
+      //    style={{ flex: 1 }}
+      // >
+      <View style={{ flex: 0.9, backgroundColor: "rgb(225,225,225)" }}>
          <FlatList
-            data={listData}
+            data={searchResults}
             keyExtractor={(item) => item.id}
-            renderItem={({ item, index }) => (
-               <SummaryCard
+            renderItem={({ item }) => (
+               <DetailCard2
                   item={item}
-                  serialNumber={index + 1}
                   adjustmentReason={adjustment.reason}
+                  route={route}
                />
             )}
             ListHeaderComponent={
                <>
                   <SummaryDetails adjustment={adjustment} />
-                  {/* <SummaryPageButtons /> */}
+                  <SearchBar_FS search={search} adjustmentId={id} />
                </>
             }
          />
       </View>
+      // </ImageBackground>
    );
 }
 
-function SummaryDetails({ adjustment }) {
+export function SummaryDetails({ adjustment }) {
    const { reasonMap } = useAdjustmentDetail();
 
    function dateString(date) {
       return new Date(date).toLocaleDateString("en-GB", {
          day: "numeric",
-         month: "short",
+         month: "numeric",
          year: "numeric",
       });
    }
@@ -47,92 +80,62 @@ function SummaryDetails({ adjustment }) {
       return reasonMap[reason];
    }
 
-   const info = [
+   const info1 = [
       {
          title: "ID",
          text: adjustment.id,
       },
       {
-         title: "Total SKU",
-         text: adjustment.totalSKU,
+         title: "Date",
+         text: dateString(adjustment.date),
       },
+   ];
+   const info2 = [
       {
          title: "Reason Code",
          text: reasonString(adjustment.reason),
       },
       {
-         title: "Adjustment Date",
-         text: dateString(adjustment.date),
+         title: "User",
+         text: "amit003",
       },
    ];
 
    return (
-      <View style={styles.detailsContainer}>
-         {info.map((item, index) => (
-            <View key={index} style={styles.infoContainer}>
-               <Text style={styles.detailTitle}>{item.title}</Text>
-               <Text style={styles.detailText}>{item.text}</Text>
-            </View>
-         ))}
+      <View style={detailStyles.detailsContainer}>
+         <View style={{ width: "45%" }}>
+            {info1.map((item, index) => (
+               <View key={index} style={detailStyles.infoContainer}>
+                  <Text style={detailStyles.detailTitle}>{item.title}</Text>
+                  <Text style={detailStyles.detailText}>{item.text}</Text>
+               </View>
+            ))}
+         </View>
+
+         <View style={{ width: "45%" }}>
+            {info2.map((item, index) => (
+               <View key={index} style={detailStyles.infoContainer}>
+                  <Text style={detailStyles.detailTitle}>{item.title}</Text>
+                  <Text style={detailStyles.detailText}>{item.text}</Text>
+               </View>
+            ))}
+         </View>
       </View>
    );
 }
 
-function SummaryPageButtons() {
-   const buttonList = [
-      {
-         title: "Email",
-         icon: "email",
-         iconType: "material",
-      },
-      {
-         title: "Print",
-         icon: "print",
-         iconType: "material",
-      },
-   ];
-
-   return (
-      <>
-         <View style={styles.buttonContainer}>
-            {buttonList.map((button, index) => (
-               <Button
-                  key={index}
-                  size="sm"
-                  icon={
-                     <Icon
-                        name={button.icon}
-                        type={button.iconType}
-                        color="white"
-                     />
-                  }
-                  title={button.title}
-                  titleStyle={{
-                     fontFamily: "Montserrat-Medium",
-                     marginHorizontal: 5,
-                  }}
-                  buttonStyle={{
-                     backgroundColor: "dodgerblue",
-                  }}
-               />
-            ))}
-         </View>
-      </>
-   );
-}
-
-const styles = StyleSheet.create({
-   buttonContainer: {
-      flexDirection: "row",
-      justifyContent: "space-evenly",
-      padding: 10,
-   },
+const detailStyles = StyleSheet.create({
    detailsContainer: {
-      margin: 15,
+      backgroundColor: "#112d4eaa",
+      marginHorizontal: 20,
+      marginVertical: 10,
       padding: 10,
       borderWidth: 1,
-      borderColor: "silver",
+      borderColor: "white",
       borderRadius: 10,
+      flexDirection: "row",
+      justifyContent: "space-evenly",
+      alignItems: "center",
    },
    infoContainer: {
       flexDirection: "row",
@@ -141,13 +144,14 @@ const styles = StyleSheet.create({
       marginVertical: 2,
    },
    detailTitle: {
-      fontFamily: "Montserrat-Bold",
-      fontSize: 14,
-      color: "rgba(0, 0, 0, 0.8)",
+      fontFamily: "Montserrat-Regular",
+      fontSize: 12,
+      color: "white",
+      marginRight: 5,
    },
    detailText: {
-      fontFamily: "Montserrat-Medium",
-      fontSize: 16,
-      color: "rgba(0, 0, 0, 0.8)",
+      fontFamily: "Montserrat-Bold",
+      fontSize: 12,
+      color: "white",
    },
 });
