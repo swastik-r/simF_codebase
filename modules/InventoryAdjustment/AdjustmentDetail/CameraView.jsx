@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
       justifyContent: "center",
    },
    camera: {
-      flex: 1,
+      flex: 0.5,
    },
    buttonContainer: {
       flex: 1,

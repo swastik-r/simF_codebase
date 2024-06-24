@@ -523,6 +523,7 @@ const styles = StyleSheet.create({
       paddingHorizontal: 6,
       marginHorizontal: 5,
       backgroundColor: "white",
+      borderWidth: 1,
       borderRadius: 10,
    },
    bottomSheetHeading: {

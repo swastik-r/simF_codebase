@@ -17,11 +17,7 @@ export default function InventoryAdjustmentPage() {
    const navigation = useNavigation();
 
    return (
-      // <ImageBackground
-      //    source={require("../../../assets/pageBg.png")}
-      //    style={{ flex: 1 }}
-      // >
-      <View style={{ flex: 0.88 }}>
+      <View style={{ flex: 0.89 }}>
          {/* Inventory Adjustment Cards */}
          <FlatList
             data={data}
@@ -51,7 +47,6 @@ export default function InventoryAdjustmentPage() {
             }}
          />
       </View>
-      // </ImageBackground>
    );
 }
 

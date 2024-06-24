@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
       borderRadius: 999,
       justifyContent: "center",
       alignItems: "center",
-      elevation: 200, // For Android
+      elevation: 200,
       shadowOffset: {
          width: 4,
          height: 4,

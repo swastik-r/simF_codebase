@@ -38,11 +38,7 @@ export default function AdjustmentSummaryPage({ route }) {
    }
 
    return (
-      // <ImageBackground
-      //    source={require("../../../assets/pageBg.png")}
-      //    style={{ flex: 1 }}
-      // >
-      <View style={{ flex: 0.9, backgroundColor: "rgb(225,225,225)" }}>
+      <View style={{ flex: 0.9 }}>
          <FlatList
             data={searchResults}
             keyExtractor={(item) => item.id}
@@ -61,7 +57,6 @@ export default function AdjustmentSummaryPage({ route }) {
             }
          />
       </View>
-      // </ImageBackground>
    );
 }
 
@@ -126,7 +121,7 @@ export function SummaryDetails({ adjustment }) {
 
 const detailStyles = StyleSheet.create({
    detailsContainer: {
-      backgroundColor: "#112d4eaa",
+      backgroundColor: "#112d4e77",
       marginHorizontal: 20,
       marginVertical: 10,
       padding: 10,

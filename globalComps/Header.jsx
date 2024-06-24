@@ -72,14 +72,9 @@ const styles = StyleSheet.create({
       marginHorizontal: 5,
    },
    storeId: {
-      fontFamily: "Montserrat-Bold",
+      fontFamily: "Montserrat-Medium",
       color: "white",
-      fontSize: 10,
-   },
-   storeName: {
-      fontFamily: "Montserrat-Regular",
-      color: "white",
-      fontSize: 9,
+      fontSize: 13,
    },
 });
 

@@ -39,7 +39,6 @@ export default function SearchBar_FS() {
                }}
                inputContainerStyle={{
                   height: 40,
-                  borderWidth: 0,
                   borderRadius: 50,
                   backgroundColor: "white",
                }}
@@ -463,8 +462,6 @@ function ReasonFilterBottomSheet({
          filterType: "theft",
       },
       {
-         // this is the reset filter option
-         // it's title, icon and background color are based on whether the filter is applied
          title: filterApplied ? "Reset Filter" : "Cancel",
          icon: {
             name: filterApplied ? "refresh" : "cancel",
@@ -625,7 +622,7 @@ const styles = StyleSheet.create({
    searchBarAndOpts: {
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: 10,
+      paddingHorizontal: 5,
    },
    chipButton: {
       marginHorizontal: 5,
@@ -659,17 +656,16 @@ const styles = StyleSheet.create({
       fontSize: 16,
       fontFamily: "Montserrat-Medium",
    },
-
    bottomSheet: {
       backgroundColor: "white",
       padding: 10,
    },
-
    buttonContainer: {
       paddingVertical: 5,
       paddingHorizontal: 6,
       marginHorizontal: 5,
       backgroundColor: "white",
+      borderWidth: 1,
       borderRadius: 10,
    },
 });

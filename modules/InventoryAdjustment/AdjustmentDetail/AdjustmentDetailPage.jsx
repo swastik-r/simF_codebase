@@ -58,7 +58,7 @@ export default function AdjustmentDetailPage({ route }) {
 
    return (
       <Provider>
-         <View style={{ flex: 0.88, backgroundColor: "rgb(225,225,225)" }}>
+         <View style={{ flex: 0.89 }}>
             <FlatList
                data={searchResults}
                keyExtractor={(item) => item.id}
@@ -68,13 +68,13 @@ export default function AdjustmentDetailPage({ route }) {
                ListHeaderComponent={
                   <>
                      <SummaryDetails adjustment={adjustment} />
-                     <SearchBar_FS search={search} />
                      <ButtonGroup
                         adjustment={adjustment}
                         setShowReasonCodes={setShowReasonCodes}
                         setSubmitVisible={setSubmitVisible}
                         setUploadVisible={setUploadVisible}
                      />
+                     <SearchBar_FS search={search} />
                   </>
                }
                ListEmptyComponent={<EmptyPage />}
@@ -256,77 +256,72 @@ function ButtonGroup({ adjustment, setShowReasonCodes, setUploadVisible }) {
 
    return (
       <View style={styles.buttonContainer}>
-         <View>
-            <Button
-               buttonStyle={
-                  adjustment.defaultReason
-                     ? {
-                          backgroundColor: theme.colors.secondary,
-                          borderRadius: 10,
-                       }
-                     : {
-                          backgroundColor: "white",
-                          borderWidth: 1,
-                          borderColor: theme.colors.secondary,
-                          borderRadius: 10,
-                       }
-               }
-               icon={
-                  adjustment.defaultReason
-                     ? {
-                          name: "form-select",
-                          type: "material-community",
-                          color: "white",
-                       }
-                     : {
-                          name: "form-select",
-                          type: "material-community",
-                          color: theme.colors.secondary,
-                       }
-               }
-               title={
-                  adjustment.defaultReason
-                     ? "Reason: " + reasonString(adjustment.reason)
-                     : "Select Default Reason"
-               }
-               titleStyle={[
-                  adjustment.defaultReason
-                     ? { color: "white" }
-                     : {
-                          color: theme.colors.secondary,
-                       },
-                  { fontFamily: "Montserrat-Bold", fontSize: 14 },
-               ]}
-               onPress={() => {
-                  setShowReasonCodes(true);
-               }}
-            />
-         </View>
+         <Button
+            buttonStyle={
+               adjustment.defaultReason
+                  ? {
+                       backgroundColor: theme.colors.secondary,
+                       borderRadius: 10,
+                    }
+                  : {
+                       backgroundColor: "white",
+                       borderWidth: 1,
+                       borderColor: theme.colors.secondary,
+                       borderRadius: 10,
+                    }
+            }
+            icon={
+               adjustment.defaultReason
+                  ? {
+                       name: "form-select",
+                       type: "material-community",
+                       color: "white",
+                    }
+                  : {
+                       name: "form-select",
+                       type: "material-community",
+                       color: theme.colors.secondary,
+                    }
+            }
+            title={
+               adjustment.defaultReason
+                  ? "Reason: " + reasonString(adjustment.reason)
+                  : "Select Default Reason"
+            }
+            titleStyle={[
+               adjustment.defaultReason
+                  ? { color: "white" }
+                  : {
+                       color: theme.colors.secondary,
+                    },
+               { fontFamily: "Montserrat-Bold", fontSize: 14 },
+            ]}
+            onPress={() => {
+               setShowReasonCodes(true);
+            }}
+         />
 
-         {adjustment.detailItems.length > 0 && (
-            <View>
-               <Button
-                  buttonStyle={{
-                     backgroundColor: theme.colors.tertiary,
-                     borderRadius: 10,
-                  }}
-                  title="Submit"
-                  titleStyle={{
-                     fontFamily: "Montserrat-Bold",
-                     fontSize: 14,
-                     color: "white",
-                  }}
-                  icon={{
-                     name: "check-circle",
-                     type: "material-community",
-                     color: "white",
-                  }}
-                  onPress={() => {
-                     setUploadVisible(true);
-                  }}
-               />
-            </View>
-         )}
+         <Button
+            buttonStyle={{
+               backgroundColor: theme.colors.tertiary,
+               borderRadius: 10,
+            }}
+            title="Submit"
+            titleStyle={{
+               fontFamily: "Montserrat-Bold",
+               fontSize: 14,
+               color: "white",
+            }}
+            icon={{
+               name: "check-circle",
+               type: "material-community",
+               color: "white",
+            }}
+            disabled={adjustment.detailItems.length === 0}
+            onPress={() => {
+               setUploadVisible(true);
+            }}
+         />
       </View>
    );
 }

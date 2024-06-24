@@ -6,7 +6,11 @@ import { useNavigation } from "@react-navigation/native";
 import { useAdjustmentDetail } from "../../../context/DataContext";
 
 export default function AdjustmentCard2({ item }) {
+   // States and Vars
+   const navigation = useNavigation();
    const { reasonMap } = useAdjustmentDetail();
+
+   // Functions
    function dateString(date) {
       // Convert date string to the format "1 May / 24"
       const newDate = new Date(date);
@@ -18,8 +22,6 @@ export default function AdjustmentCard2({ item }) {
    function getReason(reason) {
       return reasonMap[reason];
    }
-
-   const navigation = useNavigation();
 
    return (
       <View style={styles.card}>
@@ -83,13 +85,13 @@ function ProgressChip({ progress }) {
    const chipData = {
       complete: {
          icon: "check",
-         color: "#1a8a01",
+         color: "#228B22",
          textColor: "white",
       },
       inProgress: {
          icon: "progress-clock",
-         color: "#ffbb00",
-         textColor: "black",
+         color: "#fce205",
+         textColor: "#000011",
       },
    };
 
@@ -117,19 +119,13 @@ function ProgressChip({ progress }) {
 
 const styles = StyleSheet.create({
    card: {
-      backgroundColor: "white",
-      borderWidth: 0.5,
-      borderColor: "#112d4e20",
       marginHorizontal: 10,
       marginVertical: 3,
-      borderRadius: 20,
-      elevation: 2,
       flexDirection: "row",
    },
    cardLeft: {
       width: "80%",
-      backgroundColor: "#112d4e",
-      opacity: 0.8,
+      backgroundColor: "#112d4ebb",
       paddingVertical: 10,
       paddingHorizontal: 15,
       borderTopLeftRadius: 20,
@@ -148,6 +144,7 @@ const styles = StyleSheet.create({
       borderColor: "white",
    },
    cardRight: {
+      backgroundColor: "#ffffffcc",
       flex: 1,
       padding: 5,
       borderTopRightRadius: 20,

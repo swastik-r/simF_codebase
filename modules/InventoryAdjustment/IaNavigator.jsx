@@ -4,11 +4,16 @@ import AdjustmentDetailPage from "./AdjustmentDetail/AdjustmentDetailPage";
 import AddDetailItem from "./AdjustmentDetail/AddDetailItem";
 import AdjustmentSummaryPage from "./AdjustmentSummary/AdjustmentSummaryPage";
 import { useTheme, Icon, Image } from "@rneui/themed";
+import WithBackground from "../../assets/WithBackground";
+import { Text, Pressable, StyleSheet } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 
 const Stack = createStackNavigator();
 
 export default function IaNavigator() {
    const { theme } = useTheme();
+   const navigation = useNavigation();
+
    return (
       <Stack.Navigator
          initialRouteName="Adjustment Landing"
@@ -19,7 +24,7 @@ export default function IaNavigator() {
                height: 30,
             },
             headerTitleStyle: {
-               fontFamily: "Montserrat-Medium",
+               fontFamily: "Montserrat-Bold",
                fontSize: 14,
                marginLeft: -20,
             },
@@ -32,37 +37,42 @@ export default function IaNavigator() {
                />
             ),
             headerTintColor: theme.colors.primary,
-            // headerBackground: () => (
-            //    <Image
-            //       source={require("../../assets/pageBg.png")}
-            //       resizeMode="cover"
-            //       style={{ width: "100%", height: "100%" }}
-            //    />
-            // ),
+            headerBackground: () => (
+               <Image
+                  source={require("../../assets/bg3.jpg")}
+                  resizeMode="cover"
+                  style={{ width: "100%", height: "100%" }}
+               />
+            ),
+            headerTitle: ({ children }) => (
+               <Pressable onPress={() => navigation.goBack()}>
+                  <Text style={styles.headerTitle}>{children}</Text>
+               </Pressable>
+            ),
          }}
       >
          <Stack.Screen
             name="Adjustment Landing"
-            component={InventoryAdjustmentPage}
+            component={WithBackground(InventoryAdjustmentPage)}
             options={{ headerShown: false }}
          />
          <Stack.Screen
             name="Adjustment Detail"
-            component={AdjustmentDetailPage}
+            component={WithBackground(AdjustmentDetailPage)}
             options={{
                title: "Details",
             }}
          />
          <Stack.Screen
             name="Adjustment Summary"
-            component={AdjustmentSummaryPage}
+            component={WithBackground(AdjustmentSummaryPage)}
             options={{
                title: "Summary",
             }}
          />
          <Stack.Screen
             name="Add Detail Item"
-            component={AddDetailItem}
+            component={WithBackground(AddDetailItem)}
             options={(route) => {
                return {
                   title: `Add Items`,
@@ -72,3 +82,12 @@ export default function IaNavigator() {
       </Stack.Navigator>
    );
 }
+
+const styles = StyleSheet.create({
+   headerTitle: {
+      fontFamily: "Montserrat-Bold",
+      fontSize: 14,
+      color: "#000", // Adjust color to match your design
+      marginLeft: -20,
+   },
+});

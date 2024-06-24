@@ -18,7 +18,7 @@ export default function AddDetailItem({ route }) {
          const matchedItems = sampleDetailItems.filter((item) =>
             item.id.includes(text)
          );
-         setSuggestions(matchedItems.slice(0, 2));
+         setSuggestions(matchedItems);
          setSelectedItem(null);
       } else {
          setSuggestions([]);
@@ -68,39 +68,14 @@ export default function AddDetailItem({ route }) {
             </View>
             <FlatList
                data={suggestions}
-               renderItem={({ item }) => (
-                  <SuggestionTab
-                     item={item}
-                     onSelect={() => handleSelectItem(item)}
-                  />
-               )}
+               renderItem={({ item }) => <ItemCard item={item} id={id} />}
                keyExtractor={(item) => item.id}
                style={{ width: "100%" }}
+               showsVerticalScrollIndicator={false}
+               contentContainerStyle={{ paddingBottom: 100 }}
             />
          </View>
       </>
-   );
-}
-
-function SuggestionTab({ item, onSelect }) {
-   const { sizeMap } = useAdjustmentDetail();
-   function capitalize(text) {
-      return text.charAt(0).toUpperCase() + text.slice(1);
-   }
-   return (
-      <View style={styles.suggestionTab}>
-         <View>
-            <Text style={styles.suggestionId}>ID: {item.id}</Text>
-            <Text style={styles.suggestionText}>Name: {item.info.name}</Text>
-            <Text style={styles.suggestionText}>
-               Color: {capitalize(item.info.color)}
-            </Text>
-            <Text style={styles.suggestionText}>
-               Size: {sizeMap[item.info.size]}
-            </Text>
-         </View>
-         <Button title="Select" onPress={onSelect} />
-      </View>
    );
 }
 
@@ -116,42 +91,36 @@ function ItemCard({ item, id }) {
 
    return (
       <View style={styles.itemCard}>
-         <Image
-            source={itemImage[item.info.name]}
-            resizeMode="cover"
-            style={{
-               width: 100,
-               height: 100,
-               borderRadius: 10,
-               margin: 10,
-            }}
-            containerStyle={{
-               borderWidth: 1,
-               borderColor: "silver",
-               borderRadius: 10,
-               marginRight: 10,
-            }}
-         />
-         <View>
-            <View style={{ marginBottom: 15 }}>
-               <Text style={styles.label}>ID</Text>
-               <Text style={styles.value}>{item.id}</Text>
-            </View>
+         <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Image
+               source={itemImage[item.info.name]}
+               resizeMode="cover"
+               style={{
+                  width: 60,
+                  height: 60,
+                  marginRight: 20,
+               }}
+            />
             <View>
-               <Text style={styles.itemName}>{item.info.name}</Text>
-               <Text style={styles.itemInfo}>
-                  Color: {capitalize(item.info.color)}
-               </Text>
-               <Text style={styles.itemInfo}>
-                  Size: {sizeMap[item.info.size]}
-               </Text>
+               <View style={{ flexDirection: "row", marginBottom: 5 }}>
+                  <Text style={styles.label}>ID</Text>
+                  <Text style={styles.value}>{item.id}</Text>
+               </View>
+               <View>
+                  <Text style={styles.itemName}>{item.info.name}</Text>
+                  <Text style={styles.itemInfo}>
+                     Color: {capitalize(item.info.color)}
+                  </Text>
+                  <Text style={styles.itemInfo}>
+                     Size: {sizeMap[item.info.size]}
+                  </Text>
+               </View>
             </View>
          </View>
          <Button
             type="outline"
             buttonStyle={{
                borderColor: theme.colors.primary,
-               borderWidth: 1,
                borderRadius: 10,
             }}
             title="Add"
@@ -162,7 +131,7 @@ function ItemCard({ item, id }) {
                type: "material-community",
             }}
             containerStyle={{
-               alignSelf: "flex-end",
+               alignSelf: "flex-start",
                marginLeft: 10,
             }}
             onPress={() => {
@@ -177,27 +146,19 @@ function ItemCard({ item, id }) {
 const styles = StyleSheet.create({
    manualContainer: {
       flex: 1,
-      backgroundColor: "#112d4e",
-      padding: 20,
+      backgroundColor: "#112d4eaa",
+      paddingHorizontal: 20,
+      paddingVertical: 10,
       alignItems: "center",
       justifyContent: "space-evenly",
-   },
-   suggestionTab: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      padding: 10,
-      backgroundColor: "white",
-      borderRadius: 10,
-      marginVertical: 5,
-      width: "100%",
    },
    itemCard: {
       flexDirection: "row",
       padding: 10,
       backgroundColor: "white",
       borderRadius: 10,
-      marginVertical: 10,
-      alignItems: "center",
+      marginVertical: 5,
+      justifyContent: "space-between",
    },
    label: {
       color: "grey",
@@ -207,6 +168,7 @@ const styles = StyleSheet.create({
    value: {
       fontFamily: "Montserrat-Bold",
       fontSize: 12,
+      marginLeft: 5,
    },
    itemName: {
       fontFamily: "Montserrat-Medium",
@@ -215,25 +177,5 @@ const styles = StyleSheet.create({
       fontFamily: "Montserrat-Regular",
       fontSize: 12,
       color: "grey",
-   },
-   suggestionTab: {
-      alignSelf: "center",
-      flexDirection: "row",
-      justifyContent: "space-between",
-      padding: 10,
-      backgroundColor: "white",
-      borderRadius: 10,
-      marginVertical: 5,
-      width: "80%",
-   },
-   suggestionText: {
-      fontFamily: "Montserrat-Regular",
-      fontSize: 12,
-      color: "black",
-   },
-   suggestionId: {
-      fontFamily: "Montserrat-Bold",
-      fontSize: 12,
-      color: "black",
    },
 });
