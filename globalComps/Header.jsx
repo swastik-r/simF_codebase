@@ -1,7 +1,7 @@
 import { StyleSheet, View, TouchableOpacity, Image, Text } from "react-native";
 import { Header as HeaderRNE, Icon } from "@rneui/themed";
 
-function Header() {
+export default function Header() {
    const details = [
       {
          icon: "storefront",
@@ -11,15 +11,15 @@ function Header() {
       {
          icon: "user",
          iconType: "feather",
-         label: "amit003",
+         label: "swastik-r",
       },
    ];
    return (
       <HeaderRNE
          containerStyle={styles.header}
-         leftContainerStyle={styles.headerContainer}
+         leftContainerStyle={[styles.headerContainer, { paddingLeft: 10 }]}
          centerContainerStyle={styles.headerContainer}
-         rightContainerStyle={styles.headerContainer}
+         rightContainerStyle={[styles.headerContainer, { paddingRight: 10 }]}
          leftComponent={
             <TouchableOpacity>
                <Icon name="menu" color="#f0f0f0" size={33} />
@@ -77,5 +77,3 @@ const styles = StyleSheet.create({
       fontSize: 13,
    },
 });
-
-export default Header;

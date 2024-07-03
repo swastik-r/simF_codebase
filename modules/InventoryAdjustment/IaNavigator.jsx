@@ -1,22 +1,22 @@
 import { createStackNavigator } from "@react-navigation/stack";
-import InventoryAdjustmentPage from "./AdjustmentListing/InventoryAdjustmentPage";
-import AdjustmentDetailPage from "./AdjustmentDetail/AdjustmentDetailPage";
-import AddDetailItem from "./AdjustmentDetail/AddDetailItem";
-import AdjustmentSummaryPage from "./AdjustmentSummary/AdjustmentSummaryPage";
 import { useTheme, Icon, Image } from "@rneui/themed";
-import WithBackground from "../../assets/WithBackground";
-import { Text, Pressable, StyleSheet } from "react-native";
+import { Text, Pressable, StyleSheet, ImageBackground } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import ListingPage from "../../page/Listing/Listing";
+import { useDataContext } from "../../context/DataContext2";
+import ItemListing from "../../page/ItemListing/ItemListing";
+import AddItem from "../../page/AddItem/AddItem";
 
 const Stack = createStackNavigator();
 
 export default function IaNavigator() {
    const { theme } = useTheme();
    const navigation = useNavigation();
+   const { iaData } = useDataContext();
 
    return (
       <Stack.Navigator
-         initialRouteName="Adjustment Landing"
+         initialRouteName="IA Listing"
          screenOptions={{
             headerStyle: {
                backgroundColor: "rgb(225,225,225)",
@@ -38,10 +38,13 @@ export default function IaNavigator() {
             ),
             headerTintColor: theme.colors.primary,
             headerBackground: () => (
-               <Image
+               <ImageBackground
                   source={require("../../assets/bg3.jpg")}
                   resizeMode="cover"
-                  style={{ width: "100%", height: "100%" }}
+                  style={{
+                     width: "100%",
+                     height: "100%",
+                  }}
                />
             ),
             headerTitle: ({ children }) => (
@@ -52,31 +55,29 @@ export default function IaNavigator() {
          }}
       >
          <Stack.Screen
-            name="Adjustment Landing"
-            component={WithBackground(InventoryAdjustmentPage)}
+            name="IA Listing"
+            children={() => <ListingPage data={iaData} />}
             options={{ headerShown: false }}
          />
          <Stack.Screen
-            name="Adjustment Detail"
-            component={WithBackground(AdjustmentDetailPage)}
+            name="IA Items"
+            component={ItemListing}
             options={{
-               title: "Details",
+               title: "Items",
             }}
          />
          <Stack.Screen
-            name="Adjustment Summary"
-            component={WithBackground(AdjustmentSummaryPage)}
+            name="IA Summary"
+            component={ItemListing}
             options={{
                title: "Summary",
             }}
          />
          <Stack.Screen
-            name="Add Detail Item"
-            component={WithBackground(AddDetailItem)}
-            options={(route) => {
-               return {
-                  title: `Add Items`,
-               };
+            name="Add Items"
+            component={AddItem}
+            options={{
+               title: "Add Items",
             }}
          />
       </Stack.Navigator>
@@ -85,8 +86,8 @@ export default function IaNavigator() {
 
 const styles = StyleSheet.create({
    headerTitle: {
-      fontFamily: "Montserrat-Bold",
-      fontSize: 14,
+      fontFamily: "Montserrat-Regular",
+      fontSize: 16,
       color: "#000", // Adjust color to match your design
       marginLeft: -20,
    },

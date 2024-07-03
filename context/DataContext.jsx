@@ -9,7 +9,7 @@ export function useAdjustmentDetail() {
 export default function AdjustmentDetailProvider({ children }) {
    const adjustmentInfo = {
       progress: ["complete", "inProgress"],
-      reasons: ["damaged", "theft", "stockIn", "stockOut"], // multiple is repeated to increase its probability
+      reasons: ["damaged", "theft", "stockIn", "stockOut"],
    };
    const itemInfo = {
       size: ["small", "medium", "large", "extraLarge"],
@@ -57,46 +57,6 @@ export default function AdjustmentDetailProvider({ children }) {
       return arr[Math.floor(Math.random() * arr.length)];
    } // select a random value from an array
 
-   function generateData() {
-      function randomAdjustmentData(numItems) {
-         function getRandomNumUpto(num) {
-            return Math.floor(Math.random() * num) + 1;
-         }
-         function getRandomId() {
-            return Math.floor(Math.random() * 10000000) + 1;
-         }
-         function getRandomDate(
-            start = new Date(2024, 0, 1),
-            end = new Date()
-         ) {
-            return new Date(
-               start.getTime() +
-                  Math.random() * (end.getTime() - start.getTime())
-            );
-         }
-         function getRandomProgress() {
-            return randomItem(adjustmentInfo.progress);
-         }
-         return Array.from({ length: numItems }, () => {
-            const { data, totalSKU, adjustmentReason } = randomDetailData(
-               getRandomNumUpto(20)
-            );
-            return {
-               id: getRandomId(),
-               progress: getRandomProgress(),
-               date: String(getRandomDate()),
-               reason: adjustmentReason,
-               defaultReason: true,
-               detailItems: data,
-               totalSKU: totalSKU,
-               proofImages: [],
-            };
-         });
-      }
-
-      return randomAdjustmentData(30);
-   } // generate random adjustment data
-
    function randomDetailData(numItems) {
       function generateRandomId() {
          const characters = "ABCD0123456789";
@@ -138,12 +98,52 @@ export default function AdjustmentDetailProvider({ children }) {
       return generateRandomData(numItems);
    } // generate random detail items data
 
+   function generateData() {
+      function randomAdjustmentData(numItems) {
+         function getRandomNumUpto(num) {
+            return Math.floor(Math.random() * num) + 1;
+         }
+         function getRandomId() {
+            return Math.floor(Math.random() * 10000000) + 1;
+         }
+         function getRandomDate(
+            start = new Date(2024, 0, 1),
+            end = new Date()
+         ) {
+            return new Date(
+               start.getTime() +
+                  Math.random() * (end.getTime() - start.getTime())
+            );
+         }
+         function getRandomProgress() {
+            return randomItem(adjustmentInfo.progress);
+         }
+         return Array.from({ length: numItems }, () => {
+            const { data, totalSKU, adjustmentReason } = randomDetailData(
+               getRandomNumUpto(20)
+            );
+            return {
+               id: getRandomId(),
+               progress: getRandomProgress(),
+               date: String(getRandomDate()),
+               reason: adjustmentReason,
+               defaultReason: true,
+               detailItems: data,
+               totalSKU: totalSKU,
+               proofImages: [],
+            };
+         });
+      }
+
+      return randomAdjustmentData(30);
+   } // generate IA data
+
    // ---------------------- Data Generation: DSD ----------------------
 
    const dsdStatus = {
       DRAFT: "draft",
       COMPLETE: "complete",
-   };
+   }; // DSD status
 
    const supplierInfo = [
       // the supplier ids should be numeric
@@ -167,8 +167,8 @@ export default function AdjustmentDetailProvider({ children }) {
          id: "76543218",
          name: "XYZ Inc.",
       },
-   ];
-
+   ]; // DSD supplier information
+   2;
    function generateId(len = 8) {
       const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
       let id = "";
@@ -176,7 +176,7 @@ export default function AdjustmentDetailProvider({ children }) {
          id += chars.charAt(Math.floor(Math.random() * chars.length));
       }
       return id;
-   }
+   } // generate a random DSD id
 
    function generateDate() {
       const start = new Date(2024, 0, 1);
@@ -184,7 +184,7 @@ export default function AdjustmentDetailProvider({ children }) {
       return new Date(
          start.getTime() + Math.random() * (end.getTime() - start.getTime())
       );
-   }
+   } // generate a random date
 
    function generateSupplier() {
       const suppliers = [
@@ -198,7 +198,7 @@ export default function AdjustmentDetailProvider({ children }) {
          "XYZ Inc.",
       ];
       return suppliers[Math.floor(Math.random() * suppliers.length)];
-   }
+   } // select a random random supplier name from the supplierInfo
 
    function generateDsdData(num = 30) {
       // DSD (ID, Date, Supplier, Total Qty, DSD Items Array, Damage Proof)
@@ -242,7 +242,7 @@ export default function AdjustmentDetailProvider({ children }) {
          });
       }
       return dsdData;
-   } // generate random DSD data
+   } // generate DSD data
 
    function createNewDsd(supplierId) {
       // if supplierId does not exist in the supplierInfo, Toast error and return
@@ -269,8 +269,7 @@ export default function AdjustmentDetailProvider({ children }) {
       console.log(newDsd);
       setDsdData([newDsd, ...dsdData]);
       return newDsd.id;
-   } //  generate a new DSD object and add to the dsdData
-
+   }
    // ---------------------- States Management: IA ----------------------
 
    const [initialData] = useState(generateData());
@@ -1181,3 +1180,76 @@ const styles = {
       paddingLeft: 20,
    },
 };
+
+/*
+
+DATA MAP for IA & DSDw
+
+IA Listing - {
+    . id: number;
+    . progress: any;
+    . date: string;
+    . reason: any;
+    > defaultReason: boolean;
+    . detailItems: {
+        id: string;
+        info: {
+            name: any;
+            color: any;
+            size: any;
+        };
+        qty: number;
+        reason: any;
+        proofImages: any[];
+    }[];
+    > totalSKU: number;
+    . proofImages: any[];
+}[]
+
+DSD Listing - {
+    id: string;
+    status: string;
+    date: Date;
+    units: number;
+    supplier: string;
+    dsdItems: {
+        qty: number;
+        damagedQty: number;
+        id: string;
+        info: {
+            name: string;
+            color: string;
+            size: string;
+            image: any;
+        };
+    }[];
+    damageProof: any[];
+    po: number;
+    invoiceId: string;
+}[]
+
+IA Item - {
+        . id: string;
+        . info: {
+            name: any;
+            color: any;
+            size: any;
+        };
+        . qty: number;
+        reason: any;
+        proofImages: any[];
+    }[];
+
+DSD Item - {
+   . qty: number;
+   > damagedQty: number;
+   . id: string;
+   . info: {
+      name: string;
+      color: string;
+      size: string;
+      image: any;
+   };
+}[];
+
+*/

@@ -14,6 +14,7 @@ import Toast, { BaseToast } from "react-native-toast-message";
 // Contexts and Fonts
 import { useFonts } from "expo-font";
 import AdjustmentDetailProvider from "./context/DataContext";
+import DataContextProvider from "./context/DataContext2";
 import AppContainer from "./AppContainer";
 
 // Main App Component
@@ -28,9 +29,11 @@ export default function App() {
          <Header />
          <PaperProvider>
             <AdjustmentDetailProvider>
-               <NavigationContainer>
-                  <AppContainer />
-               </NavigationContainer>
+               <DataContextProvider>
+                  <NavigationContainer>
+                     <AppContainer />
+                  </NavigationContainer>
+               </DataContextProvider>
             </AdjustmentDetailProvider>
          </PaperProvider>
          <Toast config={toastConfig} />

@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from "react";
+import { useRef, useEffect } from "react";
+
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import {
    View,
@@ -15,84 +16,16 @@ import { LinearGradient } from "expo-linear-gradient";
 
 const Tab = createBottomTabNavigator();
 
-const CustomTabBarButton = ({ children, onPress }) => (
-   <TouchableOpacity
-      style={{
-         top: -18,
-         left: 0.5,
-         justifyContent: "center",
-         alignItems: "center",
-      }}
-      onPress={onPress}
-   >
-      <LinearGradient
-         colors={["#112dbb", "#112d4e"]}
-         style={styles.customButton}
-      >
-         {children}
-      </LinearGradient>
-   </TouchableOpacity>
-);
-
-function GlobalSearchScreen() {
-   return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-         <Text>Global Search Screen</Text>
-      </View>
-   );
-}
-
-const AnimatedIcon = ({ name, type, focused, color }) => {
-   const iconSize = useRef(new Animated.Value(focused ? 30 : 20)).current;
-
-   useEffect(() => {
-      Animated.timing(iconSize, {
-         toValue: focused ? 30 : 20,
-         duration: 200,
-         useNativeDriver: false,
-      }).start();
-   }, [focused, iconSize]);
-
-   return (
-      <Animated.View
-         style={{
-            transform: [
-               {
-                  scale: iconSize.interpolate({
-                     inputRange: [20, 30],
-                     outputRange: [1, 1.4],
-                  }),
-               },
-            ],
-         }}
-      >
-         <Icon
-            name={name}
-            type={type}
-            color={focused ? "white" : color}
-            style={{ marginTop: 10 }}
-         />
-      </Animated.View>
-   );
-};
-
-function Screen({ route }) {
-   return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-         <Text>{route.params?.title}</Text>
-      </View>
-   );
-}
-
 export default function AppContainer() {
    const { theme } = useTheme();
+
    return (
       <Tab.Navigator
          initialRouteName="Inventory Adjustment"
          screenOptions={({ route }) => ({
             headerTitleAlign: "center",
             headerTitleStyle: {
-               fontFamily: "Montserrat-Bold",
+               fontFamily: "Montserrat-Medium",
                fontSize: 15,
                marginBottom: 10,
             },
@@ -188,7 +121,9 @@ export default function AppContainer() {
          })}
       >
          <Tab.Screen name="Inventory Adjustment" component={IaNavigator} />
+
          <Tab.Screen name="Direct Store Delivery" component={DsdNavigator} />
+
          <Tab.Screen
             name="Global Search"
             options={{
@@ -211,17 +146,80 @@ export default function AppContainer() {
          >
             {() => <DownloadExcelFile />}
          </Tab.Screen>
+
          <Tab.Screen
             name="Purchase Order"
             component={Screen}
             initialParams={{ title: "Purchase Order" }}
          />
+
          <Tab.Screen
             name="Transfer"
             component={Screen}
             initialParams={{ title: "Transfer" }}
          />
       </Tab.Navigator>
+   );
+}
+
+const CustomTabBarButton = ({ children, onPress }) => (
+   <TouchableOpacity
+      style={{
+         top: -18,
+         left: 0.5,
+         justifyContent: "center",
+         alignItems: "center",
+      }}
+      onPress={onPress}
+   >
+      <LinearGradient
+         colors={["#112dbb", "#112d4e"]}
+         style={styles.customButton}
+      >
+         {children}
+      </LinearGradient>
+   </TouchableOpacity>
+);
+
+const AnimatedIcon = ({ name, type, focused, color }) => {
+   const iconSize = useRef(new Animated.Value(focused ? 30 : 20)).current;
+
+   useEffect(() => {
+      Animated.timing(iconSize, {
+         toValue: focused ? 30 : 20,
+         duration: 200,
+         useNativeDriver: false,
+      }).start();
+   }, [focused, iconSize]);
+
+   return (
+      <Animated.View
+         style={{
+            transform: [
+               {
+                  scale: iconSize.interpolate({
+                     inputRange: [20, 30],
+                     outputRange: [1, 1.4],
+                  }),
+               },
+            ],
+         }}
+      >
+         <Icon
+            name={name}
+            type={type}
+            color={focused ? "white" : color}
+            style={{ marginTop: 10 }}
+         />
+      </Animated.View>
+   );
+};
+
+function Screen({ route }) {
+   return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+         <Text>{route.params?.title}</Text>
+      </View>
    );
 }
 
@@ -232,12 +230,5 @@ const styles = StyleSheet.create({
       borderRadius: 999,
       justifyContent: "center",
       alignItems: "center",
-      elevation: 200,
-      shadowOffset: {
-         width: 4,
-         height: 4,
-      },
-      shadowOpacity: 1,
-      shadowRadius: 4.65,
    },
 });
