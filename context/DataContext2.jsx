@@ -234,7 +234,7 @@ export default function DataContextProvider({ children }) {
       return data;
    }
 
-   function generateSampleItems() {
+   function sampleItemsToAdd() {
       // generate 10 items to add to IA or DSD
       const items = [];
       for (let i = 0; i < 10; i++) {
@@ -261,7 +261,6 @@ export default function DataContextProvider({ children }) {
    // Original data
    const [iaData, setIaData] = useState(generateIaData());
    const [dsdData, setDsdData] = useState(generateDsdData());
-   const sampleItemsToAdd = generateSampleItems();
 
    // ---------------- Data Functions ----------------
 
@@ -427,55 +426,99 @@ export default function DataContextProvider({ children }) {
    // validation pending for the excel file data
    async function handleExcelUpload(entryId, type) {
       try {
-         console.log("Selecting Excel file...");
-
+         console.log("Opening document picker...");
          const res = await DocumentPicker.getDocumentAsync({
             type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
          });
-         console.log("Excel file selected:", res);
 
-         if (res.type === "cancel") {
-            console.log("Excel file selection cancelled.");
-            return;
-         }
-         console.log("Excel file selected:", res);
+         console.log("Document picker response:", res);
 
-         const uri = res.uri;
-         const info = await FileSystem.getInfoAsync(uri);
-         console.log("Excel file info:", info);
+         if (!res.canceled && res.assets && res.assets.length > 0) {
+            console.log("Excel file selected successfully.");
+            const fileUri = res.assets[0].uri;
+            console.log("File URI:", fileUri);
 
-         const base64 = await FileSystem.readAsStringAsync(uri, {
-            encoding: FileSystem.EncodingType.Base64,
-         });
-         console.log("Excel file read successfully.");
+            // Read the file as a base64 string
+            const fileContent = await FileSystem.readAsStringAsync(fileUri, {
+               encoding: FileSystem.EncodingType.Base64,
+            });
+            console.log("File content read successfully.");
 
-         const wb = XLSX.read(base64, { type: "base64" });
-         const ws = wb.Sheets[wb.SheetNames[0]];
-         const data = XLSX.utils.sheet_to_json(ws);
-         console.log("Excel data parsed:", data);
+            // Parse the file using XLSX
+            const wb = XLSX.read(fileContent, {
+               type: "base64",
+               cellDates: true,
+            });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const data = XLSX.utils.sheet_to_json(ws);
+            console.log("Excel file parsed successfully:", data);
 
-         // add the items to the IA or DSD entry
-         data.forEach((item) => {
-            const newItem = {
-               id: generateItemId(),
-               name: item.Name,
-               color: item.Color,
-               size: item.Size,
-               quantity: item.Quantity,
-               proofImages: [],
-            };
-            if (type === "IA") {
-               addItemToIA(entryId, newItem);
-            } else {
-               addItemToDSD(entryId, newItem);
+            // Create items from the data
+            const items = [];
+            const errors = [];
+
+            data.forEach((item, index) => {
+               // data validation
+               // 1. the quantity must be greater than 0
+               // 2. the item ID must start with "ITEM-"
+               // 3. the item ID and the quantity must be present, not optional
+
+               // if (
+               //    item.Quantity <= 0 ||
+               //    !item.ID.startsWith("ITEM-") ||
+               //    !item.ID ||
+               //    !item.Quantity
+               // ) {
+               //    console.error(
+               //       `Invalid data in Excel file at row ${index + 1}.`
+               //    );
+               //    errors.push(`Invalid data at row ${index + 1}`);
+               //    return;
+               // }
+
+               const name = randomChoice(ITEM_DATA.NAME); // Assuming the Excel sheet has a 'Name' column
+               items.push({
+                  id: item.ID,
+                  name: name,
+                  color: randomChoice(ITEM_DATA.COLOR),
+                  size: randomChoice(ITEM_DATA.SIZE),
+                  image: ITEM_DATA.IMAGE[name],
+                  quantity: item.Quantity,
+                  proofImages: [],
+               });
+            });
+
+            if (errors.length > 0) {
+               Toast.show({
+                  type: "error",
+                  text1: "Error!",
+                  text2: `There were errors in the data: ${errors.join(", ")}.`,
+               });
             }
-         });
 
-         Toast.show({
-            type: "success",
-            text1: "Success!",
-            text2: "Items added successfully.",
-         });
+            if (items.length > 0) {
+               console.log("Items created:", items);
+
+               if (type === "IA") {
+                  console.log("Adding items to IA: ", entryId);
+                  items.forEach((item) => addItemToIA(entryId, item));
+               } else {
+                  console.log("Adding items to DSD: ", entryId);
+                  items.forEach((item) => addItemToDSD(entryId, item));
+               }
+               console.log("Items added to context.");
+
+               Toast.show({
+                  type: "success",
+                  text1: "Success!",
+                  text2: "Items added successfully.",
+               });
+            } else {
+               console.log("No valid items to add.");
+            }
+         } else {
+            console.log("File selection cancelled.");
+         }
       } catch (err) {
          console.error("Error handling Excel upload:", err);
          Toast.show({
