@@ -8,8 +8,9 @@ import {
    ImageBackground,
    Animated,
 } from "react-native";
-import DsdNavigator from "./modules/DSD/DsdNavigator";
+import DsdNavigator from "./modules/DirectStoreDelivery/DsdNavigator";
 import IaNavigator from "./modules/InventoryAdjustment/IaNavigator";
+import PoNavigator from "./modules/PurchaseOrder/PoNavigator";
 import { Icon, useTheme, Text } from "@rneui/themed";
 import DownloadExcelFile from "./modules/GlobalSearch/GlobalSearch";
 import { LinearGradient } from "expo-linear-gradient";
@@ -31,10 +32,10 @@ export default function AppContainer() {
             },
             headerTintColor: "white",
             headerStyle: {
-               height: 40,
+               height: 30,
                backgroundColor: theme.colors.primary,
-               borderBottomLeftRadius: 20,
-               borderBottomRightRadius: 20,
+               // borderBottomLeftRadius: 20,
+               // borderBottomRightRadius: 20,
             },
             tabBarBackground: () => (
                <ImageBackground
@@ -49,8 +50,8 @@ export default function AppContainer() {
                      unfocused: "truck-outline",
                   },
                   "Inventory Adjustment": {
-                     focused: "home",
-                     unfocused: "home-outline",
+                     focused: "book",
+                     unfocused: "book-outline",
                   },
                   "Global Search": {
                      focused: "qrcode",
@@ -91,7 +92,7 @@ export default function AppContainer() {
                      labelName = "DSD";
                      break;
                   case "Inventory Adjustment":
-                     labelName = "Home";
+                     labelName = "IA";
                      break;
                   case "Global Search":
                      labelName = "GS";
@@ -120,10 +121,13 @@ export default function AppContainer() {
             },
          })}
       >
+         {/* IA Navigator */}
          <Tab.Screen name="Inventory Adjustment" component={IaNavigator} />
 
+         {/* DSD Navigator */}
          <Tab.Screen name="Direct Store Delivery" component={DsdNavigator} />
 
+         {/* Global Search Navigator */}
          <Tab.Screen
             name="Global Search"
             options={{
@@ -147,12 +151,10 @@ export default function AppContainer() {
             {() => <DownloadExcelFile />}
          </Tab.Screen>
 
-         <Tab.Screen
-            name="Purchase Order"
-            component={Screen}
-            initialParams={{ title: "Purchase Order" }}
-         />
+         {/* PO Navigator */}
+         <Tab.Screen name="Purchase Order" component={PoNavigator} />
 
+         {/* TSF Navigator */}
          <Tab.Screen
             name="Transfer"
             component={Screen}

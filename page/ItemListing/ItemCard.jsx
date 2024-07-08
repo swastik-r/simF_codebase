@@ -19,34 +19,61 @@ export default function ItemCard({ item, parentId, route }) {
        proofImages: string[],
     }
     */
-   const { deleteIAItem, deleteDSDItem } = useDataContext();
+   const { deleteIAItem, deleteDSDItem, addProofToIAItem, addProofToDSDItem } =
+      useDataContext();
    const { type, status } = route.params;
-   const id = item.id;
-   console.log("ItemCard: ", item, parentId, route.params);
    const [quantityOverlay, setQuantityOverlay] = useState(false);
    const [proofImagesOverlay, setProofImagesOverlay] = useState(false);
 
    function uploadProof() {
-      // if status is "In Progress", open image picker and append selected images to the proofImages array
-      if (status === "In Progress") {
-         ImagePicker.requestMediaLibraryPermissionsAsync().then((res) => {
+      ImagePicker.requestMediaLibraryPermissionsAsync()
+         .then((res) => {
+            console.log("Permission response: ", res);
             if (res.status === "granted") {
-               ImagePicker.launchImageLibraryAsync().then((res) => {
-                  if (!res.canceled) {
-                     // append the selected image to the proofImages array
-                     // show success message
-                     Toast.show({
-                        type: "success",
-                        text1: "Success",
-                        text2: "Proof uploaded successfully",
-                     });
-                  }
-               });
+               ImagePicker.launchImageLibraryAsync()
+                  .then((res) => {
+                     console.log("Image Picker response: ", res);
+                     if (
+                        !res.canceled &&
+                        res.assets &&
+                        res.assets.length > 0 &&
+                        res.assets[0].uri
+                     ) {
+                        const imageUri = res.assets[0].uri;
+                        console.log("Image URI: ", imageUri);
+                        // append image to proofImages array
+                        if (type === "IA") {
+                           addProofToIAItem(parentId, item.id, imageUri);
+                        } else {
+                           addProofToDSDItem(parentId, item.id, imageUri);
+                        }
+                        // show success message
+                        Toast.show({
+                           type: "success",
+                           text1: "Success",
+                           text2: "Proof uploaded successfully",
+                        });
+                     } else {
+                        console.log("Image Picker canceled or no URI found");
+                     }
+                  })
+                  .catch((error) => {
+                     console.error("Error launching image library: ", error);
+                  });
+            } else {
+               console.log("Media library permissions not granted");
             }
+         })
+         .catch((error) => {
+            console.error(
+               "Error requesting media library permissions: ",
+               error
+            );
          });
-      } else {
-         setProofImagesOverlay(true);
-      }
+   }
+
+   function showProof() {
+      item.proofImages.length > 0 && setProofImagesOverlay(true);
    }
 
    return (
@@ -78,16 +105,8 @@ export default function ItemCard({ item, parentId, route }) {
                   <Text style={styles.id}>{item.id}</Text>
                </View>
                <View style={styles.variantInfoContainer}>
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                     <Text style={styles.size}>{item.color}</Text>
-                     <Icon
-                        name="circle"
-                        type="material-community"
-                        size={10}
-                        color={item.color.toLowerCase()}
-                     />
-                  </View>
-                  <Text> / </Text>
+                  <Text style={styles.size}>{item.color}</Text>
+                  <Text style={styles.size}> / </Text>
                   <Text style={styles.color}>{item.size}</Text>
                </View>
             </View>
@@ -113,7 +132,8 @@ export default function ItemCard({ item, parentId, route }) {
                   </Text>
                </Pressable>
                <Button
-                  onPress={uploadProof}
+                  // if status is "In Progress", onPress to uploadProof, else onPress to setProofImagesOverlay
+                  onPress={status === "In Progress" ? uploadProof : showProof}
                   type="outline"
                   icon={{
                      name: status === "In Progress" ? "upload" : "eye",
@@ -134,19 +154,29 @@ export default function ItemCard({ item, parentId, route }) {
             </View>
          </View>
 
-         <QuantityUpdateOverlay
-            {...{ id, parentId, type, quantityOverlay, setQuantityOverlay }}
-         />
+         {status === "In Progress" && (
+            <QuantityUpdateOverlay
+               {...{
+                  id: item.id,
+                  parentId,
+                  type,
+                  quantityOverlay,
+                  setQuantityOverlay,
+               }}
+            />
+         )}
 
-         {/* <ProofImagesOverlay
-            {...{
-               id,
-               parentId,
-               type,
-               proofImagesOverlay,
-               setProofImagesOverlay,
-            }}
-         /> */}
+         {status === "Completed" && item.proofImages.length > 0 && (
+            <ProofImagesOverlay
+               {...{
+                  id: item.id,
+                  parentId,
+                  type,
+                  proofImagesOverlay,
+                  setProofImagesOverlay,
+               }}
+            />
+         )}
       </>
    );
 }
@@ -176,8 +206,6 @@ function QuantityUpdateOverlay({
             justifyContent: "space-evenly",
          }}
       >
-         <Text></Text>
-
          {/* Input field */}
          <Input
             label="Enter new quantity"
@@ -246,8 +274,9 @@ function ProofImagesOverlay({
    proofImagesOverlay,
    setProofImagesOverlay,
 }) {
-   const { iaData, dsdData, fetchItemImages } = useDataContext();
-   // fetch proof images for the item based on the type
+   const { fetchItemImages } = useDataContext();
+   const images = fetchItemImages(id, parentId, type);
+   console.log("Images fetched: ", images);
 
    return (
       <Overlay
@@ -255,12 +284,15 @@ function ProofImagesOverlay({
          onBackdropPress={() => setProofImagesOverlay(false)}
       >
          <FlatList
-            data={fetchItemImages(type, id, parentId)}
+            data={images}
             renderItem={({ item }) => (
-               <Image source={sampleImage} style={styles.image} />
+               <Image
+                  key={item}
+                  source={{ uri: item }}
+                  style={{ width: 200, height: 200, margin: 5 }}
+               />
             )}
             keyExtractor={(item) => item}
-            horizontal
          />
       </Overlay>
    );
@@ -287,13 +319,16 @@ const styles = {
    },
 
    imageContainer: {
+      backgroundColor: "white",
       justifyContent: "center",
       alignItems: "center",
       padding: 10,
+      margin: 10,
+      borderRadius: 20,
    },
    image: {
-      width: 80,
-      height: 80,
+      width: 70,
+      height: 70,
    },
 
    detailsContainer: {

@@ -13,6 +13,7 @@ import { useNavigation } from "@react-navigation/native";
 import { Button, Overlay, Input } from "@rneui/themed";
 import { PaperProvider, Portal, FAB } from "react-native-paper";
 import SearchBar_FS from "./SearchBar_FS";
+import PoCard, { ASNCard } from "./PoCard";
 
 export default function AdjustmentDetailPage({ route }) {
    // States and vars
@@ -35,7 +36,8 @@ export default function AdjustmentDetailPage({ route }) {
                data={items}
                keyExtractor={(item) => item.id}
                renderItem={({ item }) => (
-                  <ItemCard item={item} parentId={id} route={route} />
+                  // <ItemCard item={item} parentId={id} route={route} />
+                  <PoCard />
                )}
                ListHeaderComponent={() => (
                   <>
@@ -170,7 +172,6 @@ function ButtonGroup({ route }) {
          return dsd.supplier;
       }
    }
-
    function handleSubmit(id) {
       if (type === "IA") {
          const ia = iaData.find((ia) => ia.id === id);
@@ -182,23 +183,40 @@ function ButtonGroup({ route }) {
       navigation.goBack();
    }
 
+   const supplierOrReason = fetchReasonOrSupplier(id, type);
+
    return (
       <>
          <View style={{ flexDirection: "row", justifyContent: "center" }}>
-            <Button
-               title={
-                  type === "IA"
-                     ? "Reason: " + fetchReasonOrSupplier(id, type)
-                     : "Supplier: " + fetchReasonOrSupplier(id, type)
-               }
-               titleStyle={styles.buttonTitle}
-               buttonStyle={[styles.button, { backgroundColor: "dodgerblue" }]}
-               containerStyle={{ margin: 10 }}
-               onPress={() => {
-                  if (type === "IA") setReasonsOverlay(true);
-                  else setSupplierOverlay(true);
-               }}
-            />
+            {/* Reason Button */}
+            {(type === "IA" || type === "RTV") && (
+               <Button
+                  title="Reason"
+                  disabled={supplierOrReason !== "N/A"}
+                  titleStyle={styles.buttonTitle}
+                  buttonStyle={[
+                     styles.button,
+                     { backgroundColor: "dodgerblue" },
+                  ]}
+                  containerStyle={{ margin: 10 }}
+                  onPress={() => setReasonsOverlay(true)}
+               />
+            )}
+
+            {/* Supplier Button */}
+            {(type === "DSD" || type === "RTV") && (
+               <Button
+                  title="Supplier"
+                  titleStyle={styles.buttonTitle}
+                  disabled={supplierOrReason !== "N/A"}
+                  buttonStyle={[
+                     styles.button,
+                     { backgroundColor: "dodgerblue" },
+                  ]}
+                  containerStyle={{ margin: 10 }}
+                  onPress={() => setSupplierOverlay(true)}
+               />
+            )}
             <Button
                title="Submit"
                disabled={!canSubmit}
@@ -389,9 +407,11 @@ function MyFabGroup({ route }) {
 const styles = StyleSheet.create({
    detailCard: {
       backgroundColor: "rgba(0, 0, 0, 0.5)",
+      marginTop: 10,
       marginBottom: 10,
       paddingHorizontal: 15,
       paddingVertical: 10,
+      borderRadius: 10,
    },
    label: {
       fontFamily: "Montserrat-Regular",

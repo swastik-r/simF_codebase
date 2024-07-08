@@ -1,58 +1,22 @@
-import { createStackNavigator } from "@react-navigation/stack";
-import { useTheme, Icon, Image } from "@rneui/themed";
-import { Text, Pressable, StyleSheet, ImageBackground } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+// Screens
 import ListingPage from "../../page/Listing/Listing";
-import { useDataContext } from "../../context/DataContext2";
 import ItemListing from "../../page/ItemListing/ItemListing";
 import AddItem from "../../page/AddItem/AddItem";
+// Context / Navigation
+import { useDataContext } from "../../context/DataContext2";
+import { createStackNavigator } from "@react-navigation/stack";
+// Screen Options
+import { screenOptions } from "../../screenOptions";
 
 const Stack = createStackNavigator();
 
 export default function IaNavigator() {
-   const { theme } = useTheme();
-   const navigation = useNavigation();
    const { iaData } = useDataContext();
 
    return (
       <Stack.Navigator
          initialRouteName="IA Listing"
-         screenOptions={{
-            headerStyle: {
-               backgroundColor: "rgb(225,225,225)",
-               elevation: 0,
-               height: 30,
-            },
-            headerTitleStyle: {
-               fontFamily: "Montserrat-Bold",
-               fontSize: 14,
-               marginLeft: -20,
-            },
-            headerBackImage: () => (
-               <Icon
-                  name="arrow-left-thick"
-                  type="material-community"
-                  size={20}
-                  color={theme.colors.primary}
-               />
-            ),
-            headerTintColor: theme.colors.primary,
-            headerBackground: () => (
-               <ImageBackground
-                  source={require("../../assets/bg3.jpg")}
-                  resizeMode="cover"
-                  style={{
-                     width: "100%",
-                     height: "100%",
-                  }}
-               />
-            ),
-            headerTitle: ({ children }) => (
-               <Pressable onPress={() => navigation.goBack()}>
-                  <Text style={styles.headerTitle}>{children}</Text>
-               </Pressable>
-            ),
-         }}
+         screenOptions={screenOptions}
       >
          <Stack.Screen
             name="IA Listing"
@@ -63,32 +27,23 @@ export default function IaNavigator() {
             name="IA Items"
             component={ItemListing}
             options={{
-               title: "Items",
+               title: "ITEMS",
             }}
          />
          <Stack.Screen
             name="IA Summary"
             component={ItemListing}
             options={{
-               title: "Summary",
+               title: "SUMMARY",
             }}
          />
          <Stack.Screen
             name="Add Items"
             component={AddItem}
             options={{
-               title: "Add Items",
+               title: "Add Items to IA",
             }}
          />
       </Stack.Navigator>
    );
 }
-
-const styles = StyleSheet.create({
-   headerTitle: {
-      fontFamily: "Montserrat-Regular",
-      fontSize: 16,
-      color: "#000", // Adjust color to match your design
-      marginLeft: -20,
-   },
-});

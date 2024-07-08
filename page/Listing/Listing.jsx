@@ -19,19 +19,16 @@ export default function ListingPage({ data }) {
    const navigation = useNavigation();
 
    // Data Context
-   const { createNewIA, createNewDSD, iaDataFiltered, dsdDataFiltered } =
-      useDataContext();
+   const { createNewIA, createNewDSD } = useDataContext();
 
    // New Entry Function and Filtered Data
-   let createNewFunction, filteredData;
-
+   if (!data) return null;
+   let createNewFunction;
    const type = data[0].type;
    if (type === "IA") {
       createNewFunction = createNewIA;
-      filteredData = iaDataFiltered;
    } else if (type === "DSD") {
       createNewFunction = createNewDSD;
-      filteredData = dsdDataFiltered;
    }
 
    // Navigation Map
@@ -79,9 +76,9 @@ export default function ListingPage({ data }) {
             }}
             onPress={() => {
                const newEntryId = createNewFunction();
-               navigation.navigate(navMap[data[0].type], {
+               navigation.navigate(navMap[type], {
                   id: newEntryId,
-                  type: data[0].type,
+                  type,
                   status: "In Progress",
                });
             }}

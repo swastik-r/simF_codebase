@@ -17,12 +17,12 @@ export default function Header() {
    return (
       <HeaderRNE
          containerStyle={styles.header}
-         leftContainerStyle={[styles.headerContainer, { paddingLeft: 10 }]}
+         leftContainerStyle={styles.headerContainer}
          centerContainerStyle={styles.headerContainer}
-         rightContainerStyle={[styles.headerContainer, { paddingRight: 10 }]}
+         rightContainerStyle={styles.headerContainer}
          leftComponent={
             <TouchableOpacity>
-               <Icon name="menu" color="#f0f0f0" size={33} />
+               <Icon name="menu" color="#f0f0f0" size={27} />
             </TouchableOpacity>
          }
          centerComponent={
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
       borderBottomWidth: 0,
    },
    headerContainer: {
-      marginTop: 15,
+      marginTop: 10,
       justifyContent: "center",
    },
    logo: {

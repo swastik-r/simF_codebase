@@ -4,6 +4,7 @@ import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import XLSX from "xlsx";
+import { Alert } from "react-native";
 
 const DataContext = createContext();
 export function useDataContext() {
@@ -234,7 +235,7 @@ export default function DataContextProvider({ children }) {
       return data;
    }
 
-   function sampleItemsToAdd() {
+   function generateSampleItems() {
       // generate 10 items to add to IA or DSD
       const items = [];
       for (let i = 0; i < 10; i++) {
@@ -261,6 +262,7 @@ export default function DataContextProvider({ children }) {
    // Original data
    const [iaData, setIaData] = useState(generateIaData());
    const [dsdData, setDsdData] = useState(generateDsdData());
+   const sampleItemsToAdd = generateSampleItems();
 
    // ---------------- Data Functions ----------------
 
@@ -423,7 +425,6 @@ export default function DataContextProvider({ children }) {
    }
 
    // select an excel file and add the items to the IA or DSD entry
-   // validation pending for the excel file data
    async function handleExcelUpload(entryId, type) {
       try {
          console.log("Opening document picker...");
@@ -458,23 +459,23 @@ export default function DataContextProvider({ children }) {
             const errors = [];
 
             data.forEach((item, index) => {
-               // data validation
-               // 1. the quantity must be greater than 0
-               // 2. the item ID must start with "ITEM-"
-               // 3. the item ID and the quantity must be present, not optional
-
-               // if (
-               //    item.Quantity <= 0 ||
-               //    !item.ID.startsWith("ITEM-") ||
-               //    !item.ID ||
-               //    !item.Quantity
-               // ) {
-               //    console.error(
-               //       `Invalid data in Excel file at row ${index + 1}.`
-               //    );
-               //    errors.push(`Invalid data at row ${index + 1}`);
-               //    return;
-               // }
+               // Data validation
+               if (!item.ID || !item.Quantity) {
+                  errors.push(`Row ${index + 1}: Missing item ID or quantity.`);
+                  return;
+               }
+               if (!item.ID.startsWith("ITEM-")) {
+                  errors.push(
+                     `Row ${index + 1}: Item ID must start with "ITEM-".`
+                  );
+                  return;
+               }
+               if (item.Quantity <= 0) {
+                  errors.push(
+                     `Row ${index + 1}: Quantity must be greater than 0.`
+                  );
+                  return;
+               }
 
                const name = randomChoice(ITEM_DATA.NAME); // Assuming the Excel sheet has a 'Name' column
                items.push({
@@ -488,12 +489,15 @@ export default function DataContextProvider({ children }) {
                });
             });
 
+            // if errors exist, console.log and return
             if (errors.length > 0) {
+               Alert.alert("Invalid data found", errors.join("\n"));
                Toast.show({
                   type: "error",
                   text1: "Error!",
-                  text2: `There were errors in the data: ${errors.join(", ")}.`,
+                  text2: "There were errors in the data!",
                });
+               return;
             }
 
             if (items.length > 0) {
@@ -579,49 +583,6 @@ export default function DataContextProvider({ children }) {
             text1: "Error!",
             text2: "Failed to create Excel file.",
          });
-      }
-   }
-
-   async function writeDataAndDownloadExcelFile() {
-      console.log("Writing Data and Downloading Excel File");
-      // log the info to check if the data is correct
-      console.log(excelData);
-      let sheetData = excelData.map((item) => {
-         return {
-            ID: item.id,
-            Name: item.info.name,
-            Color: item.info.color,
-            Size: item.info.size,
-            Category: "Apparel",
-            Quantity: item.qty,
-         };
-      });
-
-      let wb = XLSX.utils.book_new();
-      let ws = XLSX.utils.json_to_sheet(sheetData);
-      XLSX.utils.book_append_sheet(wb, ws, "Detail Items");
-      const wbout = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
-      const uri = FileSystem.documentDirectory + "AdjustmentSummary.xlsx";
-
-      await FileSystem.writeAsStringAsync(uri, wbout, {
-         encoding: FileSystem.EncodingType.Base64,
-      });
-
-      Alert.alert(
-         "Success",
-         "Adjustment Summary Report created successfully!",
-         [
-            {
-               text: "Close",
-               onPress: () => setDownloadVisible(false),
-            },
-         ]
-      );
-
-      if (await Sharing.isAvailableAsync()) {
-         await Sharing.shareAsync(uri);
-      } else {
-         Alert.alert("Error", "Sharing is not available on this device");
       }
    }
 
@@ -858,23 +819,21 @@ export default function DataContextProvider({ children }) {
    }
 
    // fetch item images for an entry
-   // function fetchItemImages(itemId, entryId, type) {
-   //    if (type === "IA") {
-   //       const iaIndex = iaData.findIndex((ia) => ia.id === entryId);
-   //       const itemIndex = iaData[iaIndex].items.findIndex(
-   //          (item) => item.id === itemId
-   //       );
-
-   //       return iaData[iaIndex].items[itemIndex].proofImages;
-   //    } else {
-   //       const dsdIndex = dsdData.findIndex((dsd) => dsd.id === entryId);
-   //       const itemIndex = dsdData[dsdIndex].items.findIndex(
-   //          (item) => item.id === itemId
-   //       );
-
-   //       return dsdData[dsdIndex].items[itemIndex].proofImages;
-   //    }
-   // }
+   function fetchItemImages(itemId, entryId, type) {
+      if (type === "IA") {
+         const iaIndex = iaData.findIndex((ia) => ia.id === entryId);
+         const itemIndex = iaData[iaIndex].items.findIndex(
+            (item) => item.id === itemId
+         );
+         return iaData[iaIndex].items[itemIndex].proofImages;
+      } else {
+         const dsdIndex = dsdData.findIndex((dsd) => dsd.id === entryId);
+         const itemIndex = dsdData[dsdIndex].items.findIndex(
+            (item) => item.id === itemId
+         );
+         return dsdData[dsdIndex].items[itemIndex].proofImages;
+      }
+   }
 
    // ---------------- Context Value ----------------
 
@@ -912,6 +871,7 @@ export default function DataContextProvider({ children }) {
       sampleItemsToAdd,
       handleExcelUpload,
       handleExcelDownload,
+      fetchItemImages,
       // fetchItemImages,
    };
 
