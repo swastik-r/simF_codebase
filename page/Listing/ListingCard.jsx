@@ -3,10 +3,13 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Pressable } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { handleDelete } from "../../context/functions";
 
-export default function ListingCard({ item }) {
+export default function ListingCard({ item, foo }) {
    // States and Vars
    const navigation = useNavigation();
+   const { type } = item;
+
    // Functions
    function dateString(date) {
       // Convert date string to the format "1 May / 24"
@@ -32,7 +35,7 @@ export default function ListingCard({ item }) {
    }
    function ProgressChip({ status }) {
       const chipData = {
-         Completed: {
+         Complete: {
             icon: "check",
             color: "#228B22",
             textColor: "white",
@@ -42,13 +45,18 @@ export default function ListingCard({ item }) {
             color: "#ffd700",
             textColor: "#000011",
          },
+         Saved: {
+            icon: "content-save",
+            color: "#ff7900",
+            textColor: "white",
+         },
       };
 
       return (
          <View
             style={{
+               alignSelf: "center",
                padding: 2,
-               borderRadius: 999,
                backgroundColor: chipData[status].color,
             }}
          >
@@ -65,36 +73,72 @@ export default function ListingCard({ item }) {
          </View>
       );
    }
+   async function deleteEntry(itemId, type) {
+      await handleDelete(itemId, type);
+      foo();
+   }
 
-   // define a constant to list the redirection page based on the status
+   // redirection map based on type and status
    const pageMap = {
       IA: {
          "In Progress": "IA Items",
-         Completed: "IA Summary",
+         Saved: "IA Items",
+         Complete: "IA Summary",
       },
       DSD: {
          "In Progress": "DSD Items",
-         Completed: "DSD Summary",
+         Saved: "DSD Items",
+         Complete: "DSD Summary",
+      },
+      PO: {
+         "In Progress": "PO Items",
+         Saved: "PO Items",
+         Complete: "PO Summary",
+      },
+   };
+   // module-specific fields
+   const fieldMap = {
+      IA: {
+         field: "reason",
+         title: "Reason",
+      },
+      DSD: {
+         field: "supplierName",
+         title: "Supplier",
+      },
+      PO: {
+         field: "supplierId",
+         title: "Supplier ID",
       },
    };
 
+   const showDelete = item.status !== "Complete" && type !== "PO";
+
    return (
       <View style={styles.card}>
+         {showDelete && (
+            <View style={styles.deleteButtonContainer}>
+               <Icon
+                  name="delete"
+                  type="material-community"
+                  size={15}
+                  color={"white"}
+                  onPress={() => deleteEntry(item.id, type)}
+               />
+            </View>
+         )}
          <View style={styles.cardLeft}>
             <View style={styles.cardLeftTop}>
                <InfoContainer title={"ID: "} value={item.id} />
-               {item.reason && (
-                  <InfoContainer title={"Reason: "} value={item.reason} />
-               )}
-               {item.supplier && (
-                  <InfoContainer title={"Supplier: "} value={item.supplier} />
-               )}
+               <ProgressChip status={item.status} />
             </View>
             <Divider color={"#112d4ebb"} width={1} />
             <View style={styles.cardLeftBottom}>
                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <InfoContainer title={"Status: "} />
-                  <ProgressChip status={item.status} />
+                  <InfoContainer
+                     title={fieldMap[type].title + ": "}
+                     value={item[fieldMap[type].field] || "N/A"}
+                  />
                </View>
                <InfoContainer title={"Date: "} value={dateString(item.date)} />
             </View>
@@ -102,9 +146,7 @@ export default function ListingCard({ item }) {
          <Pressable
             onPress={() => {
                navigation.navigate(pageMap[item.type][item.status], {
-                  id: item.id,
-                  type: item.type,
-                  status: item.status,
+                  entryItem: item,
                });
             }}
             style={styles.cardRight}
@@ -116,7 +158,9 @@ export default function ListingCard({ item }) {
                   justifyContent: "center",
                }}
             >
-               <Text style={styles.unitCount}>{item.units}</Text>
+               <Text style={styles.unitCount}>
+                  {item.items ? item.items.length : item.totalSku}
+               </Text>
                <Text style={styles.unitLabel}>units</Text>
             </View>
             <Icon
@@ -132,13 +176,24 @@ export default function ListingCard({ item }) {
 
 const styles = StyleSheet.create({
    card: {
+      position: "relative",
       marginVertical: 5,
       flexDirection: "row",
       elevation: 5,
       borderRadius: 20,
       backgroundColor: "#ffffff",
    },
+   deleteButtonContainer: {
+      position: "absolute",
+      top: -5,
+      right: -5,
+      padding: 3,
+      zIndex: 999,
+      borderRadius: 999,
+      backgroundColor: "crimson",
+   },
    cardLeft: {
+      position: "relative",
       width: "80%",
       backgroundColor: "#ffffffbb",
       paddingVertical: 10,

@@ -1,18 +1,12 @@
-// Screens
+import { createStackNavigator } from "@react-navigation/stack";
 import ListingPage from "../../page/Listing/Listing";
 import ItemListing from "../../page/ItemListing/ItemListing";
 import AddItem from "../../page/AddItem/AddItem";
-// Context / Navigation
-import { useDataContext } from "../../context/DataContext2";
-import { createStackNavigator } from "@react-navigation/stack";
-// Screen Options
 import { screenOptions } from "../../screenOptions";
 
 const Stack = createStackNavigator();
 
-export default function IaNavigator() {
-   const { iaData } = useDataContext();
-
+function IaNavigator() {
    return (
       <Stack.Navigator
          initialRouteName="IA Listing"
@@ -20,7 +14,7 @@ export default function IaNavigator() {
       >
          <Stack.Screen
             name="IA Listing"
-            children={() => <ListingPage data={iaData} />}
+            children={() => <ListingPage type={"IA"} />}
             options={{ headerShown: false }}
          />
          <Stack.Screen
@@ -47,3 +41,5 @@ export default function IaNavigator() {
       </Stack.Navigator>
    );
 }
+
+export default IaNavigator;

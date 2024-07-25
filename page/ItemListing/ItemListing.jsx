@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
    FlatList,
    View,
@@ -6,51 +6,113 @@ import {
    Text,
    StyleSheet,
 } from "react-native";
-import { useDataContext } from "../../context/DataContext2";
 import backgroundImg from "../../assets/bg3.jpg";
 import ItemCard from "./ItemCard";
 import { useNavigation } from "@react-navigation/native";
-import { Button, Overlay, Input } from "@rneui/themed";
+import { Button, Overlay, Input, Image, Icon } from "@rneui/themed";
 import { PaperProvider, Portal, FAB } from "react-native-paper";
-import SearchBar_FS from "./SearchBar_FS";
-import PoCard, { ASNCard } from "./PoCard";
+import SearchBar from "./SearchBar_FS";
+import EmptyPageComponent from "../../globalComps/EmptyPageComp";
+import { getData, postData, storeName } from "../../context/auth";
+import Toast from "react-native-toast-message";
+import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system";
+import XLSX from "xlsx";
+import { Alert } from "react-native";
+import uploadImage from "../../assets/uploadImage.png";
+import { handleDelete } from "../../context/functions";
+import { endpoints } from "../../context/endpoints";
 
-export default function AdjustmentDetailPage({ route }) {
-   // States and vars
-   const { iaData, dsdData } = useDataContext();
-   const { id, type, status } = route.params;
-   // Extract the items array based on the type
-   let items, parentItem;
-   if (type === "IA") {
-      parentItem = iaData.find((ia) => ia.id === id);
-      items = parentItem.items;
-   } else if (type === "DSD") {
-      parentItem = dsdData.find((dsd) => dsd.id === id);
-      items = parentItem.items;
+export default function EntryItemDetailPage({ route }) {
+   const { entryItem } = route.params;
+   const { status } = entryItem;
+   const [tempItems, setTempItems] = useState([]);
+   const [tempReason, setTempReason] = useState("");
+   const [tempSupplier, setTempSupplier] = useState("");
+
+   // Fetch the items
+   async function getItemsAndReason() {
+      if (status !== "In Progress") {
+         if (entryItem.type === "IA") {
+            const response = await getData(
+               endpoints.fetchItemsIA + entryItem.id
+            );
+            return {
+               items: response.items,
+               reason: response.reason,
+            };
+         }
+         if (entryItem.type === "DSD") {
+            const response = await getData(
+               endpoints.fetchItemsDSD + entryItem.id
+            );
+            return {
+               items: response.items,
+               supplier: response.supplierName,
+            };
+         }
+      } else {
+         return [];
+      }
    }
+   function deleteItem(sku) {
+      setTempItems(tempItems.filter((item) => item.sku !== sku));
+   }
+
+   // for COMPLETE or SAVED status, get the items
+   useEffect(() => {
+      if (status !== "In Progress") {
+         getItemsAndReason().then((data) => {
+            setTempItems(data.items);
+            setTempReason(data.reason);
+            setTempSupplier(data.supplier);
+         });
+      }
+   }, []);
 
    return (
       <ImageBackground source={backgroundImg} style={{ flex: 1 }}>
          <PaperProvider>
             <FlatList
-               data={items}
-               keyExtractor={(item) => item.id}
+               data={tempItems}
+               keyExtractor={(item) => item.sku}
                renderItem={({ item }) => (
-                  // <ItemCard item={item} parentId={id} route={route} />
-                  <PoCard />
+                  <ItemCard {...{ item, status, deleteItem }} />
                )}
                ListHeaderComponent={() => (
                   <>
-                     <DetailsTab parentItem={parentItem} />
-                     {status === "In Progress" && <ButtonGroup route={route} />}
-                     <SearchBar_FS {...{ route }} />
+                     <DetailsTab entryItem={entryItem} />
+                     {status !== "Complete" && (
+                        <ButtonGroup
+                           {...{
+                              entryItem,
+                              tempItems,
+                              tempReason,
+                              setTempReason,
+                              tempSupplier,
+                              setTempSupplier,
+                           }}
+                        />
+                     )}
+                     {status === "Complete" && (
+                        <SearchBar {...{ setTempItems, entryItem }} />
+                     )}
                   </>
                )}
                ListFooterComponent={
-                  <>
-                     {status === "In Progress" && <MyFabGroup route={route} />}
-                  </>
+                  status !== "Complete" && (
+                     <MyFabGroup
+                        {...{
+                           entryItem,
+                           tempItems,
+                           setTempItems,
+                           tempSupplier,
+                        }}
+                     />
+                  )
                }
+               ListEmptyComponent={<EmptyPageComponent />}
                contentContainerStyle={{
                   paddingTop: 10,
                   paddingBottom: 100,
@@ -62,83 +124,53 @@ export default function AdjustmentDetailPage({ route }) {
    );
 }
 
-function DetailsTab({ parentItem }) {
-   // {
-   //    type: string (IA),
-   //    id: string,
-   //    status: string,
-   //    date: Date,
-   //    reason: string,
-   //    items: {
-   //       id: string,
-   //       name: string,
-   //       color: string,
-   //       size: string,
-   //       image: string,
-   //       quantity: number,
-   //       proofImages: string[],
-   //    }[],
-   //    units: number (sum of all item quantities),
-   //    proofImages: string[],
-   // }
-
-   const details = [
-      { label: parentItem.type + " ID", value: parentItem.id },
-      { label: "Status", value: parentItem.status },
-      { label: "Date", value: renderDate(parentItem.date) },
-      { label: "Time", value: renderTime(parentItem.date) },
-      { label: "User", value: parentItem.user },
-      { label: "Units", value: parentItem.units },
-   ];
-
+function DetailsTab({ entryItem }) {
    function renderDate(date) {
       const d = new Date(date);
       return `${d.getDate()} ${d.toLocaleString("default", {
          month: "long",
       })}, ${d.getFullYear()}`;
    }
-   function renderTime(date) {
-      const d = new Date(date);
 
-      // time should be in the format of 12:00 PM, only 12 hours with AM/PM
-      let hours = d.getHours();
-      let minutes = d.getMinutes();
-      let ampm = hours >= 12 ? "PM" : "AM";
-      hours = hours % 12;
-      hours = hours ? hours : 12; // the hour '0' should be '12'
-
-      return `${hours}:${minutes < 10 ? "0" + minutes : minutes} ${ampm}`;
-   }
    function Detail({ label, value }) {
       return (
-         <View style={{ marginVertical: 5 }}>
+         <View style={{ marginVertical: 5, flexDirection: "row" }}>
             <Text style={styles.label}>{label}</Text>
             <Text style={styles.value}>{value}</Text>
          </View>
       );
    }
 
+   // Define the base details array
+   const baseDetails = [
+      { label: "ID", value: entryItem.id },
+      { label: "Date", value: renderDate(entryItem.date) },
+      { label: "Units", value: entryItem.totalSku },
+   ];
+
+   // Conditionally add the supplier or reason based on the entryItem type
+   if (entryItem.type === "IA") {
+      baseDetails.push({ label: "Reason", value: entryItem.reason || "N/A" });
+   } else if (entryItem.type === "DSD") {
+      baseDetails.push({
+         label: "Supplier",
+         value: entryItem.supplierName || "N/A",
+      });
+   }
+
    return (
       <View style={styles.detailCard}>
          <View style={{ flexDirection: "row" }}>
             <View style={{ flex: 1 }}>
-               {details
-                  .slice(0, Math.ceil(details.length / 2))
+               {baseDetails
+                  .slice(0, Math.ceil(baseDetails.length / 2))
                   .map((detail) => (
                      <Detail key={detail.label} {...detail} />
                   ))}
-               {/* For IA Items */}
-               {parentItem.reason && (
-                  <Detail label="Reason" value={parentItem.reason} />
-               )}
-               {/* For DSD Items */}
-               {parentItem.supplier && (
-                  <Detail label="Supplier" value={parentItem.supplier} />
-               )}
             </View>
             <View style={{ flex: 1 }}>
-               {details
-                  .slice(Math.ceil(details.length / 2), details.length)
+               {baseDetails
+                  .slice(Math.ceil(baseDetails.length / 2), baseDetails.length)
                   .map((detail) => (
                      <Detail key={detail.label} {...detail} />
                   ))}
@@ -148,57 +180,45 @@ function DetailsTab({ parentItem }) {
    );
 }
 
-function ButtonGroup({ route }) {
+function ButtonGroup({
+   entryItem,
+   tempItems,
+   tempReason,
+   setTempReason,
+   tempSupplier,
+   setTempSupplier,
+}) {
    // States and vars
-   const { id, type, status } = route.params;
-   const { iaData, dsdData, fetchIAItems, fetchDSDItems } = useDataContext();
-   const navigation = useNavigation();
+   const { type } = entryItem;
+   const canSubmit =
+      tempItems.length > 0 && (tempReason !== "" || tempSupplier !== "");
+
    // Overlay states
+   const [dropdownMenu, setDropdownMenu] = useState(false);
    const [reasonsOverlay, setReasonsOverlay] = useState(false);
    const [supplierOverlay, setSupplierOverlay] = useState(false);
-
-   // Check if the user can submit the adjustment
-   const items = type === "IA" ? fetchIAItems(id) : fetchDSDItems(id);
-   const canSubmit =
-      items.length > 0 && fetchReasonOrSupplier(id, type) !== "N/A";
-
-   // Functions
-   function fetchReasonOrSupplier(id, type) {
-      if (type === "IA") {
-         const ia = iaData.find((ia) => ia.id === id);
-         return ia.reason;
-      } else {
-         const dsd = dsdData.find((dsd) => dsd.id === id);
-         return dsd.supplier;
-      }
-   }
-   function handleSubmit(id) {
-      if (type === "IA") {
-         const ia = iaData.find((ia) => ia.id === id);
-         ia.status = "Completed";
-      } else {
-         const dsd = dsdData.find((dsd) => dsd.id === id);
-         dsd.status = "Completed";
-      }
-      navigation.goBack();
-   }
-
-   const supplierOrReason = fetchReasonOrSupplier(id, type);
+   const [proofOverlay, setProofOverlay] = useState(false);
 
    return (
-      <>
+      <View
+         style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            marginVertical: 10,
+         }}
+      >
+         {/* Buttons Container */}
          <View style={{ flexDirection: "row", justifyContent: "center" }}>
             {/* Reason Button */}
             {(type === "IA" || type === "RTV") && (
                <Button
-                  title="Reason"
-                  disabled={supplierOrReason !== "N/A"}
+                  title={tempReason ? "Reason: " + tempReason : "Select Reason"}
                   titleStyle={styles.buttonTitle}
                   buttonStyle={[
                      styles.button,
                      { backgroundColor: "dodgerblue" },
                   ]}
-                  containerStyle={{ margin: 10 }}
+                  containerStyle={{ marginRight: 10 }}
                   onPress={() => setReasonsOverlay(true)}
                />
             )}
@@ -206,41 +226,200 @@ function ButtonGroup({ route }) {
             {/* Supplier Button */}
             {(type === "DSD" || type === "RTV") && (
                <Button
-                  title="Supplier"
+                  title={
+                     tempSupplier
+                        ? "Supplier: " + tempSupplier
+                        : "Select Supplier"
+                  }
                   titleStyle={styles.buttonTitle}
-                  disabled={supplierOrReason !== "N/A"}
                   buttonStyle={[
                      styles.button,
                      { backgroundColor: "dodgerblue" },
                   ]}
-                  containerStyle={{ margin: 10 }}
+                  containerStyle={{ marginRight: 10 }}
                   onPress={() => setSupplierOverlay(true)}
                />
             )}
+
+            {/* Submit Button */}
             <Button
                title="Submit"
                disabled={!canSubmit}
                titleStyle={styles.buttonTitle}
                buttonStyle={styles.button}
-               containerStyle={{ margin: 10 }}
-               onPress={() => handleSubmit(id)}
+               onPress={() => setProofOverlay(true)}
             />
          </View>
-         <ReasonsOverlay {...{ id, reasonsOverlay, setReasonsOverlay }} />
-         <SupplierOverlay
+
+         {/* Dropdown Button */}
+         <View style={{ flexDirection: "row", justifyContent: "center" }}>
+            {/* Dropdown Button */}
+            <Button
+               type="outline"
+               icon={{
+                  name: "menu",
+                  type: "material-community",
+                  color: "black",
+                  size: 18,
+               }}
+               iconContainerStyle={{ marginHorizontal: 0 }}
+               buttonStyle={[styles.button, { borderWidth: 1 }]}
+               onPress={() => setDropdownMenu(true)}
+            />
+         </View>
+
+         {/* Overlays */}
+         <DropdownMenu
             {...{
-               id,
-               supplierOverlay,
-               setSupplierOverlay,
+               entryItem,
+               tempReason,
+               tempSupplier,
+               tempItems,
+               dropdownMenu,
+               setDropdownMenu,
             }}
          />
-      </>
+         <ReasonsOverlay
+            {...{ setTempReason, reasonsOverlay, setReasonsOverlay }}
+         />
+         <SupplierOverlay
+            {...{ setTempSupplier, supplierOverlay, setSupplierOverlay }}
+         />
+         <ProofOverlay
+            {...{
+               entryItem,
+               tempReason,
+               tempSupplier,
+               tempItems,
+               proofOverlay,
+               setProofOverlay,
+            }}
+         />
+      </View>
    );
 }
 
-function ReasonsOverlay({ id, reasonsOverlay, setReasonsOverlay }) {
+function DropdownMenu({
+   entryItem,
+   tempReason,
+   tempSupplier,
+   tempItems,
+   dropdownMenu,
+   setDropdownMenu,
+}) {
+   const navigation = useNavigation();
+   const menuOptions = [
+      // Save as Draft
+      {
+         title: "Save",
+         icon: {
+            name: "content-save-edit",
+            type: "material-community",
+            color: "white",
+         },
+         onPress: () => {
+            handleDraft();
+            setDropdownMenu(false);
+         },
+      },
+      // Delete the entry
+      {
+         title: "Delete",
+         icon: {
+            name: "delete",
+            type: "material-community",
+            color: "white",
+         },
+         onPress: () => {
+            handleDelete(entryItem.id, entryItem.type);
+            setDropdownMenu(false);
+            navigation.goBack();
+         },
+      },
+   ];
+
+   // Submit the draft
+   async function handleDraft() {
+      // entry object validation for reason code and items
+      if ((!tempReason || !tempSupplier) && tempItems.length === 0) {
+         Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: "Please select a reason/supplier and add items",
+         });
+         return;
+      }
+
+      const data = {
+         id: entryItem.id,
+         totalSku: tempItems.reduce((acc, item) => acc + item.qty, 0),
+         status: "Saved",
+         items: tempItems,
+      };
+
+      if (entryItem.type === "IA") {
+         data.reason = tempReason;
+         await postData(endpoints.saveAsDraftIA, data);
+      } else if (entryItem.type === "DSD") {
+         data.supplierName = tempSupplier;
+         await postData(endpoints.saveAsDraftDSD, data);
+      }
+
+      navigation.goBack();
+   }
+
+   return (
+      <Overlay
+         isVisible={dropdownMenu}
+         onBackdropPress={() => setDropdownMenu(false)}
+         overlayStyle={{ width: "50%" }}
+      >
+         <FlatList
+            data={menuOptions}
+            keyExtractor={(item) => item.title}
+            renderItem={({ item }) => (
+               <Button
+                  title={item.title}
+                  titleStyle={styles.buttonTitle}
+                  icon={item.icon}
+                  buttonStyle={styles.button}
+                  containerStyle={{ margin: 10 }}
+                  onPress={() => {
+                     item.onPress();
+                     setDropdownMenu(false);
+                  }}
+               />
+            )}
+            ListFooterComponent={() => (
+               <Button
+                  type="outline"
+                  title="Close"
+                  titleStyle={[styles.buttonTitle, { color: "crimson" }]}
+                  icon={{
+                     name: "close",
+                     type: "material-community",
+                     color: "crimson",
+                     size: 18,
+                  }}
+                  buttonStyle={styles.button}
+                  containerStyle={{ margin: 10 }}
+                  onPress={() => setDropdownMenu(false)}
+               />
+            )}
+         />
+      </Overlay>
+   );
+}
+
+function ReasonsOverlay({ setTempReason, reasonsOverlay, setReasonsOverlay }) {
    // States and vars
-   const { IA_REASON, modifyIAReason } = useDataContext();
+   const [reasons, setReasons] = useState([]);
+   async function fetchReasons() {
+      return getData("/inventoryadjustment/reasoncodes");
+   }
+   useEffect(() => {
+      fetchReasons().then((data) => setReasons(data));
+   }, []);
 
    return (
       <Overlay
@@ -249,7 +428,7 @@ function ReasonsOverlay({ id, reasonsOverlay, setReasonsOverlay }) {
          overlayStyle={{ width: "50%" }}
       >
          <FlatList
-            data={Object.values(IA_REASON).filter((reason) => reason !== "N/A")}
+            data={reasons}
             keyExtractor={(item) => item}
             renderItem={({ item }) => (
                <Button
@@ -259,7 +438,7 @@ function ReasonsOverlay({ id, reasonsOverlay, setReasonsOverlay }) {
                   buttonStyle={styles.button}
                   containerStyle={{ margin: 10 }}
                   onPress={() => {
-                     modifyIAReason(id, item);
+                     setTempReason(item);
                      setReasonsOverlay(false);
                   }}
                />
@@ -284,30 +463,67 @@ function ReasonsOverlay({ id, reasonsOverlay, setReasonsOverlay }) {
    );
 }
 
-function SupplierOverlay({ id, supplierOverlay, setSupplierOverlay }) {
+function SupplierOverlay({
+   setTempSupplier,
+   supplierOverlay,
+   setSupplierOverlay,
+}) {
    // States and vars
-   const { DSD_SUPPLIER, modifyDSDSupplier } = useDataContext();
-   const [supplierId, setSupplierId] = useState("");
    const [suggestions, setSuggestions] = useState([]);
+   const [supplierId, setSupplierId] = useState("");
 
-   function handleSupplierIdChange(text) {
-      setSupplierId(text);
-      // set only 3 suggestions and exclude the N/A
-      const filteredSuggestions = Object.values(DSD_SUPPLIER).filter(
-         (sup) =>
-            sup.toLowerCase().includes(text.toLowerCase()) && sup !== "N/A"
-      );
-      setSuggestions(filteredSuggestions.slice(0, 3));
+   async function handleSupplierIdChange(text) {
+      try {
+         setSupplierId(text);
+
+         if (text) {
+            const data = await getData(endpoints.fetchSuppliers + text);
+
+            if (!data || data.length === 0) {
+               setSuggestions([]);
+               Alert.alert("No suppliers found", "Please try again.");
+               return;
+            }
+
+            setSuggestions(data.slice(0, 3));
+         } else {
+            setSuggestions([]);
+         }
+      } catch (error) {
+         console.error("Error fetching suppliers:", error);
+         Alert.alert(
+            "Error",
+            "An error occurred while fetching suppliers. Please try again."
+         );
+         setSuggestions([]);
+      }
    }
 
    return (
       <Overlay
          isVisible={supplierOverlay}
          onBackdropPress={() => setSupplierOverlay(false)}
-         overlayStyle={{ width: "70%" }}
+         overlayStyle={{ width: "70%", padding: 20 }}
       >
+         <View style={{ flexDirection: "row" }}>
+            <Icon
+               name="person-search"
+               type="material"
+               size={30}
+               iconStyle={{ marginRight: 10 }}
+            />
+            <Text
+               style={{
+                  fontFamily: "Montserrat-Bold",
+                  fontSize: 20,
+                  marginBottom: 15,
+               }}
+            >
+               Search Supplier
+            </Text>
+         </View>
          <Input
-            placeholder="Enter a Supplier Name"
+            placeholder="Enter a Supplier Name or ID"
             value={supplierId}
             onChangeText={handleSupplierIdChange}
          />
@@ -322,7 +538,7 @@ function SupplierOverlay({ id, supplierOverlay, setSupplierOverlay }) {
                   buttonStyle={styles.button}
                   containerStyle={{ margin: 10 }}
                   onPress={() => {
-                     modifyDSDSupplier(id, item);
+                     setTempSupplier(item);
                      setSupplierOverlay(false);
                   }}
                />
@@ -330,14 +546,15 @@ function SupplierOverlay({ id, supplierOverlay, setSupplierOverlay }) {
             ListFooterComponent={() => (
                <Button
                   title="Close"
+                  type="outline"
                   titleStyle={styles.buttonTitle}
                   icon={{
                      name: "close",
                      type: "material-community",
-                     color: "white",
+                     color: "#112d4e",
                      size: 18,
                   }}
-                  buttonStyle={styles.button}
+                  buttonStyle={[styles.button, { alignSelf: "center" }]}
                   containerStyle={{ margin: 10 }}
                   onPress={() => setSupplierOverlay(false)}
                />
@@ -347,23 +564,223 @@ function SupplierOverlay({ id, supplierOverlay, setSupplierOverlay }) {
    );
 }
 
-function MyFabGroup({ route }) {
+function ProofOverlay({
+   entryItem,
+   tempReason,
+   tempSupplier,
+   tempItems,
+   proofOverlay,
+   setProofOverlay,
+}) {
+   const navigation = useNavigation();
+   const [image, setImage] = useState("");
+
+   // Functions
+   async function pickImage() {
+      const result = await ImagePicker.launchImageLibraryAsync({
+         mediaTypes: ImagePicker.MediaTypeOptions.Images,
+         allowsEditing: true,
+         aspect: [1, 1],
+         quality: 1,
+      });
+      if (!result.canceled) {
+         setImage(result.uri);
+      }
+   }
+   async function handleSubmit() {
+      const data = {
+         id: entryItem.id,
+         totalSku: tempItems.reduce((acc, item) => acc + item.qty, 0),
+         status: "Complete",
+         items: tempItems,
+         imageData: image,
+      };
+
+      if (entryItem.type === "IA") {
+         data.reason = tempReason;
+         console.log("SUBMIT DATA", data);
+         await postData(endpoints.submitIA, data);
+      } else if (entryItem.type === "DSD") {
+         data.supplierName = tempSupplier;
+         console.log("SUBMIT DATA", data);
+         await postData(endpoints.submitDSD, data);
+      }
+
+      navigation.goBack();
+   }
+
+   return (
+      <Overlay
+         isVisible={proofOverlay}
+         onBackdropPress={() => setProofOverlay(false)}
+         overlayStyle={{ width: "50%", alignItems: "center", borderRadius: 20 }}
+      >
+         <Text
+            style={{
+               fontFamily: "Montserrat-Bold",
+               fontSize: 16,
+            }}
+         >
+            Upload Proof
+         </Text>
+
+         <Image source={uploadImage} style={{ width: 200, height: 200 }} />
+
+         <View
+            style={{
+               width: "100%",
+               flexDirection: "row",
+               justifyContent: "space-evenly",
+            }}
+         >
+            <Button
+               title="Upload"
+               buttonStyle={styles.button}
+               titleStyle={styles.buttonTitle}
+               onPress={() => {
+                  pickImage();
+                  handleSubmit();
+               }}
+            />
+            <Button
+               title="Skip"
+               buttonStyle={styles.button}
+               titleStyle={styles.buttonTitle}
+               onPress={handleSubmit}
+            />
+         </View>
+      </Overlay>
+   );
+}
+
+function MyFabGroup({ entryItem, tempItems, setTempItems, tempSupplier }) {
+   // FAB Group States and Properties
    const [state, setState] = useState({ open: false });
    const { open } = state;
+
+   // Additional States and Functions
    const navigation = useNavigation();
-   const { id, type } = route.params;
-   const { handleExcelUpload } = useDataContext();
+   const { id, type } = entryItem;
 
    function onStateChange({ open }) {
       setState({ open });
    }
+   async function handleExcelUpload() {
+      try {
+         console.log("Opening document picker...");
 
-   const actionsIA = [
+         const res = await DocumentPicker.getDocumentAsync({
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+         });
+
+         if (!res.canceled && res.assets && res.assets.length > 0) {
+            const fileUri = res.assets[0].uri;
+
+            // Read the file as a base64 string
+            const fileContent = await FileSystem.readAsStringAsync(fileUri, {
+               encoding: FileSystem.EncodingType.Base64,
+            });
+
+            // Parse the file using XLSX
+            const wb = XLSX.read(fileContent, {
+               type: "base64",
+               cellDates: true,
+            });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const data = XLSX.utils.sheet_to_json(ws);
+
+            const items = [];
+            const errors = [];
+
+            for (const [index, item] of data.entries()) {
+               // Data validation
+               if (!item.SKU || !item.Quantity) {
+                  errors.push(
+                     `Row ${index + 1}: Missing item SKU or quantity.`
+                  );
+                  continue;
+               }
+               if (!item.SKU.startsWith("sku")) {
+                  errors.push(
+                     `Row ${index + 1}: Item ID must start with "sku".`
+                  );
+                  continue;
+               }
+               if (item.Quantity <= 0) {
+                  errors.push(
+                     `Row ${index + 1}: Quantity must be greater than 0.`
+                  );
+                  continue;
+               }
+
+               try {
+                  const response = await getData(
+                     `/product/findbysku/${item.SKU}/${storeName}`
+                  );
+                  const foundItem = response.items ? response.items[0] : null;
+
+                  if (!foundItem) {
+                     errors.push(`Row ${index + 1}: Item not found.`);
+                     continue;
+                  }
+
+                  // if item already exists, update the quantity
+                  // else push the item to the tempItems with
+
+                  const existingItem = tempItems.find(
+                     (i) => i.sku === foundItem.sku
+                  );
+                  if (existingItem) {
+                     existingItem.qty += item.Quantity;
+                  } else {
+                     items.push({
+                        ...foundItem,
+                        qty: item.Quantity,
+                     });
+                  }
+               } catch (e) {
+                  errors.push(`Row ${index + 1}: Error fetching item.`);
+                  continue;
+               }
+            }
+
+            // If errors exist, console.log and return
+            if (errors.length > 0) {
+               Alert.alert("Invalid data found", errors.join("\n"));
+               Toast.show({
+                  type: "error",
+                  text1: "Error!",
+                  text2: "There were errors in the data!",
+               });
+               return;
+            }
+
+            // Add the items to the tempItems
+            setTempItems([...tempItems, ...items]);
+
+            // Show a success toast
+            Toast.show({
+               type: "success",
+               text1: "Success",
+               text2: "Items added successfully",
+            });
+         }
+      } catch (error) {
+         console.log("Error reading file:", error);
+         Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: "Error reading the file",
+         });
+      }
+   }
+
+   const validActions = [
       {
          icon: "file-excel",
          label: "Upload Excel Data",
          onPress: () => {
-            handleExcelUpload(id, type);
+            handleExcelUpload();
             setState({ open: false });
          },
       },
@@ -372,22 +789,20 @@ function MyFabGroup({ route }) {
          label: "Add Item",
          onPress: () =>
             navigation.navigate("Add Items", {
-               parentId: id,
-               type,
+               tempItems,
+               setTempItems,
+               tempSupplier,
             }),
       },
    ];
-   const actionsDSD = [
-      {
-         icon: "qrcode",
-         label: "Add Item",
-         onPress: () =>
-            navigation.navigate("Add Items", {
-               parentId: id,
-               type,
-            }),
-      },
-   ];
+
+   const actionsIA = validActions;
+   const actionsDSD = validActions.filter(
+      (action) => action.label !== "Upload Excel Data"
+   );
+
+   // Select the actions based on the TYPE
+   const selectedActions = type === "IA" ? actionsIA : actionsDSD;
 
    return (
       <Portal>
@@ -397,7 +812,7 @@ function MyFabGroup({ route }) {
             visible
             icon={open ? "close" : "plus"}
             iconColor="white"
-            actions={type === "IA" ? actionsIA : actionsDSD}
+            actions={selectedActions}
             onStateChange={onStateChange}
          />
       </Portal>
@@ -406,7 +821,7 @@ function MyFabGroup({ route }) {
 
 const styles = StyleSheet.create({
    detailCard: {
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      backgroundColor: "#465B73AA",
       marginTop: 10,
       marginBottom: 10,
       paddingHorizontal: 15,
@@ -415,12 +830,13 @@ const styles = StyleSheet.create({
    },
    label: {
       fontFamily: "Montserrat-Regular",
-      fontSize: 14,
+      fontSize: 13,
       color: "white",
+      marginRight: 10,
    },
    value: {
       fontFamily: "Montserrat-Bold",
-      fontSize: 16,
+      fontSize: 13,
       color: "white",
    },
 

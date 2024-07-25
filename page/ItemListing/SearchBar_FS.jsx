@@ -1,33 +1,120 @@
 import React, { useEffect, useState } from "react";
 
 // React Native Imports
-import { View, Pressable, StyleSheet, Text } from "react-native";
+import { View, Pressable, StyleSheet } from "react-native";
 
 // React Native Elements UI Library
-import { Icon, SearchBar, ListItem } from "@rneui/themed";
+import { Icon, SearchBar } from "@rneui/themed";
 
 // Custom Components
-import { BottomSheet, Button } from "@rneui/base";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { useDataContext } from "../../context/DataContext2";
+import { getData } from "../../context/auth";
+import Toast from "react-native-toast-message";
+import * as Sharing from "expo-sharing";
+import * as FileSystem from "expo-file-system";
+import XLSX from "xlsx";
+import { endpoints } from "../../context/endpoints";
 
-export default function SearchBar_FS({ route }) {
+export default function SearchBar_FS({ setTempItems, entryItem }) {
    // States and Vars
-   const { id, type, status } = route.params;
+   const { id, type } = entryItem;
    const [searchStr, setSearchStr] = useState("");
-   const { handleSearchEntry, handleExcelDownload } = useDataContext();
 
    // Search Application
    useEffect(() => {
-      handleSearchEntry(searchStr, type);
+      async function handleItemSearch(searchStr) {
+         if (searchStr.length === 0) {
+            const data = await getData(
+               "/inventoryadjustment/products/id/" + id
+            );
+            setTempItems(data);
+            return;
+         }
+
+         try {
+            const data0 = await getData(
+               "/inventoryadjustment/search/item/inadjustments/sku/" +
+                  id +
+                  "/" +
+                  searchStr
+            );
+            // const data1 = await getData(
+            //    "/inventoryadjustment/search/item/inadjustments/name/" +
+            //       id +
+            //       "/" +
+            //       searchStr
+            // );
+
+            console.log(data0);
+            // console.log(data1);
+
+            // Merge the two arrays, remove duplicates based on SKU
+            // const data = data0.concat(data1);
+            // const uniqueData = Array.from(new Set(data.map((a) => a.sku))).map(
+            //    (sku) => {
+            //       return data.find((a) => a.sku === sku);
+            //    }
+            // );
+
+            setTempItems(data0);
+         } catch (error) {
+            console.log(error);
+         }
+      }
+
+      // handleItemSearch(searchStr);
    }, [searchStr]);
 
-   // Visibility States
-   const [sortVisible, setSortVisible] = useState(false);
-   const [filterVisible, setFilterVisible] = useState(false);
-   const [dateFilterVisible, setDateFilterVisible] = useState(false);
-   const [reasonFilterVisible, setReasonFilterVisible] = useState(false);
-   const [statusFilterVisible, setStatusFilterVisible] = useState(false);
+   async function handleExcelDownload() {
+      try {
+         let items;
+         if (type === "IA") {
+            const response = await getData(endpoints.fetchItemsIA + id);
+            items = response.items;
+         } else if (type === "DSD") {
+            const response = await getData(endpoints.fetchItemsDSD + id);
+            items = response.items;
+         }
+
+         const sheetData = items.map((item) => ({
+            ID: item.itemNumber,
+            Name: item.itemName,
+            Color: item.color,
+            Size: item.size,
+            Quantity: item.qty,
+         }));
+
+         const wb = XLSX.utils.book_new();
+         const ws = XLSX.utils.json_to_sheet(sheetData);
+         XLSX.utils.book_append_sheet(wb, ws, "Items");
+         const wbout = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+
+         const uri = FileSystem.documentDirectory + entryItem.id + ".xlsx";
+         await FileSystem.writeAsStringAsync(uri, wbout, {
+            encoding: FileSystem.EncodingType.Base64,
+         });
+
+         Toast.show({
+            type: "success",
+            text1: "Success!",
+            text2: "Excel file created successfully.",
+         });
+
+         // download the excel file
+         if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(uri);
+         } else {
+            Alert.alert("Error", "Sharing is not available on this device");
+         }
+         console.log("Sharing dialog closed.");
+      } catch (err) {
+         console.error("Error handling Excel download:", err);
+         Toast.show({
+            type: "error",
+            text1: "Error!",
+            text2: "Failed to create Excel file.",
+         });
+      }
+   }
 
    return (
       <>
@@ -55,541 +142,18 @@ export default function SearchBar_FS({ route }) {
                }}
             />
 
-            {/* Filter Button */}
             <Pressable
                style={styles.buttonContainer}
-               onPress={() => setFilterVisible(true)}
+               onPress={handleExcelDownload}
             >
-               <Icon name="filter" type="material-community" color={"white"} />
-            </Pressable>
-
-            {/* Download Button */}
-            {status === "Completed" && (
-               <Pressable
-                  style={styles.buttonContainer}
-                  onPress={() => handleExcelDownload(id, type)}
-               >
-                  <Icon
-                     name="download"
-                     type="material-community"
-                     color={"white"}
-                  />
-               </Pressable>
-            )}
-         </View>
-
-         {/* Sort Bottom Sheet */}
-         <SortBottomSheet
-            sortVisible={sortVisible}
-            setSortVisible={setSortVisible}
-         />
-
-         {/* Main Filter Bottom Sheet */}
-         <FilterBottomSheet
-            filterVisible={filterVisible}
-            setFilterVisible={setFilterVisible}
-            setReasonFilterVisible={setReasonFilterVisible}
-            setStatusFilterVisible={setStatusFilterVisible}
-            setDateFilterVisible={setDateFilterVisible}
-         />
-
-         {/* Reason Filter Bottom Sheet */}
-         <ReasonFilterBottomSheet
-            reasonFilterVisible={reasonFilterVisible}
-            setReasonFilterVisible={setReasonFilterVisible}
-         />
-
-         {/* Status Filter Bottom Sheet */}
-         <StatusFilterBottomSheet
-            statusFilterVisible={statusFilterVisible}
-            setStatusFilterVisible={setStatusFilterVisible}
-         />
-
-         {/* Date Filter Bottom Sheet */}
-         <DateFilterBottomSheet
-            dateFilterVisible={dateFilterVisible}
-            setDateFilterVisible={setDateFilterVisible}
-         />
-      </>
-   );
-}
-
-function SortBottomSheet({ sortVisible, setSortVisible }) {
-   // States and Vars
-   const sortOpts = [
-      {
-         title: "Sort by",
-         titleStyle: {
-            fontFamily: "Montserrat-Regular",
-            fontSize: 25,
-         },
-         containerStyle: [styles.sortOptContainer, { paddingTop: 0 }],
-      },
-      {
-         title: "Sort by latest",
-         icon: {
-            name: "sort-clock-descending-outline",
-            type: "material-community",
-            color: "black",
-            size: 35,
-         },
-         titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
-         sortType: "latest",
-      },
-      {
-         title: "Sort by oldest",
-         icon: {
-            name: "sort-clock-descending-outline",
-            type: "material-community",
-            color: "black",
-            size: 35,
-            containerStyle: {
-               transform: [{ scaleY: -1 }],
-            },
-         },
-         titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
-         sortType: "oldest",
-      },
-      {
-         title: "Cancel",
-         icon: { name: "cancel", type: "material", color: "white" },
-         containerStyle: [
-            styles.sortOptContainer,
-            { backgroundColor: "darkred" },
-         ],
-         titleStyle: styles.sortOptCancel,
-         sortType: "reset",
-      },
-   ];
-
-   return (
-      <BottomSheet
-         isVisible={sortVisible}
-         onBackdropPress={() => setSortVisible(false)}
-      >
-         {sortOpts.map((opt, i) => (
-            <ListItem
-               key={i}
-               containerStyle={opt.containerStyle}
-               onPress={() => {
-                  sortByDate(opt.sortType);
-                  setSortVisible(false);
-               }}
-            >
-               <ListItem.Content>
-                  <Icon {...opt.icon} />
-                  <ListItem.Title style={opt.titleStyle}>
-                     {opt.title}
-                  </ListItem.Title>
-               </ListItem.Content>
-            </ListItem>
-         ))}
-      </BottomSheet>
-   );
-}
-
-function FilterBottomSheet({
-   filterVisible,
-   setFilterVisible,
-   setStatusFilterVisible,
-   setReasonFilterVisible,
-   setDateFilterVisible,
-}) {
-   // States and Vars
-   const filterOpts = [
-      {
-         title: "Filter by",
-         titleStyle: {
-            fontFamily: "Montserrat-Regular",
-            fontSize: 25,
-         },
-         containerStyle: [styles.sortOptContainer, { paddingTop: 0 }],
-      },
-      {
-         title: "Status",
-         icon: {
-            name: "progress-question",
-            type: "material-community",
-            color: "black",
-            size: 30,
-         },
-         titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
-      },
-      {
-         title: "Reason",
-         icon: {
-            name: "report-problem",
-            type: "material",
-            color: "black",
-            size: 30,
-         },
-         titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
-      },
-      {
-         title: "Date",
-         icon: {
-            name: "date-range",
-            type: "material",
-            color: "black",
-            size: 30,
-         },
-         titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
-      },
-      {
-         title: "Reset Filter",
-         icon: { name: "refresh", type: "material", color: "white" },
-         containerStyle: [
-            styles.sortOptContainer,
-            { backgroundColor: "darkred" },
-         ],
-         titleStyle: styles.sortOptCancel,
-         type: "reset",
-      },
-   ];
-   const { setData, initialData } = useDataContext();
-
-   return (
-      <BottomSheet
-         isVisible={filterVisible}
-         onBackdropPress={() => setFilterVisible(false)}
-      >
-         {filterOpts.map((opt, i) => (
-            <ListItem
-               key={i}
-               containerStyle={opt.containerStyle}
-               onPress={() => {
-                  setFilterVisible(false);
-
-                  if (opt.title === "Status") {
-                     setStatusFilterVisible(true);
-                  } else if (opt.title === "Reason") {
-                     setReasonFilterVisible(true);
-                  } else if (opt.title === "Date") {
-                     setDateFilterVisible(true);
-                  } else if (opt.title === "Reset Filter") {
-                     setData(initialData);
-                  }
-               }}
-            >
-               <ListItem.Content>
-                  <Icon {...opt.icon} />
-                  <ListItem.Title style={opt.titleStyle}>
-                     {opt.title}
-                  </ListItem.Title>
-               </ListItem.Content>
-            </ListItem>
-         ))}
-      </BottomSheet>
-   );
-}
-
-function StatusFilterBottomSheet({
-   statusFilterVisible,
-   setStatusFilterVisible,
-}) {
-   // States and Vars
-   const statusFilterOpts = [
-      {
-         title: "Select a status",
-         titleStyle: {
-            fontFamily: "Montserrat-Regular",
-            fontSize: 25,
-         },
-         containerStyle: [styles.sortOptContainer, { paddingTop: 0 }],
-      },
-      {
-         title: "In Progress",
-         icon: {
-            name: "progress-question",
-            type: "material-community",
-            color: "black",
-            size: 30,
-         },
-         titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
-         filterType: "inProgress",
-      },
-      {
-         title: "Completed",
-         icon: {
-            name: "progress-check",
-            type: "material-community",
-            color: "black",
-            size: 30,
-         },
-         titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
-         filterType: "complete",
-      },
-      // reset filter
-      {
-         title: "Reset",
-         icon: {
-            name: "refresh",
-            type: "material",
-            color: "white",
-         },
-         containerStyle: [
-            styles.sortOptContainer,
-            { backgroundColor: "darkred" },
-         ],
-         titleStyle: styles.sortOptCancel,
-         filterType: "reset",
-      },
-   ];
-   const { data, setData, initialData } = useDataContext();
-
-   // Functions
-   function filterStatus(progress) {
-      if (progress === "reset") {
-         setData(initialData);
-         return;
-      }
-      const filteredData = data.filter((item) => item.progress === progress);
-      setData(filteredData);
-   }
-
-   return (
-      <BottomSheet
-         isVisible={statusFilterVisible}
-         onBackdropPress={() => setStatusFilterVisible(false)}
-      >
-         {statusFilterOpts.map((opt, i) => (
-            <ListItem
-               key={i}
-               containerStyle={opt.containerStyle}
-               onPress={() => {
-                  filterStatus(opt.filterType);
-                  setStatusFilterVisible(false);
-               }}
-            >
-               <ListItem.Content>
-                  <Icon {...opt.icon} />
-                  <ListItem.Title style={opt.titleStyle}>
-                     {opt.title}
-                  </ListItem.Title>
-               </ListItem.Content>
-            </ListItem>
-         ))}
-      </BottomSheet>
-   );
-}
-
-function ReasonFilterBottomSheet({
-   reasonFilterVisible,
-   setReasonFilterVisible,
-}) {
-   // States and Vars
-   const [filterApplied, setFilterApplied] = useState(false);
-   const { data, setData, initialData } = useDataContext();
-   const reasonFilterOpts = [
-      {
-         title: "Damaged",
-         icon: {
-            name: "image-broken-variant",
-            type: "material-community",
-            color: "black",
-            size: 30,
-         },
-         titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
-         filterType: "damaged",
-      },
-      {
-         title: "Stock In",
-         icon: {
-            name: "download",
-            type: "font-awesome",
-            color: "black",
-            size: 30,
-         },
-         titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
-         filterType: "stockIn",
-      },
-      {
-         title: "Stock Out",
-         icon: {
-            name: "upload",
-            type: "font-awesome",
-            color: "black",
-            size: 30,
-         },
-         titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
-         filterType: "stockOut",
-      },
-      {
-         title: "Theft",
-         icon: {
-            name: "shield-lock-open",
-            type: "material-community",
-            color: "black",
-            size: 30,
-         },
-         titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
-         filterType: "theft",
-      },
-      {
-         title: filterApplied ? "Reset Filter" : "Cancel",
-         icon: {
-            name: filterApplied ? "refresh" : "cancel",
-            type: "material",
-            color: "white",
-         },
-         containerStyle: [
-            styles.sortOptContainer,
-            { backgroundColor: "darkred" },
-         ],
-         titleStyle: styles.sortOptCancel,
-         filterType: "reset",
-      },
-   ];
-
-   // Functions
-   function filterReason(reason) {
-      if (reason === "reset") {
-         setData(initialData);
-         return;
-      }
-      const filteredData = data.filter((item) => item.reason === reason);
-      setData(filteredData);
-   }
-
-   return (
-      <BottomSheet
-         isVisible={reasonFilterVisible}
-         onBackdropPress={() => setReasonFilterVisible(false)}
-      >
-         {reasonFilterOpts.map((opt, i) => (
-            <ListItem
-               key={i}
-               containerStyle={opt.containerStyle}
-               onPress={() => {
-                  filterReason(opt.filterType);
-                  setReasonFilterVisible(false);
-               }}
-            >
-               <ListItem.Content>
-                  <Icon {...opt.icon} />
-                  <ListItem.Title style={styles.bottomSheetOpt}>
-                     {opt.title}
-                  </ListItem.Title>
-               </ListItem.Content>
-            </ListItem>
-         ))}
-      </BottomSheet>
-   );
-}
-
-function DateFilterBottomSheet({ dateFilterVisible, setDateFilterVisible }) {
-   function DateRangePicker() {
-      // States and Vars
-      const [startDate, setStartDate] = useState(new Date());
-      const [endDate, setEndDate] = useState(new Date());
-      const [showStartPicker, setShowStartPicker] = useState(false);
-      const [showEndPicker, setShowEndPicker] = useState(false);
-      const { data, setData, initialData } = useDataContext();
-
-      // Functions
-      function onStartChange(event, selectedDate) {
-         setShowStartPicker(false);
-         if (selectedDate) {
-            setStartDate(selectedDate);
-         }
-      }
-      function onEndChange(event, selectedDate) {
-         setShowEndPicker(false);
-         if (selectedDate) {
-            setEndDate(selectedDate);
-         }
-      }
-      function filterDate(startDate, endDate) {
-         const filteredData = data.filter((item) => {
-            const itemDate = new Date(item.date);
-            return itemDate >= startDate && itemDate <= endDate;
-         });
-         setData(filteredData);
-      }
-
-      return (
-         <View style={{ flexDirection: "row" }}>
-            <View style={styles.container}>
-               <View style={styles.picker}>
-                  <Button
-                     onPress={() => setShowStartPicker(true)}
-                     title="Start Date"
-                     titleStyle={{ fontFamily: "Montserrat-Bold" }}
-                     icon={{
-                        name: "calendar",
-                        type: "material-community",
-                        color: "white",
-                     }}
-                  />
-                  {showStartPicker && (
-                     <DateTimePicker
-                        testID="startDateTimePicker"
-                        value={startDate}
-                        mode="date"
-                        display="default"
-                        onChange={onStartChange}
-                     />
-                  )}
-                  <Text style={styles.dateText}>
-                     {startDate.toDateString()}
-                  </Text>
-               </View>
-               <View style={styles.picker}>
-                  <Button
-                     onPress={() => setShowEndPicker(true)}
-                     title="End Date"
-                     titleStyle={{ fontFamily: "Montserrat-Bold" }}
-                     icon={{
-                        name: "calendar",
-                        type: "material-community",
-                        color: "white",
-                     }}
-                  />
-                  {showEndPicker && (
-                     <DateTimePicker
-                        testID="endDateTimePicker"
-                        value={endDate}
-                        mode="date"
-                        display="default"
-                        onChange={onEndChange}
-                     />
-                  )}
-
-                  <Text style={styles.dateText}>{endDate.toDateString()}</Text>
-               </View>
-            </View>
-            <View style={styles.container}>
-               <Button
-                  title="Apply Filter"
-                  titleStyle={{ fontFamily: "Montserrat-Bold" }}
-                  buttonStyle={{ backgroundColor: "green" }}
-                  onPress={() => filterDate(startDate, endDate)}
+               <Icon
+                  name="download"
+                  type="material-community"
+                  color={"white"}
                />
-            </View>
+            </Pressable>
          </View>
-      );
-   }
-
-   return (
-      <BottomSheet
-         isVisible={dateFilterVisible}
-         onBackdropPress={() => setDateFilterVisible(false)}
-      >
-         <View style={styles.bottomSheet}>
-            <DateRangePicker />
-         </View>
-      </BottomSheet>
+      </>
    );
 }
 

@@ -20,7 +20,7 @@ export const screenOptions = {
       <Text style={styles.headerTitle}>{children}</Text>
    ),
    headerBackground: () => (
-      <View style={{ backgroundColor: "#324AB2", height: 30 }} />
+      <View style={{ backgroundColor: "#112d4e", height: 30 }} />
    ),
    headerTitleAlign: "center",
 };

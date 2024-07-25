@@ -15,7 +15,8 @@ export default function DataContextProvider({ children }) {
    /* ----------------- Data Structure (DSD, IA) -----------------
 
    IA -> Inventory Adjustment
-   Data Structure:
+   Data Structure -
+      id:
       {
          user: string,
          type: string (IA),
@@ -34,10 +35,11 @@ export default function DataContextProvider({ children }) {
          }[],
          units: number (sum of all item quantities),
          proofImages: string[],
-      }
+      }[]
 
    DSD -> Direct Store Delivery
-   Data Structure:
+   Data Structure -
+      id:
       {
          user: string,
          type: string (DSD),
@@ -57,12 +59,46 @@ export default function DataContextProvider({ children }) {
          units: number (sum of all item quantities),
          poId: string,
          invoiceId: string,
-      }
+      }[]
     
+   PO -> Purchase Order
+   Data Structure -
+      id:
+      {
+         user: string,
+         type: string (PO),
+         id: string,
+         status: string,
+         date: Date,
+         supplier: string,
+         items: {
+            id: string,
+            name: string,
+            color: string,
+            size: string,
+            image: string,
+            quantity: number,
+            proofImages: string[],
+         }[],
+         units: number (sum of all item quantities),
+         invoiceId: string,
+         deliveryDate: Date,
+         deliveryAddress: string,
+         paymentTerms: string,
+         paymentStatus: string,
+         paymentDate: Date,
+         proofImages: string[],
+      }[]
+
    ---------------------------------------------------- */
 
    // ---------------- Static Data ----------------
 
+   const MODULES = {
+      "Inventory Adjustment": "IA",
+      "Direct Store Delivery": "DSD",
+      "Purchase Order": "PO",
+   };
    const STATUS = {
       // PENDING: "Pending",
       IN_PROGRESS: "In Progress",
@@ -107,11 +143,27 @@ export default function DataContextProvider({ children }) {
       },
    };
 
-   // ---------------- Helper Functions (Data Gen) ----------------
+   // Contains both Supplier and Reason data for a PO object
+   const PO_DATA = {
+      REASON: {
+         STOCK_IN: "Stock In",
+         STOCK_OUT: "Stock Out",
+         DAMAGED: "Damaged",
+         THEFT: "Theft",
+         NA: "N/A",
+      },
+      SUPPLIER: DSD_SUPPLIER,
+   };
 
+   // ---------------- Helper Functions (Data Gen) ----------------
    // return a random 8 character alphanumeric string, uppercase
-   function randomId() {
-      return Math.random().toString(36).substring(2, 10).toUpperCase();
+   function randomId(type) {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      let id = "";
+      for (let i = 0; i < 8; i++) {
+         id += chars[randomInt(0, chars.length - 1)];
+      }
+      return `${type}-${id}`;
    }
 
    // returns a random integer between min and max
@@ -132,27 +184,13 @@ export default function DataContextProvider({ children }) {
       return arr[Math.floor(Math.random() * arr.length)];
    }
 
-   // returns a random 6 character alphanumeric string, uppercase, prefixed with 'PO-'
-   function generatePoId() {
-      return `PO-${randomId()}`;
-   }
-
-   // returns a random 6 character alphanumeric string, uppercase, prefixed with 'INV-'
-   function generateInvoiceId() {
-      return `INV-${randomId()}`;
-   }
-
-   // returns a random 6 character alphanumeric string, uppercase, prefixed with 'ITEM-'
-   function generateItemId() {
-      return `ITEM-${randomId()}`;
-   }
-
    // ---------------- Data Gen Functions ----------------
 
    function generateIaData() {
       // Generate random IA data with randomInt(15, 20) entries where each entry has randomInt(5, 10) items
       // the proofImages array should empty for both IA and DSD as well as the items within them
       const data = [];
+      // the data contain the list of (id - IA item) pairs
       for (let i = 0; i < randomInt(15, 20); i++) {
          const items = [];
          let units = 0;
@@ -164,7 +202,7 @@ export default function DataContextProvider({ children }) {
             const quantity = randomInt(1, 10);
             units += quantity;
             items.push({
-               id: generateItemId(),
+               id: randomId("ITEM"),
                name,
                color,
                size,
@@ -176,18 +214,16 @@ export default function DataContextProvider({ children }) {
          data.push({
             user: "swastik-r",
             type: "IA",
-            id: randomId(),
+            id: randomId("IA"),
             status: randomChoice(Object.values(STATUS)),
             date: randomDate(new Date(2021, 0, 1)),
-            // reason can be any of the IA_REASON except NA
-            reason: randomChoice(
-               Object.values(IA_REASON).filter((r) => r !== IA_REASON.NA)
-            ),
+            reason: randomChoice(Object.values(IA_REASON)),
             items,
             units,
             proofImages: [],
          });
       }
+
       return data;
    }
 
@@ -207,7 +243,7 @@ export default function DataContextProvider({ children }) {
             const quantity = randomInt(1, 10);
             units += quantity;
             items.push({
-               id: generateItemId(),
+               id: randomId("ITEM"),
                name,
                color,
                size,
@@ -219,7 +255,7 @@ export default function DataContextProvider({ children }) {
          data.push({
             user: "swastik-r",
             type: "DSD",
-            id: randomId(),
+            id: randomId("DSD"),
             status: STATUS.COMPLETED,
             date: randomDate(new Date(2021, 0, 1)),
             // supplier can be any of the DSD_SUPPLIER except NA
@@ -228,8 +264,8 @@ export default function DataContextProvider({ children }) {
             ),
             items,
             units,
-            poId: generatePoId(),
-            invoiceId: generateInvoiceId(),
+            poId: randomId("PO"),
+            invoiceId: randomId("INV"),
          });
       }
       return data;
@@ -245,7 +281,7 @@ export default function DataContextProvider({ children }) {
          const image = ITEM_DATA.IMAGE[name];
          const quantity = 1;
          items.push({
-            id: generateItemId(),
+            id: randomId("ITEM"),
             name,
             color,
             size,
@@ -257,11 +293,59 @@ export default function DataContextProvider({ children }) {
       return items;
    }
 
+   function generatePoData() {
+      // Generate random PO data with randomInt(15, 20) entries where each entry has randomInt(5, 10) items
+      // the proofImages array should empty for both IA and DSD as well as the items within them
+      const data = [];
+      for (let i = 0; i < randomInt(15, 20); i++) {
+         const items = [];
+         let units = 0;
+         for (let j = 0; j < randomInt(5, 10); j++) {
+            const name = randomChoice(ITEM_DATA.NAME);
+            const color = randomChoice(ITEM_DATA.COLOR);
+            const size = randomChoice(ITEM_DATA.SIZE);
+            const image = ITEM_DATA.IMAGE[name];
+            const quantity = randomInt(1, 10);
+            units += quantity;
+            items.push({
+               id: randomId("ITEM"),
+               name,
+               color,
+               size,
+               image,
+               quantity,
+               proofImages: [],
+            });
+         }
+         data.push({
+            user: "swastik-r",
+            type: "PO",
+            id: randomId("ITEM"),
+            status: randomChoice(Object.values(STATUS)),
+            date: randomDate(new Date(2021, 0, 1)),
+            supplier: randomChoice(
+               Object.values(DSD_SUPPLIER).filter((s) => s !== DSD_SUPPLIER.NA)
+            ),
+            items,
+            units,
+            invoiceId: randomId("INV"),
+            deliveryDate: randomDate(new Date(2021, 0, 1)),
+            deliveryAddress: "123, ABC Street, XYZ City",
+            paymentTerms: "Net 30",
+            paymentStatus: "Paid",
+            paymentDate: randomDate(new Date(2021, 0, 1)),
+            proofImages: [],
+         });
+      }
+      return data;
+   }
+
    // ---------------- Data States ----------------
 
    // Original data
    const [iaData, setIaData] = useState(generateIaData());
    const [dsdData, setDsdData] = useState(generateDsdData());
+   const [poData, setPoData] = useState(generatePoData());
    const sampleItemsToAdd = generateSampleItems();
 
    // ---------------- Data Functions ----------------
@@ -271,7 +355,7 @@ export default function DataContextProvider({ children }) {
       const newEntry = {
          user: "swastik-r",
          type: "IA",
-         id: randomId(),
+         id: randomId("IA"),
          status: STATUS.IN_PROGRESS,
          date: new Date(),
          reason: IA_REASON.NA,
@@ -299,8 +383,8 @@ export default function DataContextProvider({ children }) {
          supplier: DSD_SUPPLIER.NA,
          items: [],
          units: 0,
-         poId: generatePoId(),
-         invoiceId: generateInvoiceId(),
+         poId: randomId("PO"),
+         invoiceId: randomId("INV"),
       };
       setDsdData([newEntry, ...dsdData]);
       Toast.show({
@@ -844,9 +928,10 @@ export default function DataContextProvider({ children }) {
       DSD_SUPPLIER,
       ITEM_DATA,
 
-      // Module Data : IA and DSD
+      // Module Data : IA / DSD / PO
       iaData,
       dsdData,
+      poData,
 
       // Module Functions : IA
       createNewIA,
@@ -872,7 +957,6 @@ export default function DataContextProvider({ children }) {
       handleExcelUpload,
       handleExcelDownload,
       fetchItemImages,
-      // fetchItemImages,
    };
 
    return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

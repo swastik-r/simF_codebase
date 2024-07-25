@@ -67,6 +67,12 @@
                   "./assets/fonts/Ojuju-Regular.ttf"
                ]
             }
+         ],
+         [
+            "expo-document-picker",
+            {
+               "permission": "Allow $(PRODUCT_NAME) to access your files"
+            }
          ]
       ]
    }

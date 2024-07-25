@@ -1,36 +1,26 @@
 import { useState } from "react";
-import { View, Text, Image, Pressable, FlatList } from "react-native";
-import { Button, Icon, Overlay, Input } from "@rneui/themed";
-import { useDataContext } from "../../context/DataContext2";
-import sampleImage from "../../assets/qr.png";
+import { View, Text, Image, Pressable } from "react-native";
+import { Button, Icon, Overlay, Input, Divider } from "@rneui/themed";
 import * as ImagePicker from "expo-image-picker";
 import Toast from "react-native-toast-message";
-import { useAdjustmentDetail } from "../../context/DataContext";
 
-export default function ItemCard({ item, parentId, route }) {
-   /* 
-    {
-       id: string,
-       name: string,
-       color: string,
-       size: string,
-       image: string,
-       quantity: number,
-       proofImages: string[],
-    }
-    */
-   const { deleteIAItem, deleteDSDItem, addProofToIAItem, addProofToDSDItem } =
-      useDataContext();
-   const { type, status } = route.params;
+export default function ItemCard({ item, status, deleteItem }) {
+   // States and Constants
    const [quantityOverlay, setQuantityOverlay] = useState(false);
    const [proofImagesOverlay, setProofImagesOverlay] = useState(false);
 
+   // Functions
    function uploadProof() {
       ImagePicker.requestMediaLibraryPermissionsAsync()
          .then((res) => {
             console.log("Permission response: ", res);
             if (res.status === "granted") {
-               ImagePicker.launchImageLibraryAsync()
+               ImagePicker.launchImageLibraryAsync({
+                  mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                  allowsEditing: true,
+                  aspect: [1, 1],
+                  quality: 1,
+               })
                   .then((res) => {
                      console.log("Image Picker response: ", res);
                      if (
@@ -40,13 +30,8 @@ export default function ItemCard({ item, parentId, route }) {
                         res.assets[0].uri
                      ) {
                         const imageUri = res.assets[0].uri;
-                        console.log("Image URI: ", imageUri);
                         // append image to proofImages array
-                        if (type === "IA") {
-                           addProofToIAItem(parentId, item.id, imageUri);
-                        } else {
-                           addProofToDSDItem(parentId, item.id, imageUri);
-                        }
+                        item.imageData = imageUri;
                         // show success message
                         Toast.show({
                            type: "success",
@@ -71,23 +56,18 @@ export default function ItemCard({ item, parentId, route }) {
             );
          });
    }
-
    function showProof() {
-      item.proofImages.length > 0 && setProofImagesOverlay(true);
+      item.imageData && setProofImagesOverlay(true);
    }
 
    return (
       <>
          <View style={styles.card}>
-            {status === "In Progress" && (
+            {status !== "Complete" && (
                <View style={styles.deleteIconContainer}>
                   <Icon
                      onPress={() => {
-                        if (type === "IA") {
-                           deleteIAItem(parentId, item.id);
-                        } else {
-                           deleteDSDItem(parentId, item.id);
-                        }
+                        deleteItem(item.sku);
                      }}
                      name="close-box"
                      type="material-community"
@@ -97,25 +77,28 @@ export default function ItemCard({ item, parentId, route }) {
                </View>
             )}
             <View style={styles.imageContainer}>
-               <Image source={item.image} style={styles.image} />
+               <Image src={item.imageData} style={styles.image} />
             </View>
             <View style={styles.detailsContainer}>
-               <View>
-                  <Text style={styles.name}>{item.name}</Text>
-                  <Text style={styles.id}>{item.id}</Text>
-               </View>
                <View style={styles.variantInfoContainer}>
-                  <Text style={styles.size}>{item.color}</Text>
-                  <Text style={styles.size}> / </Text>
-                  <Text style={styles.color}>{item.size}</Text>
+                  <Text style={styles.idLabel}>SKU: </Text>
+                  <Text style={styles.id}>{item.sku.toUpperCase()}</Text>
+               </View>
+               <Divider width={1} />
+               <View>
+                  <Text style={styles.name}>{item.itemName}</Text>
+                  <View style={styles.variantInfoContainer}>
+                     <Text style={styles.size}>{item.color}</Text>
+                     <Text style={styles.size}> / </Text>
+                     <Text style={styles.color}>{item.size}</Text>
+                  </View>
                </View>
             </View>
             <View style={styles.qtyAndUploadContainer}>
                <Pressable
                   style={styles.qtyContainer}
-                  // onPress to setQuantityUpdateOverlay if status is "In Progress"
                   onPress={() => {
-                     if (status === "In Progress") {
+                     if (status !== "Complete") {
                         setQuantityOverlay(true);
                      }
                   }}
@@ -123,20 +106,19 @@ export default function ItemCard({ item, parentId, route }) {
                   <Text
                      style={[
                         styles.qty,
-                        status === "In Progress" && {
+                        status !== "Complete" && {
                            textDecorationLine: "underline",
                         },
                      ]}
                   >
-                     {item.quantity}
+                     {item.qty || item.receivedQty}
                   </Text>
                </Pressable>
                <Button
-                  // if status is "In Progress", onPress to uploadProof, else onPress to setProofImagesOverlay
-                  onPress={status === "In Progress" ? uploadProof : showProof}
+                  onPress={status !== "Complete" ? uploadProof : showProof}
                   type="outline"
                   icon={{
-                     name: status === "In Progress" ? "upload" : "eye",
+                     name: status !== "Complete" ? "upload" : "eye",
                      type: "material-community",
                      color: "white",
                      size: 14,
@@ -145,33 +127,27 @@ export default function ItemCard({ item, parentId, route }) {
                      marginRight: 5,
                      marginLeft: 0,
                   }}
-                  title={
-                     status === "In Progress" ? "Upload Proof" : "View Proof"
-                  }
+                  title={status !== "Complete" ? "Upload Proof" : "View Proof"}
                   titleStyle={styles.uploadButtonTitle}
                   buttonStyle={styles.uploadButton}
                />
             </View>
          </View>
 
-         {status === "In Progress" && (
+         {status !== "Complete" && (
             <QuantityUpdateOverlay
                {...{
-                  id: item.id,
-                  parentId,
-                  type,
+                  item,
                   quantityOverlay,
                   setQuantityOverlay,
                }}
             />
          )}
 
-         {status === "Completed" && item.proofImages.length > 0 && (
+         {status === "Complete" && (
             <ProofImagesOverlay
                {...{
-                  id: item.id,
-                  parentId,
-                  type,
+                  item,
                   proofImagesOverlay,
                   setProofImagesOverlay,
                }}
@@ -181,18 +157,28 @@ export default function ItemCard({ item, parentId, route }) {
    );
 }
 
-function QuantityUpdateOverlay({
-   id,
-   parentId,
-   type,
-   quantityOverlay,
-   setQuantityOverlay,
-}) {
-   const { handleUpdateQuantityIA, handleUpdateQuantityDSD } = useDataContext();
+function QuantityUpdateOverlay({ item, quantityOverlay, setQuantityOverlay }) {
    const [newQty, setNewQty] = useState("");
 
    function isValidQty(qty) {
       return !isNaN(qty) && parseInt(qty) > 0;
+   }
+   function updateQuantity(item, newQty) {
+      // update quantity function to be implemented
+      if (isValidQty(newQty)) {
+         item.qty = parseInt(newQty);
+         Toast.show({
+            type: "success",
+            text1: "Success",
+            text2: "Quantity updated successfully",
+         });
+      } else {
+         Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: "Please enter a valid quantity",
+         });
+      }
    }
 
    return (
@@ -201,19 +187,29 @@ function QuantityUpdateOverlay({
          onBackdropPress={() => setQuantityOverlay(false)}
          overlayStyle={{
             width: "60%",
-            height: "30%",
             padding: 20,
             justifyContent: "space-evenly",
          }}
       >
+         {/* Heading */}
+         <Text
+            style={{
+               fontFamily: "Montserrat-Bold",
+               fontSize: 16,
+               marginBottom: 10,
+            }}
+         >
+            Update Quantity
+         </Text>
+
          {/* Input field */}
          <Input
-            label="Enter new quantity"
             value={newQty}
             onChangeText={(text) => setNewQty(text)}
             keyboardType="numeric"
          />
 
+         {/*  */}
          <View style={{ flexDirection: "row" }}>
             <Button
                type="outline"
@@ -229,36 +225,7 @@ function QuantityUpdateOverlay({
                buttonStyle={{ alignSelf: "center" }}
                containerStyle={{ margin: 10 }}
                onPress={() => {
-                  if (isValidQty(newQty)) {
-                     if (type === "IA") {
-                        console.log(
-                           "Parent ID: ",
-                           parentId,
-                           "ID: ",
-                           id,
-                           "New Qty: ",
-                           newQty
-                        );
-                        handleUpdateQuantityIA(parentId, id, Number(newQty));
-                     } else {
-                        console.log(
-                           "Parent ID: ",
-                           parentId,
-                           "ID: ",
-                           id,
-                           "New Qty: ",
-                           newQty
-                        );
-                        handleUpdateQuantityDSD(parentId, id, Number(newQty));
-                     }
-                  } else {
-                     // show error message
-                     Toast.show({
-                        type: "error",
-                        text1: "Error",
-                        text2: "Please enter a valid quantity",
-                     });
-                  }
+                  updateQuantity(item, newQty);
                   setQuantityOverlay(false);
                }}
             />
@@ -268,31 +235,24 @@ function QuantityUpdateOverlay({
 }
 
 function ProofImagesOverlay({
-   id,
-   parentId,
-   type,
+   item,
    proofImagesOverlay,
    setProofImagesOverlay,
 }) {
-   const { fetchItemImages } = useDataContext();
-   const images = fetchItemImages(id, parentId, type);
-   console.log("Images fetched: ", images);
-
    return (
       <Overlay
          isVisible={proofImagesOverlay}
          onBackdropPress={() => setProofImagesOverlay(false)}
+         overlayStyle={{
+            width: 400,
+            height: 400,
+            padding: 10,
+            justifyContent: "space-evenly",
+         }}
       >
-         <FlatList
-            data={images}
-            renderItem={({ item }) => (
-               <Image
-                  key={item}
-                  source={{ uri: item }}
-                  style={{ width: 200, height: 200, margin: 5 }}
-               />
-            )}
-            keyExtractor={(item) => item}
+         <Image
+            src={item.imageData}
+            style={{ width: "100%", height: "100%" }}
          />
       </Overlay>
    );
@@ -312,7 +272,7 @@ const styles = {
       flexDirection: "row",
       borderBottomWidth: 1,
       borderBottomColor: "silver",
-      backgroundColor: "#112d4e88",
+      backgroundColor: "#112d4eBB",
       marginTop: 10,
       marginHorizontal: 0,
       borderRadius: 10,
@@ -327,14 +287,14 @@ const styles = {
       borderRadius: 20,
    },
    image: {
-      width: 70,
-      height: 70,
+      width: 60,
+      height: 60,
    },
 
    detailsContainer: {
       flex: 2,
       justifyContent: "center",
-      padding: 10,
+      paddingVertical: 10,
       justifyContent: "space-around",
    },
    name: {
@@ -342,21 +302,26 @@ const styles = {
       fontSize: 14,
       color: "white",
    },
+   idLabel: {
+      fontFamily: "Montserrat-Regular",
+      color: "white",
+      fontSize: 12,
+   },
    id: {
       fontFamily: "Montserrat-Bold",
-      color: "rgba(255, 255, 255, 0.6)",
+      color: "white",
       fontSize: 12,
    },
    size: {
       fontFamily: "Montserrat-Regular",
       color: "white",
-      fontSize: 14,
+      fontSize: 12,
       marginRight: 3,
    },
    color: {
       fontFamily: "Montserrat-Regular",
       color: "white",
-      fontSize: 14,
+      fontSize: 12,
    },
 
    variantInfoContainer: {

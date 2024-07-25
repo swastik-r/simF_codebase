@@ -1,41 +1,36 @@
-import React from "react";
-import {
-   View,
-   StyleSheet,
-   FlatList,
-   Text,
-   ImageBackground,
-} from "react-native";
+import React, { useEffect, useState } from "react";
+import { StyleSheet, FlatList, ImageBackground } from "react-native";
 import { FAB } from "@rneui/themed";
 import ListingCard from "./ListingCard";
-import { useNavigation } from "@react-navigation/native";
-import { useTheme, Icon, Button } from "@rneui/themed";
-import { useDataContext } from "../../context/DataContext2";
+import { useTheme } from "@rneui/themed";
+import EmptyPageComponent from "../../globalComps/EmptyPageComp";
 import SearchBar from "./SearchBar_FS";
+import { fetchData, createEntry } from "../../context/functions";
+import { useIsFocused } from "@react-navigation/native";
 
-export default function ListingPage({ data }) {
+export default function ListingPage({ type }) {
+   // auto-refresh on focus
+   const isFocused = useIsFocused();
+   useEffect(() => {
+      if (isFocused) {
+         foo();
+      }
+   }, [isFocused]);
+
    // States and Vars
    const { theme } = useTheme();
-   const navigation = useNavigation();
+   const [listingData, setListingData] = useState([]);
 
-   // Data Context
-   const { createNewIA, createNewDSD } = useDataContext();
-
-   // New Entry Function and Filtered Data
-   if (!data) return null;
-   let createNewFunction;
-   const type = data[0].type;
-   if (type === "IA") {
-      createNewFunction = createNewIA;
-   } else if (type === "DSD") {
-      createNewFunction = createNewDSD;
+   // Functions
+   async function foo() {
+      setListingData(await fetchData(type));
+   }
+   async function handleCreate() {
+      await createEntry(type);
+      foo();
    }
 
-   // Navigation Map
-   const navMap = {
-      IA: "IA Items",
-      DSD: "DSD Items",
-   };
+   const showCreateFab = type != "PO";
 
    return (
       <ImageBackground
@@ -43,10 +38,10 @@ export default function ListingPage({ data }) {
          style={{ flex: 1 }}
       >
          <FlatList
-            data={data}
+            data={listingData}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <ListingCard item={item} />}
-            ListHeaderComponent={<SearchBar />}
+            renderItem={({ item }) => <ListingCard {...{ item, foo }} />}
+            ListHeaderComponent={<SearchBar {...{ type, setListingData }} />}
             ListEmptyComponent={<EmptyPageComponent />}
             contentContainerStyle={{
                paddingTop: 10,
@@ -56,78 +51,29 @@ export default function ListingPage({ data }) {
          />
 
          {/* FAB: Add a new adjustment */}
-         <FAB
-            title={"Create"}
-            titleStyle={{
-               fontFamily: "Montserrat-Bold",
-            }}
-            color={"#f0f0f0"}
-            style={styles.fab}
-            icon={{
-               name: "playlist-add-circle",
-               color: "white",
-               size: 32,
-            }}
-            buttonStyle={{
-               backgroundColor: theme.colors.primary,
-               borderRadius: 20,
-               width: 120,
-               justifyContent: "space-evenly",
-            }}
-            onPress={() => {
-               const newEntryId = createNewFunction();
-               navigation.navigate(navMap[type], {
-                  id: newEntryId,
-                  type,
-                  status: "In Progress",
-               });
-            }}
-         />
-      </ImageBackground>
-   );
-}
-
-function EmptyPageComponent() {
-   const { theme } = useTheme();
-
-   return (
-      // Empty DSD Listing
-      <View
-         style={{
-            flex: 1,
-            width: 400,
-            justifyContent: "center",
-            alignItems: "center",
-            marginVertical: 200,
-         }}
-      >
-         <View style={{ opacity: 0.5 }}>
-            <Icon
-               name="file-search"
-               type="material-community"
-               size={100}
-               color={theme.colors.text}
-               containerStyle={{ marginBottom: 10 }}
-            />
-            <Text
-               style={{
-                  fontFamily: "Montserrat-Regular",
-                  color: theme.colors.text,
+         {showCreateFab && (
+            <FAB
+               title={"Create"}
+               titleStyle={{
+                  fontFamily: "Montserrat-Bold",
                }}
-            >
-               No adjustments found for you filter criteria / search
-            </Text>
-         </View>
-         <Button
-            title="Reset Filters"
-            titleStyle={{ fontFamily: "Montserrat-Bold" }}
-            containerStyle={{
-               marginVertical: 40,
-               borderRadius: 20,
-            }}
-            // onPress={() => setData(initialData)}
-         />
-      </View>
+               color={"#f0f0f0"}
+               style={styles.fab}
+               icon={{
+                  name: "playlist-add-circle",
+                  color: "white",
+                  size: 32,
+               }}
+               buttonStyle={{
+                  backgroundColor: theme.colors.primary,
+                  borderRadius: 20,
+                  width: 120,
+                  justifyContent: "space-evenly",
+               }}
+               onPress={handleCreate}
+            />
+         )}
+      </ImageBackground>
    );
 }
 

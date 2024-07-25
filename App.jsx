@@ -1,7 +1,6 @@
 // React Native Imports
 import "react-native-gesture-handler";
 import { Provider as PaperProvider } from "react-native-paper";
-import { StyleSheet } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 
 // React Native Elements UI Library
@@ -14,7 +13,7 @@ import Toast, { BaseToast } from "react-native-toast-message";
 // Contexts and Fonts
 import { useFonts } from "expo-font";
 import AdjustmentDetailProvider from "./context/DataContext";
-import DataContextProvider from "./context/DataContext2";
+import DataContextProvider from "./context/DataContext3";
 import AppContainer from "./AppContainer";
 
 // Main App Component

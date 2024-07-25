@@ -22,7 +22,7 @@ export default function AppContainer() {
 
    return (
       <Tab.Navigator
-         initialRouteName="Inventory Adjustment"
+         initialRouteName="Purchase Order"
          screenOptions={({ route }) => ({
             headerTitleAlign: "center",
             headerTitleStyle: {
