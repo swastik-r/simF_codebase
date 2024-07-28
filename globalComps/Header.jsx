@@ -22,7 +22,7 @@ export default function Header() {
          rightContainerStyle={styles.headerContainer}
          leftComponent={
             <TouchableOpacity>
-               <Icon name="menu" color="#f0f0f0" size={27} />
+               <Icon name="menu" color="#f0f0f0" size={32} />
             </TouchableOpacity>
          }
          centerComponent={
@@ -36,7 +36,11 @@ export default function Header() {
                {details.map((detail, index) => (
                   <TouchableOpacity
                      key={index}
-                     style={{ flexDirection: "row", alignItems: "center" }}
+                     style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        marginBottom: index === details.length - 1 ? 0 : 10,
+                     }}
                   >
                      <Icon
                         name={detail.icon}

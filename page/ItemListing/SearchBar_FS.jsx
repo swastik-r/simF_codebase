@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 // React Native Imports
-import { View, Pressable, StyleSheet } from "react-native";
+import { View, Pressable, StyleSheet, Text } from "react-native";
 
 // React Native Elements UI Library
 import { Icon, SearchBar } from "@rneui/themed";
@@ -151,6 +151,14 @@ export default function SearchBar_FS({ setTempItems, entryItem }) {
                   type="material-community"
                   color={"white"}
                />
+            </Pressable>
+            <Pressable
+               style={styles.buttonContainer}
+               onPress={() => {
+                  // show the proof for entryItem
+               }}
+            >
+               <Icon name="eye" type="material-community" color={"white"} />
             </Pressable>
          </View>
       </>

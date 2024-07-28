@@ -20,15 +20,15 @@ export const screenOptions = {
       <Text style={styles.headerTitle}>{children}</Text>
    ),
    headerBackground: () => (
-      <View style={{ backgroundColor: "#112d4e", height: 30 }} />
+      <View style={{ backgroundColor: "#0492c2", height: 30 }} />
    ),
    headerTitleAlign: "center",
 };
 
 const styles = StyleSheet.create({
    headerTitle: {
-      fontFamily: "Montserrat-Medium",
-      fontSize: 16,
+      fontFamily: "Montserrat-Bold",
+      fontSize: 14,
       color: "#fff",
       // marginLeft: -20,  ---> for left align
       marginBottom: 3,

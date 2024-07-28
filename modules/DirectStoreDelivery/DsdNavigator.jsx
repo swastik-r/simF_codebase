@@ -22,14 +22,14 @@ export default function DsdNavigator() {
             name="DSD Items"
             component={ItemListing}
             options={{
-               title: "Items",
+               title: "Create DSD",
             }}
          />
          <Stack.Screen
             name="DSD Summary"
             component={ItemListing}
             options={{
-               title: "Summary",
+               title: "DSD Summary",
             }}
          />
          <Stack.Screen name="Add Items" component={AddItem} />

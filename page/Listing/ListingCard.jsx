@@ -50,6 +50,11 @@ export default function ListingCard({ item, foo }) {
             color: "#ff7900",
             textColor: "white",
          },
+         Pending: {
+            icon: "progress-alert",
+            color: "crimson",
+            textColor: "white",
+         },
       };
 
       return (
@@ -91,9 +96,9 @@ export default function ListingCard({ item, foo }) {
          Complete: "DSD Summary",
       },
       PO: {
-         "In Progress": "PO Items",
-         Saved: "PO Items",
-         Complete: "PO Summary",
+         "In Progress": "ASN Listing",
+         Pending: "ASN Listing",
+         Complete: "ASN Listing",
       },
    };
    // module-specific fields
@@ -107,8 +112,8 @@ export default function ListingCard({ item, foo }) {
          title: "Supplier",
       },
       PO: {
-         field: "supplierId",
-         title: "Supplier ID",
+         field: "supplierName",
+         title: "Supplier",
       },
    };
 
@@ -159,9 +164,17 @@ export default function ListingCard({ item, foo }) {
                }}
             >
                <Text style={styles.unitCount}>
-                  {item.items ? item.items.length : item.totalSku}
+                  {type !== "PO"
+                     ? item.items
+                        ? item.items.length
+                        : item.totalSku
+                     : item.asnCount}
                </Text>
-               <Text style={styles.unitLabel}>units</Text>
+               {type !== "PO" ? (
+                  <Text style={styles.unitLabel}>units</Text>
+               ) : (
+                  <Text style={styles.unitLabel}>ASN</Text>
+               )}
             </View>
             <Icon
                name="arrow-right-box"

@@ -6,7 +6,7 @@ import { useTheme } from "@rneui/themed";
 import EmptyPageComponent from "../../globalComps/EmptyPageComp";
 import SearchBar from "./SearchBar_FS";
 import { fetchData, createEntry } from "../../context/functions";
-import { useIsFocused } from "@react-navigation/native";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
 
 export default function ListingPage({ type }) {
    // auto-refresh on focus
@@ -20,14 +20,38 @@ export default function ListingPage({ type }) {
    // States and Vars
    const { theme } = useTheme();
    const [listingData, setListingData] = useState([]);
+   const navigation = useNavigation();
+   const pageMap = {
+      IA: {
+         "In Progress": "IA Items",
+         Saved: "IA Items",
+         Complete: "IA Summary",
+      },
+      DSD: {
+         "In Progress": "DSD Items",
+         Saved: "DSD Items",
+         Complete: "DSD Summary",
+      },
+      PO: {
+         "In Progress": "PO Items",
+         Pending: "PO Items",
+         Complete: "PO Summary",
+      },
+   };
 
    // Functions
    async function foo() {
       setListingData(await fetchData(type));
    }
    async function handleCreate() {
-      await createEntry(type);
-      foo();
+      try {
+         const response = await createEntry(type);
+         navigation.navigate(pageMap[type][response.status], {
+            entryItem: response,
+         });
+      } catch (error) {
+         console.error("Failed to create entry", error);
+      }
    }
 
    const showCreateFab = type != "PO";

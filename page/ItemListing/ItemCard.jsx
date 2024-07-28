@@ -8,6 +8,7 @@ export default function ItemCard({ item, status, deleteItem }) {
    // States and Constants
    const [quantityOverlay, setQuantityOverlay] = useState(false);
    const [proofImagesOverlay, setProofImagesOverlay] = useState(false);
+   const completionStatus = ["Received", "Complete"];
 
    // Functions
    function uploadProof() {
@@ -31,7 +32,7 @@ export default function ItemCard({ item, status, deleteItem }) {
                      ) {
                         const imageUri = res.assets[0].uri;
                         // append image to proofImages array
-                        item.imageData = imageUri;
+                        item.image = imageUri;
                         // show success message
                         Toast.show({
                            type: "success",
@@ -63,7 +64,7 @@ export default function ItemCard({ item, status, deleteItem }) {
    return (
       <>
          <View style={styles.card}>
-            {status !== "Complete" && (
+            {!completionStatus.includes(status) && (
                <View style={styles.deleteIconContainer}>
                   <Icon
                      onPress={() => {
@@ -98,7 +99,7 @@ export default function ItemCard({ item, status, deleteItem }) {
                <Pressable
                   style={styles.qtyContainer}
                   onPress={() => {
-                     if (status !== "Complete") {
+                     if (!completionStatus.includes(status)) {
                         setQuantityOverlay(true);
                      }
                   }}
@@ -106,19 +107,25 @@ export default function ItemCard({ item, status, deleteItem }) {
                   <Text
                      style={[
                         styles.qty,
-                        status !== "Complete" && {
+                        !completionStatus.includes(status) && {
                            textDecorationLine: "underline",
                         },
                      ]}
                   >
-                     {item.qty || item.receivedQty}
+                     {item.qty || item.shippedQty}
                   </Text>
                </Pressable>
                <Button
-                  onPress={status !== "Complete" ? uploadProof : showProof}
+                  onPress={
+                     !completionStatus.includes(status)
+                        ? uploadProof
+                        : showProof
+                  }
                   type="outline"
                   icon={{
-                     name: status !== "Complete" ? "upload" : "eye",
+                     name: !completionStatus.includes(status)
+                        ? "upload"
+                        : "eye",
                      type: "material-community",
                      color: "white",
                      size: 14,
@@ -127,14 +134,18 @@ export default function ItemCard({ item, status, deleteItem }) {
                      marginRight: 5,
                      marginLeft: 0,
                   }}
-                  title={status !== "Complete" ? "Upload Proof" : "View Proof"}
+                  title={
+                     !completionStatus.includes(status)
+                        ? "Upload Proof"
+                        : "View Proof"
+                  }
                   titleStyle={styles.uploadButtonTitle}
                   buttonStyle={styles.uploadButton}
                />
             </View>
          </View>
 
-         {status !== "Complete" && (
+         {!completionStatus.includes(status) && (
             <QuantityUpdateOverlay
                {...{
                   item,
@@ -250,10 +261,7 @@ function ProofImagesOverlay({
             justifyContent: "space-evenly",
          }}
       >
-         <Image
-            src={item.imageData}
-            style={{ width: "100%", height: "100%" }}
-         />
+         <Image src={item.image} style={{ width: "100%", height: "100%" }} />
       </Overlay>
    );
 }
@@ -283,12 +291,13 @@ const styles = {
       justifyContent: "center",
       alignItems: "center",
       padding: 10,
-      margin: 10,
-      borderRadius: 20,
+      // margin: 10,
+      borderTopLeftRadius: 10,
+      borderBottomLeftRadius: 10,
    },
    image: {
-      width: 60,
-      height: 60,
+      width: 80,
+      height: 80,
    },
 
    detailsContainer: {
@@ -296,6 +305,7 @@ const styles = {
       justifyContent: "center",
       paddingVertical: 10,
       justifyContent: "space-around",
+      marginLeft: 10,
    },
    name: {
       fontFamily: "Montserrat-Medium",

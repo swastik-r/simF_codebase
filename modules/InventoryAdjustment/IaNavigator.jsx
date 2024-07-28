@@ -21,14 +21,14 @@ function IaNavigator() {
             name="IA Items"
             component={ItemListing}
             options={{
-               title: "ITEMS",
+               title: "Create IA",
             }}
          />
          <Stack.Screen
             name="IA Summary"
             component={ItemListing}
             options={{
-               title: "SUMMARY",
+               title: "IA Summary",
             }}
          />
          <Stack.Screen

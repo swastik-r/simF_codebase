@@ -15,6 +15,9 @@ import { Icon, useTheme, Text } from "@rneui/themed";
 import DownloadExcelFile from "./modules/GlobalSearch/GlobalSearch";
 import { LinearGradient } from "expo-linear-gradient";
 
+import AsnCard from "./modules/PurchaseOrder/AsnCard";
+import AsnItemCard from "./modules/PurchaseOrder/AsnItemCard";
+
 const Tab = createBottomTabNavigator();
 
 export default function AppContainer() {
@@ -27,15 +30,13 @@ export default function AppContainer() {
             headerTitleAlign: "center",
             headerTitleStyle: {
                fontFamily: "Montserrat-Medium",
-               fontSize: 15,
+               fontSize: 18,
                marginBottom: 10,
             },
             headerTintColor: "white",
             headerStyle: {
-               height: 30,
+               height: 40,
                backgroundColor: theme.colors.primary,
-               // borderBottomLeftRadius: 20,
-               // borderBottomRightRadius: 20,
             },
             tabBarBackground: () => (
                <ImageBackground

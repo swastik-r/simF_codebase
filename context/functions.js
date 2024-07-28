@@ -8,8 +8,7 @@ async function fetchData(type) {
       data = await getData(endpoints.fetchIA);
    } else if (type === "DSD") {
       data = await getData(endpoints.fetchDSD);
-   }
-   else if (type === "PO") {
+   } else if (type === "PO") {
       data = await getData(endpoints.fetchPO);
    }
    return data;
@@ -17,9 +16,9 @@ async function fetchData(type) {
 
 async function createEntry(type) {
    if (type === "IA") {
-      await postData(endpoints.createIA + `${storeName}/${userName}`);
+      return await postData(endpoints.createIA + `${storeName}/${userName}`);
    } else if (type === "DSD") {
-      await postData(endpoints.createDSD + `${storeName}/${userName}`);
+      return await postData(endpoints.createDSD + `${storeName}/${userName}`);
    }
 }
 

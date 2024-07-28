@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { View, Text, StyleSheet, Image, FlatList, Alert } from "react-native";
-import { Button, Input } from "@rneui/themed";
+import { Button, Input, Overlay } from "@rneui/themed";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useNavigation } from "@react-navigation/native";
 import { getData, storeName } from "../../context/auth";
@@ -8,7 +8,7 @@ import { endpoints } from "../../context/endpoints";
 
 export default function AddItem({ route }) {
    // States and vars
-   const { tempItems, setTempItems, tempSupplier } = route.params;
+   const { type, tempItems, setTempItems, tempSupplier } = route.params;
    const [suggestions, setSuggestions] = useState(null);
 
    // Functions
@@ -37,10 +37,17 @@ export default function AddItem({ route }) {
             return;
          }
       } else {
+         // if (type === "ASN") {
+         //    console.log("ASN item search");
+         //    searchResult = await getData(
+         //       endpoints.fetchPoItems + `PO-NW711MUHMJRR/${searchStr}`
+         //    );
+         // } else {
          console.log("General item search");
          searchResult = await getData(
             "/product/getMatched/sku/" + searchStr + "/" + storeName
          );
+         // }
       }
 
       if (searchResult) {
@@ -64,16 +71,18 @@ export default function AddItem({ route }) {
                alignItems: "center",
             }}
          >
-            {/* Input for item id */}
+            {/* Input for Item ID */}
             <Input
-               placeholder="Enter a SKU to search"
+               placeholder="Enter an SKU to search"
                onChangeText={(text) => searchItem(text)}
                style={{ padding: 10, margin: 20 }}
             />
             <FlatList
                data={suggestions}
                renderItem={({ item }) => (
-                  <ItemSuggestion {...{ item, tempItems, setTempItems }} />
+                  <ItemSuggestion
+                     {...{ type, item, tempItems, setTempItems }}
+                  />
                )}
                keyExtractor={(item) => item.sku}
                style={{ width: "100%" }}
@@ -83,9 +92,10 @@ export default function AddItem({ route }) {
    );
 }
 
-function ItemSuggestion({ item, tempItems, setTempItems }) {
+function ItemSuggestion({ type, item, tempItems, setTempItems }) {
    // States and vars
    const navigation = useNavigation();
+   const [expectedQtyOverlay, setExpectedQtyOverlay] = useState(false);
 
    // Functions
    function handleAddItem(item) {
@@ -100,42 +110,121 @@ function ItemSuggestion({ item, tempItems, setTempItems }) {
          tempItemsCopy.push({ ...item, qty: 1 });
       }
       setTempItems(tempItemsCopy);
+      navigation.goBack();
    }
 
    return (
-      <View style={styles.suggestionCard}>
-         <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Image style={styles.suggestionCardImage} src={item.imageData} />
-            <View>
-               <View style={{ marginBottom: 5 }}>
-                  <Text style={styles.text2Bold}>SKU: {item.sku}</Text>
-               </View>
+      <>
+         {/* Suggestion Card */}
+         <View style={styles.suggestionCard}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+               <Image style={styles.suggestionCardImage} src={item.imageData} />
+               <View>
+                  <View style={{ marginBottom: 5 }}>
+                     <Text style={styles.text2Bold}>SKU: {item.sku}</Text>
+                  </View>
 
-               <Text style={styles.text2Name}>{item.itemName}</Text>
-               <Text style={styles.text2}>
-                  {item.color} / {item.size}
-               </Text>
+                  <Text style={styles.text2Name}>{item.itemName}</Text>
+                  <Text style={styles.text2}>
+                     {item.color} / {item.size}
+                  </Text>
+               </View>
             </View>
+
+            <Button
+               title="Select"
+               titleStyle={{ fontFamily: "Montserrat-Medium" }}
+               buttonStyle={{
+                  borderRadius: 10,
+               }}
+               onPress={() => {
+                  handleAddItem(item, type);
+               }}
+            />
          </View>
 
-         <Button
-            title="Add"
-            titleStyle={{ fontFamily: "Montserrat-Medium" }}
-            icon={{
-               name: "add",
-               type: "material",
-               size: 20,
-               color: "white",
-            }}
-            buttonStyle={{
-               borderRadius: 10,
-            }}
-            onPress={() => {
-               handleAddItem(item);
-               navigation.goBack();
+         {/* Expected Quantity Overlay */}
+         <ExpectedQtyOverlay
+            {...{
+               item,
+               tempItems,
+               setTempItems,
+               expectedQtyOverlay,
+               setExpectedQtyOverlay,
             }}
          />
-      </View>
+      </>
+   );
+}
+
+function ExpectedQtyOverlay({
+   item,
+   tempItems,
+   setTempItems,
+   expectedQtyOverlay,
+   setExpectedQtyOverlay,
+}) {
+   // Functions
+   function validateQty(qty) {
+      // validate the qty
+      const qtyInt = parseInt(qty);
+      if (qtyInt < 1) {
+         Alert.alert("Invalid quantity", "Quantity must be greater than 0");
+         return false;
+      }
+      return true;
+   }
+   function createItem(item, qty) {
+      // if qty is valid, add the item to tempItems like this
+      if (validateQty(qty)) {
+         const tempItemsCopy = [...tempItems];
+         tempItemsCopy.push({
+            ...item,
+            shippedQty: parseInt(qty),
+         });
+         setTempItems(tempItemsCopy);
+         setExpectedQtyOverlay(false);
+         navigation.goBack();
+      } else {
+         setExpectedQtyOverlay(false);
+      }
+   }
+
+   const navigation = useNavigation();
+   const [expectedQty, setExpectedQty] = useState(0);
+
+   return (
+      <Overlay
+         isVisible={expectedQtyOverlay}
+         onBackdropPress={() => setExpectedQtyOverlay(false)}
+         overlayStyle={{ width: "80%", padding: 20, borderRadius: 20 }}
+      >
+         <Text
+            style={{
+               fontFamily: "Montserrat-Medium",
+               fontSize: 16,
+               marginBottom: 20,
+            }}
+         >
+            Received Quantity for {item.itemName}
+         </Text>
+         <Input
+            placeholder="Enter the received quantity"
+            onChangeText={(text) => setExpectedQty(text)}
+            keyboardType="number-pad"
+         />
+         <Button
+            title="Add"
+            titleStyle={{
+               fontFamily: "Montserrat-Bold",
+            }}
+            onPress={() => createItem(item, expectedQty)}
+            buttonStyle={{
+               alignSelf: "center",
+               paddingHorizontal: 20,
+            }}
+         />
+      </Overlay>
    );
 }
 

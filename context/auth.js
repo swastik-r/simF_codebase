@@ -1,15 +1,13 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// const baseURL = "http://172.20.10.6:9029"; // Mobile Hotspot
-// const baseURL = "http://192.168.1.10:9029"; // Home Wi-Fi
-
 const baseURL = "http://10.0.2.2:9029";
 
 const storeName = "Pacific Dwarka";
 const email = "monikakumari103@gmail.com";
 const userName = "Monika";
 const password = "abc123";
+const showToken = false;
 
 // Function to retrieve the token
 async function getToken() {
@@ -19,7 +17,10 @@ async function getToken() {
          const { accessToken } = await handleLogin();
          token = accessToken;
       }
-      console.log("Token:", token);
+      if (showToken) {
+         console.log("Token:", token);
+      }
+
       return token;
    } catch (error) {
       console.error("Failed to get the token", error);
@@ -60,7 +61,6 @@ async function handleLogin() {
 const api = axios.create({
    baseURL,
 });
-
 api.interceptors.request.use(
    async (config) => {
       try {
@@ -80,32 +80,43 @@ api.interceptors.request.use(
    }
 );
 
+// Functions to fetch data from the API
 async function getData(endpoint) {
    try {
       const response = await api.get(endpoint);
-      console.log("GET Response data:", response.data);
+      console.log("GET:", endpoint);
+      console.log(JSON.stringify(response.data, null, 2));
+      console.log();
       return response.data;
    } catch (error) {
-      console.error(`Failed to fetch protected data from ${endpoint}`, error);
-      throw error;
+      console.error(
+         `Failed to fetch protected data from ${endpoint}`,
+         error.message
+      );
    }
 }
 
+// Function to post data to the API
 async function postData(endpoint, data = {}) {
    try {
       const response = await api.post(endpoint, data);
-      console.log("POST Response data:", response.data);
+      console.log("POST:", endpoint);
+      console.log(JSON.stringify(response.data, null, 2));
+      console.log();
       return response.data;
    } catch (error) {
-      console.error(`Failed to post protected data to ${endpoint}`, error);
-      throw error;
+      console.error(
+         `Failed to post protected data to ${endpoint}`,
+         error.message
+      );
    }
 }
 
+// Function to delete data from the API
 async function deleteData(endpoint, data = {}) {
    try {
       const response = await api.delete(endpoint, data);
-      console.log("DELETE Response data:", response.data);
+      console.log(JSON.stringify(response.data, null, 2));
       return response.data;
    } catch (error) {
       console.error(`Failed to delete protected data to ${endpoint}`, error);
