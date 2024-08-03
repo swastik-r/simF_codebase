@@ -18,7 +18,7 @@ export default function PoNavigator() {
             children={() => <ListingPage type={"PO"} />}
             options={{ headerShown: false }}
          />
-         <Stack.Screen name="ASN Listing" component={ItemListing} />
+         <Stack.Screen name="ASN List" component={ItemListing} />
          <Stack.Screen name="Create ASN" component={AsnItems} />
          <Stack.Screen
             name="Add Items"

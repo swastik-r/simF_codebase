@@ -36,6 +36,8 @@ async function searchEntry(type, str) {
       data = await getData(endpoints.searchIA + str);
    } else if (type === "DSD") {
       data = await getData(endpoints.searchDSD + str);
+   } else if (type === "PO") {
+      data = await getData(endpoints.searchPo + str);
    }
    return data;
 }
@@ -49,7 +51,5 @@ async function sortEntry(type, sortType) {
    }
    return data;
 }
-
-async function handleSaveAsDraft(type) {}
 
 export { fetchData, createEntry, handleDelete, searchEntry, sortEntry };

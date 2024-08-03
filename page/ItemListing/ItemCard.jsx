@@ -145,15 +145,36 @@ export default function ItemCard({ item, status, deleteItem }) {
             </View>
          </View>
 
-         {!completionStatus.includes(status) && (
-            <QuantityUpdateOverlay
-               {...{
-                  item,
-                  quantityOverlay,
-                  setQuantityOverlay,
-               }}
-            />
-         )}
+         {!completionStatus.includes(status) &&
+            {
+               IA: (
+                  <QuantityUpdateOverlay
+                     {...{
+                        item,
+                        quantityOverlay,
+                        setQuantityOverlay,
+                     }}
+                  />
+               ),
+               DSD: (
+                  <QuantityUpdateOverlay
+                     {...{
+                        item,
+                        quantityOverlay,
+                        setQuantityOverlay,
+                     }}
+                  />
+               ),
+               PO: (
+                  <QuantityUpdateOverlay2
+                     {...{
+                        item,
+                        quantityOverlay,
+                        setQuantityOverlay,
+                     }}
+                  />
+               ),
+            }[item.type]}
 
          {status === "Complete" && (
             <ProofImagesOverlay
@@ -175,21 +196,24 @@ function QuantityUpdateOverlay({ item, quantityOverlay, setQuantityOverlay }) {
       return !isNaN(qty) && parseInt(qty) > 0;
    }
    function updateQuantity(item, newQty) {
-      // update quantity function to be implemented
-      if (isValidQty(newQty)) {
-         item.qty = parseInt(newQty);
-         Toast.show({
-            type: "success",
-            text1: "Success",
-            text2: "Quantity updated successfully",
-         });
-      } else {
+      if (!isValidQty(newQty)) {
          Toast.show({
             type: "error",
             text1: "Error",
-            text2: "Please enter a valid quantity",
+            text2: "Invalid quantity, numeric value required",
+         });
+         return;
+      }
+
+      if (item.expectedQty && newQty > item.expectedQty) {
+         Toast.show({
+            type: "info",
+            text1: "OVER-RECEIVED",
+            text2: "This item is being over-received",
          });
       }
+
+      item.qty = newQty;
    }
 
    return (
@@ -245,6 +269,162 @@ function QuantityUpdateOverlay({ item, quantityOverlay, setQuantityOverlay }) {
    );
 }
 
+function QuantityUpdateOverlay2({ item, quantityOverlay, setQuantityOverlay }) {
+   const [newQty, setNewQty] = useState("");
+   const [damageQty, setDamageQty] = useState(null);
+   const [damageImage, setDamageImage] = useState(null);
+
+   function isValidQty(qty) {
+      return !isNaN(qty) && parseInt(qty) > 0;
+   }
+   function updateQuantity(item, newQty, damageQty) {
+      if (!isValidQty(newQty) && !isValidQty(damageQty)) {
+         Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: "Invalid quantities",
+         });
+         return;
+      }
+
+      if (item.expectedQty && newQty > item.expectedQty) {
+         Toast.show({
+            type: "info",
+            text1: "OVER-RECEIVED",
+            text2: "This item is being over-received",
+         });
+      }
+
+      item.qty = newQty;
+      if (damageQty) {
+         item.damageQty = damageQty;
+      }
+      if (damageImage) {
+         item.damageImage = damageImage;
+      }
+   }
+   async function uploadDamageProof() {
+      ImagePicker.requestMediaLibraryPermissionsAsync()
+         .then((res) => {
+            console.log("Permission response: ", res);
+            if (res.status === "granted") {
+               ImagePicker.launchImageLibraryAsync({
+                  mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                  allowsEditing: true,
+                  aspect: [1, 1],
+                  quality: 1,
+               })
+                  .then((res) => {
+                     console.log("Image Picker response: ", res);
+                     if (
+                        !res.canceled &&
+                        res.assets &&
+                        res.assets.length > 0 &&
+                        res.assets[0].uri
+                     ) {
+                        const imageUri = res.assets[0].uri;
+                        // append image to proofImages array
+                        setDamageImage(imageUri);
+                        // show success message
+                        Toast.show({
+                           type: "success",
+                           text1: "Success",
+                           text2: "Damage proof uploaded successfully",
+                        });
+                     } else {
+                        console.log("Image Picker canceled or no URI found");
+                     }
+                  })
+                  .catch((error) => {
+                     console.error("Error launching image library: ", error);
+                  });
+            } else {
+               console.log("Media library permissions not granted");
+            }
+         })
+         .catch((error) => {
+            console.error(
+               "Error requesting media library permissions: ",
+               error
+            );
+         });
+   }
+
+   return (
+      <Overlay
+         isVisible={quantityOverlay}
+         onBackdropPress={() => setQuantityOverlay(false)}
+         overlayStyle={{
+            width: "80%",
+            padding: 20,
+            justifyContent: "space-evenly",
+         }}
+      >
+         {/* Heading */}
+         <Text
+            style={{
+               fontFamily: "Montserrat-Bold",
+               fontSize: 17,
+               marginBottom: 10,
+               alignSelf: "center",
+               marginBottom: 20,
+            }}
+         >
+            Received & Damaged Quantity
+         </Text>
+
+         {/* Input field */}
+         <Input
+            value={newQty}
+            onChangeText={(text) => setNewQty(text)}
+            keyboardType="numeric"
+            placeholder="Received Quantity"
+         />
+
+         {/* Input field */}
+         <View>
+            <Input
+               value={damageQty}
+               onChangeText={(text) => setDamageQty(text)}
+               keyboardType="numeric"
+               placeholder="Damaged Quantity"
+            />
+            {/* Button to add image proof for damage */}
+            <Button
+               title="Add Damage Proof"
+               titleStyle={{ fontFamily: "Montserrat-Bold", fontSize: 12 }}
+               buttonStyle={{ alignSelf: "center" }}
+               onPress={uploadDamageProof}
+            />
+         </View>
+
+         {/*  */}
+         <View
+            style={{ flexDirection: "row", alignSelf: "center", marginTop: 10 }}
+         >
+            <Button
+               type="outline"
+               title="Cancel"
+               titleStyle={{ fontFamily: "Montserrat-Bold", color: "crimson" }}
+               buttonStyle={{ alignSelf: "center" }}
+               containerStyle={{ margin: 10 }}
+               onPress={() => setQuantityOverlay(false)}
+            />
+            <Button
+               title="Submit"
+               titleStyle={{ fontFamily: "Montserrat-Bold" }}
+               buttonStyle={{ alignSelf: "center" }}
+               containerStyle={{ margin: 10 }}
+               onPress={() => {
+                  updateQuantity(item, newQty);
+                  setQuantityOverlay(false);
+               }}
+            />
+         </View>
+      </Overlay>
+   );
+}
+
 function ProofImagesOverlay({
    item,
    proofImagesOverlay,
@@ -262,6 +442,7 @@ function ProofImagesOverlay({
          }}
       >
          <Image src={item.image} style={{ width: "100%", height: "100%" }} />
+         {/* <Image src={item.damageImage} style={{ width: 200, height: 200 }} /> */}
       </Overlay>
    );
 }

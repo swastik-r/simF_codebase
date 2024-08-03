@@ -2,6 +2,7 @@
 import "react-native-gesture-handler";
 import { Provider as PaperProvider } from "react-native-paper";
 import { NavigationContainer } from "@react-navigation/native";
+import { Text } from "react-native";
 
 // React Native Elements UI Library
 import { createTheme, ThemeProvider } from "@rneui/themed";
@@ -38,6 +39,7 @@ export default function App() {
          <Toast config={toastConfig} />
       </ThemeProvider>
    );
+   // return <Text>Hello World!</Text>;
 }
 
 // Load Fonts
@@ -86,6 +88,20 @@ const toastConfig = {
       <BaseToast
          {...props}
          style={{ borderLeftColor: "red" }}
+         text1Style={{
+            fontFamily: "Montserrat-Bold",
+            fontSize: 17,
+         }}
+         text2Style={{
+            fontFamily: "Montserrat-Regular",
+            fontSize: 14,
+         }}
+      />
+   ),
+   info: (props) => (
+      <BaseToast
+         {...props}
+         style={{ borderLeftColor: "blue" }}
          text1Style={{
             fontFamily: "Montserrat-Bold",
             fontSize: 17,

@@ -152,14 +152,12 @@ export default function SearchBar_FS({ setTempItems, entryItem }) {
                   color={"white"}
                />
             </Pressable>
-            <Pressable
+            {/* <Pressable
                style={styles.buttonContainer}
-               onPress={() => {
-                  // show the proof for entryItem
-               }}
+               onPress={() => {}}
             >
                <Icon name="eye" type="material-community" color={"white"} />
-            </Pressable>
+            </Pressable> */}
          </View>
       </>
    );

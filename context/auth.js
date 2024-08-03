@@ -7,7 +7,7 @@ const storeName = "Pacific Dwarka";
 const email = "monikakumari103@gmail.com";
 const userName = "Monika";
 const password = "abc123";
-const showToken = false;
+const showToken = true;
 
 // Function to retrieve the token
 async function getToken() {
@@ -124,10 +124,42 @@ async function deleteData(endpoint, data = {}) {
    }
 }
 
+function compareStructure(obj1, obj2) {
+   // Check if both arguments are objects
+   if (
+      typeof obj1 === "object" &&
+      obj1 !== null &&
+      typeof obj2 === "object" &&
+      obj2 !== null
+   ) {
+      // Get the keys of both objects
+      const keys1 = Object.keys(obj1);
+      const keys2 = Object.keys(obj2);
+
+      // Check if the number of keys is the same
+      if (keys1.length !== keys2.length) {
+         return false;
+      }
+
+      // Check if all keys are present in both objects and their nested structures match
+      for (const key of keys1) {
+         if (!keys2.includes(key) || !compareStructure(obj1[key], obj2[key])) {
+            return false;
+         }
+      }
+
+      return true;
+   } else {
+      // If both arguments are not objects, return true since we are only comparing structure
+      return true;
+   }
+}
+
 export {
    getData,
    postData,
    deleteData,
+   compareStructure,
    baseURL,
    storeName,
    email,

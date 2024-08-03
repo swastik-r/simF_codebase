@@ -24,20 +24,26 @@ import uploadImage from "../../assets/uploadImage.png";
 import { handleDelete } from "../../context/functions";
 import { endpoints } from "../../context/endpoints";
 import { useIsFocused } from "@react-navigation/native";
-import AsnCard from "../../modules/PurchaseOrder/AsnCard";
+import { AsnCard2 } from "../../modules/PurchaseOrder/AsnCard";
 
 export default function EntryItemDetailPage({ route }) {
    const { entryItem } = route.params;
    const { type, status } = entryItem;
-   const isFocused = useIsFocused();
    const [tempItems, setTempItems] = useState([]);
    const [tempReason, setTempReason] = useState("");
    const [tempSupplier, setTempSupplier] = useState("");
+   const [headerItem, setHeaderItem] = useState({});
 
    const typesList1 = ["IA", "DSD"];
    const typesList2 = ["PO"];
 
    // Fetch the items
+   async function getHeaderItem() {
+      if (type === "PO") {
+         const response = await getData(endpoints.fetchPO);
+         setHeaderItem(response.find((po) => po.id === entryItem.id));
+      }
+   }
    async function getItemsAndReason() {
       if (status !== "In Progress") {
          if (type === "IA") {
@@ -63,13 +69,14 @@ export default function EntryItemDetailPage({ route }) {
       setTempItems(tempItems.filter((item) => item.sku !== sku));
    }
 
-   // Fetch the items and reason/supplier based on the type
+   const isFocused = useIsFocused();
    useEffect(() => {
       if (typesList1.includes(type)) {
          if (status !== "In Progress") {
             getItemsAndReason();
          }
       } else if (typesList2.includes(type)) {
+         getHeaderItem();
          getASNItems();
       }
    }, [isFocused]);
@@ -104,7 +111,10 @@ export default function EntryItemDetailPage({ route }) {
                      ({
                         IA: <ItemCard {...{ item, status, deleteItem }} />,
                         DSD: <ItemCard {...{ item, status, deleteItem }} />,
-                        PO: <AsnCard {...{ item, entryItem }} />,
+                        PO: (
+                           // <AsnCard {...{ item, entryItem }} />
+                           <AsnCard2 {...{ item, entryItem }} />
+                        ),
                      }[type])
                }
                ListHeaderComponent={() => (
@@ -116,6 +126,7 @@ export default function EntryItemDetailPage({ route }) {
                            tempItems,
                            tempReason,
                            tempSupplier,
+                           headerItem,
                         }}
                      />
 
@@ -132,7 +143,7 @@ export default function EntryItemDetailPage({ route }) {
                         />
                      )}
 
-                     {status === "Complete" && (
+                     {status === "Complete" && type !== "PO" && (
                         <SearchBar {...{ setTempItems, entryItem }} />
                      )}
 
@@ -154,15 +165,17 @@ export default function EntryItemDetailPage({ route }) {
                   </>
                )}
                ListFooterComponent={
-                  <MyFabGroup
-                     {...{
-                        entryItem,
-                        tempItems,
-                        setTempItems,
-                        tempSupplier,
-                        getASNItems,
-                     }}
-                  />
+                  status !== "Complete" && (
+                     <MyFabGroup
+                        {...{
+                           entryItem,
+                           tempItems,
+                           setTempItems,
+                           tempSupplier,
+                           getASNItems,
+                        }}
+                     />
+                  )
                }
                ListEmptyComponent={<EmptyPageComponent />}
                contentContainerStyle={{
@@ -182,58 +195,72 @@ export function DetailsTab({
    tempItems,
    tempReason,
    tempSupplier,
+   headerItem,
 }) {
-   function renderDate(date) {
-      const d = new Date(date);
-      return `${d.getDate()} ${d.toLocaleString("default", {
-         month: "long",
-      })}, ${d.getFullYear()}`;
-   }
    function Detail({ label, value }) {
       return (
-         <View style={{ marginVertical: 5, flexDirection: "row" }}>
+         <View
+            style={{
+               marginVertical: 5,
+               flexDirection: "row",
+            }}
+         >
             <Text style={styles.label}>{label}</Text>
             <Text style={styles.value}>{value}</Text>
          </View>
       );
    }
-
-   // Define the base details array
-   const baseDetails = [
-      { label: "ID", value: entryItem.id },
-      { label: "Date", value: renderDate(entryItem.date) },
-      { label: "Total SKU", value: tempItems.length || entryItem.totalSku },
-   ];
-
-   // Conditionally add the supplier or reason based on the entryItem type
-   if (type === "IA") {
-      baseDetails.push({
-         label: "Reason",
-         value: entryItem.reason || tempReason || "N/A",
-      });
-   } else if (type === "DSD") {
-      baseDetails.push({
-         label: "Supplier",
-         value: entryItem.supplierName || tempSupplier || "N/A",
-      });
-   } else if (type === "PO") {
-      baseDetails.push({
-         label: "Supplier",
-         value: entryItem.supplierName,
-      });
-      baseDetails.push({
-         label: "Expected Items",
-         value: entryItem.totalItems,
-      });
-      baseDetails.push({
-         label: "Received Items",
-         value: "Backend",
-      });
-      baseDetails.push({
-         label: "Pending Items",
-         value: "Backend",
-      });
+   function DetailRight({ label, value }) {
+      return (
+         <View
+            style={{
+               marginVertical: 5,
+               flexDirection: "row",
+               justifyContent: "flex-end",
+            }}
+         >
+            <Text style={styles.label}>{label}</Text>
+            <Text style={styles.value}>{value}</Text>
+         </View>
+      );
    }
+   // Conditionally add the supplier or reason based on the entryItem type
+   const details = {
+      IA: [
+         { label: "ID", value: entryItem.id },
+         {
+            label: "Reason",
+            value: entryItem.reason || tempReason,
+         },
+         { label: "Date", value: entryItem.date },
+         { label: "Total SKU", value: tempItems.length || entryItem.totalSku },
+      ],
+      DSD: [
+         { label: "ID", value: entryItem.id },
+         {
+            label: "Supplier",
+            value: entryItem.reason || tempSupplier,
+         },
+         { label: "Date", value: entryItem.date },
+         { label: "Total SKU", value: tempItems.length || entryItem.totalSku },
+      ],
+      PO: [
+         { label: "ID", value: headerItem.id },
+         { label: "Date", value: headerItem.date },
+         { label: "Total SKU", value: headerItem.totalSku },
+         { label: "Supplier", value: headerItem.supplierId },
+         { label: "Ordered Quantity", value: headerItem.expectedQty },
+         { label: "Received Quantity", value: headerItem.receivedQty },
+         {
+            label: "Pending Quantity",
+            value: headerItem.pendingQty,
+         },
+         {
+            label: "Damaged Quantity",
+            value: headerItem.damageQty,
+         },
+      ],
+   };
 
    return (
       <>
@@ -241,18 +268,15 @@ export function DetailsTab({
             {/* if there are odd number of baseDetails items, center the last one vertically */}
             <View style={{ flexDirection: "row" }}>
                <View style={{ flex: 1 }}>
-                  {baseDetails
-                     .slice(0, Math.ceil(baseDetails.length / 2))
+                  {details[type]
+                     .slice(0, Math.ceil(details[type].length / 2))
                      .map((detail) => (
                         <Detail key={detail.label} {...detail} />
                      ))}
                </View>
                <View style={{ flex: 1 }}>
-                  {baseDetails
-                     .slice(
-                        Math.ceil(baseDetails.length / 2),
-                        baseDetails.length
-                     )
+                  {details[type]
+                     .slice(Math.ceil(details[type].length / 2))
                      .map((detail) => (
                         <Detail key={detail.label} {...detail} />
                      ))}
@@ -264,7 +288,7 @@ export function DetailsTab({
          {type === "PO" && (
             <View style={styles.asnCountContainer}>
                <Text style={styles.asnCountLabel}>ASN Count:</Text>
-               <Text style={styles.asnCount}>{entryItem.asnCount}</Text>
+               <Text style={styles.asnCount}>{headerItem.asnCount}</Text>
             </View>
          )}
       </>
@@ -273,8 +297,7 @@ export function DetailsTab({
 
 function ButtonGroup({ entryItem, tempItems, tempReason, tempSupplier }) {
    // States and vars
-   const { type } = entryItem;
-   const canSubmit =
+   const canSaveOrSubmit =
       tempItems.length > 0 && (tempReason !== "" || tempSupplier !== "");
 
    // Overlay states
@@ -285,56 +308,45 @@ function ButtonGroup({ entryItem, tempItems, tempReason, tempSupplier }) {
       <View
          style={{
             flexDirection: "row",
-            justifyContent: "space-between",
+            justifyContent: "space-evenly",
             marginVertical: 10,
          }}
       >
-         {/* Buttons Container */}
-         <View style={{ flexDirection: "row", justifyContent: "center" }}>
-            {/* Submit Button */}
-            <Button
-               title="Submit"
-               disabled={!canSubmit}
-               titleStyle={styles.buttonTitle}
-               buttonStyle={styles.button}
-               onPress={() => setProofOverlay(true)}
-            />
-         </View>
-
-         {/* Dropdown Button */}
-         <View style={{ flexDirection: "row", justifyContent: "center" }}>
-            {/* Dropdown Button */}
-            <Button
-               type="outline"
-               icon={{
-                  name: "menu",
-                  type: "material-community",
-                  color: "black",
-                  size: 18,
-               }}
-               iconContainerStyle={{ marginHorizontal: 0 }}
-               buttonStyle={[styles.button, { borderWidth: 1 }]}
-               onPress={() => setDropdownMenu(true)}
-            />
-         </View>
-
-         {/* Overlays */}
-         <DropdownMenu
-            {...{
-               entryItem,
-               tempReason,
-               tempSupplier,
-               tempItems,
-               dropdownMenu,
-               setDropdownMenu,
+         {/* Save Button */}
+         <Button
+            // disabled={!canSaveOrSubmit}
+            title="Save"
+            titleStyle={styles.buttonTitle}
+            icon={{
+               name: "content-save-outline",
+               type: "material-community",
+               color: "white",
             }}
+            buttonStyle={styles.button}
+            onPress={() => setProofOverlay(true)}
          />
+         {/* Submit Button */}
+         <Button
+            // disabled={!canSaveOrSubmit}
+            title="Submit"
+            titleStyle={styles.buttonTitle}
+            icon={{
+               name: "content-save-outline",
+               type: "material-community",
+               color: "white",
+            }}
+            buttonStyle={styles.button}
+            onPress={() => setProofOverlay(true)}
+         />
+
+         {/* Proof Overlay */}
          <ProofOverlay
             {...{
                entryItem,
                tempReason,
                tempSupplier,
                tempItems,
+
                proofOverlay,
                setProofOverlay,
             }}
@@ -343,165 +355,76 @@ function ButtonGroup({ entryItem, tempItems, tempReason, tempSupplier }) {
    );
 }
 
-function DropdownMenu({
-   entryItem,
-   tempReason,
-   tempSupplier,
-   tempItems,
-   dropdownMenu,
-   setDropdownMenu,
-}) {
-   const navigation = useNavigation();
-   const menuOptions = [
-      // Save as Draft
-      {
-         title: "Save",
-         icon: {
-            name: "content-save-edit",
-            type: "material-community",
-            color: "white",
-         },
-         onPress: () => {
-            handleDraft();
-            setDropdownMenu(false);
-         },
-      },
-      // Delete the entry
-      {
-         title: "Delete",
-         icon: {
-            name: "delete",
-            type: "material-community",
-            color: "white",
-         },
-         onPress: () => {
-            handleDelete(entryItem.id, entryItem.type);
-            setDropdownMenu(false);
-            navigation.goBack();
-         },
-      },
-   ];
-
-   // Submit the draft
-   async function handleDraft() {
-      // entry object validation for reason code and items
-      if ((!tempReason || !tempSupplier) && tempItems.length === 0) {
-         Toast.show({
-            type: "error",
-            text1: "Error",
-            text2: "Please select a reason/supplier and add items",
-         });
-         return;
-      }
-
-      const data = {
-         id: entryItem.id,
-         totalSku: tempItems.reduce((acc, item) => acc + item.qty, 0),
-         status: "Saved",
-         items: tempItems,
-      };
-
-      if (entryItem.type === "IA") {
-         data.reason = tempReason;
-         await postData(endpoints.saveAsDraftIA, data);
-      } else if (entryItem.type === "DSD") {
-         data.supplierName = tempSupplier;
-         await postData(endpoints.saveAsDraftDSD, data);
-      }
-
-      navigation.goBack();
-   }
-
-   return (
-      <Overlay
-         isVisible={dropdownMenu}
-         onBackdropPress={() => setDropdownMenu(false)}
-         overlayStyle={{ width: "50%" }}
-      >
-         <FlatList
-            data={menuOptions}
-            keyExtractor={(item) => item.title}
-            renderItem={({ item }) => (
-               <Button
-                  title={item.title}
-                  titleStyle={styles.buttonTitle}
-                  icon={item.icon}
-                  buttonStyle={styles.button}
-                  containerStyle={{ margin: 10 }}
-                  onPress={() => {
-                     item.onPress();
-                     setDropdownMenu(false);
-                  }}
-               />
-            )}
-            ListFooterComponent={() => (
-               <Button
-                  type="outline"
-                  title="Close"
-                  titleStyle={[styles.buttonTitle, { color: "crimson" }]}
-                  icon={{
-                     name: "close",
-                     type: "material-community",
-                     color: "crimson",
-                     size: 18,
-                  }}
-                  buttonStyle={styles.button}
-                  containerStyle={{ margin: 10 }}
-                  onPress={() => setDropdownMenu(false)}
-               />
-            )}
-         />
-      </Overlay>
-   );
-}
-
 function ReasonsOverlay({ setTempReason, reasonsOverlay, setReasonsOverlay }) {
+   // USEEFFECT: Fetch the reasons
+   useEffect(() => {
+      fetchReasons().then((data) => setReasons(data));
+   }, []);
+
    // States and vars
    const [reasons, setReasons] = useState([]);
    const navigation = useNavigation();
 
    // Functions
    async function fetchReasons() {
-      return getData("/inventoryadjustment/reasoncodes");
+      return await getData(endpoints.fetchReasons);
    }
-   useEffect(() => {
-      fetchReasons().then((data) => setReasons(data));
-   }, []);
+   function setReason(item) {
+      setTempReason(item);
+      setReasonsOverlay(false);
+      Toast.show({
+         type: "success",
+         text1: "Success",
+         text2: "Reason selected successfully",
+      });
+   }
+   function cancelSelection() {
+      setReasonsOverlay(false);
+      navigation.goBack();
+   }
 
+   // Render the overlay
    return (
-      <Overlay isVisible={reasonsOverlay} overlayStyle={{ width: "50%" }}>
+      <Overlay
+         isVisible={reasonsOverlay}
+         overlayStyle={{ width: "60%", borderRadius: 20 }}
+      >
          <FlatList
             data={reasons}
             keyExtractor={(item) => item}
             renderItem={({ item }) => (
                <Button
-                  type="outline"
                   title={item}
                   titleStyle={styles.buttonTitle}
                   buttonStyle={styles.button}
                   containerStyle={{ margin: 10 }}
-                  onPress={() => {
-                     setTempReason(item);
-                     setReasonsOverlay(false);
-                  }}
+                  onPress={() => setReason(item)}
                />
             )}
+            ListHeaderComponent={
+               <Text
+                  style={{
+                     fontFamily: "Montserrat-Bold",
+                     fontSize: 20,
+                     marginVertical: 15,
+                     alignSelf: "center",
+                  }}
+               >
+                  Select a Reason
+               </Text>
+            }
             ListFooterComponent={
                <Button
-                  type="outline"
-                  title="Cancel"
+                  type="clear"
+                  title="CANCEL"
                   icon={{
                      name: "close",
                      type: "material-community",
                      color: "crimson",
-                     size: 18,
                   }}
-                  buttonStyle={[styles.button, { alignSelf: "center" }]}
-                  titleStyle={styles.buttonTitle}
-                  onPress={() => {
-                     setReasonsOverlay(false);
-                     navigation.goBack();
-                  }}
+                  buttonStyle={[styles.button, { marginVertical: 10 }]}
+                  titleStyle={[styles.buttonTitle, { color: "crimson" }]}
+                  onPress={cancelSelection}
                />
             }
          />
@@ -521,35 +444,41 @@ function SupplierOverlay({
 
    async function handleSupplierIdChange(text) {
       try {
-         setSupplierId(text);
+         // Trim the input text to remove any leading or trailing whitespace
+         const trimmedText = text.trim();
 
-         if (text) {
-            const responsePart1 = await getData(
-               endpoints.fetchSuppliersByName + text
+         // Set the supplier ID state
+         setSupplierId(trimmedText);
+
+         // If the trimmed text is not empty, proceed with fetching data
+         if (trimmedText) {
+            const data = await getData(
+               `${endpoints.fetchSupplierByNameOrId}${trimmedText}`
             );
-            const responsePart2 = await getData(
-               endpoints.fetchSuppliersById + text
-            );
 
-            // Combine the two responses, remove duplicates
-            const data = [...new Set([...responsePart1, ...responsePart2])];
-
-            if (!data || data.length === 0) {
+            // Check if data is an object and convert it to an array of objects for FlatList
+            if (data && typeof data === "object") {
+               const formattedSuggestions = Object.entries(data).map(
+                  ([key, value]) => ({ id: key, name: value })
+               );
+               setSuggestions(formattedSuggestions);
+            } else {
                setSuggestions([]);
-               Alert.alert("No suppliers found", "Please try again.");
-               return;
             }
-
-            setSuggestions(data.slice(0, 3));
          } else {
+            // If the trimmed text is empty, reset suggestions
             setSuggestions([]);
          }
       } catch (error) {
          console.error("Error fetching suppliers:", error);
+
+         // Display an alert to the user in case of an error
          Alert.alert(
             "Error",
             "An error occurred while fetching suppliers. Please try again."
          );
+
+         // Reset suggestions in case of an error
          setSuggestions([]);
       }
    }
@@ -581,31 +510,32 @@ function SupplierOverlay({
             value={supplierId}
             onChangeText={handleSupplierIdChange}
          />
+
+         {/* Each suggestion should show the info like: Sup101: ABC Industries */}
          <FlatList
             data={suggestions}
-            keyExtractor={(item) => item}
+            keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
                <Button
                   type="outline"
-                  title={item}
+                  title={`${item.id}: ${item.name}`}
                   titleStyle={styles.buttonTitle}
                   buttonStyle={styles.button}
                   containerStyle={{ margin: 10 }}
                   onPress={() => {
-                     setTempSupplier(item);
+                     setTempSupplier(item.id);
                      setSupplierOverlay(false);
                   }}
                />
             )}
             ListFooterComponent={
                <Button
-                  type="outline"
+                  type="clear"
                   title="Cancel"
                   icon={{
                      name: "close",
                      type: "material-community",
                      color: "crimson",
-                     size: 18,
                   }}
                   buttonStyle={[styles.button, { alignSelf: "center" }]}
                   titleStyle={styles.buttonTitle}
@@ -930,6 +860,8 @@ const styles = StyleSheet.create({
 
    button: {
       borderRadius: 10,
+      width: 120,
+      alignSelf: "center",
    },
    buttonTitle: {
       fontFamily: "Montserrat-Bold",

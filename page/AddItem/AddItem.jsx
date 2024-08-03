@@ -8,52 +8,74 @@ import { endpoints } from "../../context/endpoints";
 
 export default function AddItem({ route }) {
    // States and vars
-   const { type, tempItems, setTempItems, tempSupplier } = route.params;
+   const { type, tempItems, setTempItems, tempSupplier, poItem } = route.params;
    const [suggestions, setSuggestions] = useState(null);
 
-   // Functions
-   async function searchItem(searchStr) {
+   // Primary Search Function
+   async function searchItems(searchStr) {
+      // Handle empty search string
       if (searchStr === "") {
          setSuggestions(null);
          return;
       }
 
-      let searchResult;
-      if (tempSupplier) {
-         console.log(
-            "Supplier exists, supplier specific item search for:",
-            tempSupplier
-         );
-         searchResult = await getData(
-            endpoints.fetchItemsBySupplier +
-               `${tempSupplier}/${searchStr}/${storeName}`
-         );
+      // Handle search based on module TYPE
+      const searchFunctions = {
+         IA: generalItemSearch,
+         DSD: supplierItemSearch,
+         PO: poItemSearch,
+      };
 
-         if (searchResult.items.length === 0) {
-            Alert.alert(
-               "No items found",
-               `No valid items found for the searched SKU "${searchStr}" and selected supplier "${tempSupplier}"`
-            );
-            return;
-         }
+      // Set suggestions array based on search results from functions
+      setSuggestions(await searchFunctions[type](searchStr));
+   }
+
+   // Search Function for IA
+   async function generalItemSearch(searchStr) {
+      const searchResult = await getData(
+         endpoints.generalItemSearch + `${searchStr}/${storeName}/IA`
+      );
+
+      if (searchResult.items.length > 0) {
+         return searchResult.items;
       } else {
-         // if (type === "ASN") {
-         //    console.log("ASN item search");
-         //    searchResult = await getData(
-         //       endpoints.fetchPoItems + `PO-NW711MUHMJRR/${searchStr}`
-         //    );
-         // } else {
-         console.log("General item search");
-         searchResult = await getData(
-            "/product/getMatched/sku/" + searchStr + "/" + storeName
+         Alert.alert(
+            "No items found",
+            `No valid items found for the searched SKU "${searchStr}" in the store "${storeName}"`
          );
-         // }
+         return [];
       }
+   }
+   // Search Function for DSD
+   async function supplierItemSearch(searchStr) {
+      const searchResult = await getData(
+         endpoints.fetchItemsBySupplier +
+            `${tempSupplier}/${searchStr}/${storeName}/DSD`
+      );
 
-      if (searchResult) {
-         setSuggestions(searchResult.items);
+      if (searchResult.items.length > 0) {
+         return searchResult.items;
       } else {
-         setSuggestions(null);
+         Alert.alert(
+            "No items found",
+            `No valid items found for the searched SKU ${searchStr} for the supplier ${tempSupplier}`
+         );
+         return [];
+      }
+   }
+   async function poItemSearch(searchStr) {
+      const searchResult = await getData(
+         endpoints.fetchPoItems + `${poItem.id}/${searchStr}/PO`
+      );
+
+      if (searchResult.items.length > 0) {
+         return searchResult.items;
+      } else {
+         Alert.alert(
+            "No items found",
+            `No valid items found for the searched SKU ${searchStr} for the PO ${poItem.poNumber}`
+         );
+         return [];
       }
    }
 
@@ -74,7 +96,7 @@ export default function AddItem({ route }) {
             {/* Input for Item ID */}
             <Input
                placeholder="Enter an SKU to search"
-               onChangeText={(text) => searchItem(text)}
+               onChangeText={(text) => searchItems(text)}
                style={{ padding: 10, margin: 20 }}
             />
             <FlatList
@@ -132,7 +154,7 @@ function ItemSuggestion({ type, item, tempItems, setTempItems }) {
             </View>
 
             <Button
-               title="Select"
+               title="Add"
                titleStyle={{ fontFamily: "Montserrat-Medium" }}
                buttonStyle={{
                   borderRadius: 10,

@@ -11,14 +11,6 @@ export default function ListingCard({ item, foo }) {
    const { type } = item;
 
    // Functions
-   function dateString(date) {
-      // Convert date string to the format "1 May / 24"
-      const newDate = new Date(date);
-      const month = newDate.toLocaleString("default", { month: "short" });
-      // only last two digits of the year required
-      const year = newDate.getFullYear().toString().slice(-2);
-      return `${newDate.getDate()} ${month} / ${year}`;
-   }
    function InfoContainer({ title, value }) {
       return (
          <View
@@ -71,6 +63,7 @@ export default function ListingCard({ item, foo }) {
                   fontSize: 12,
                   color: chipData[status].textColor,
                   paddingHorizontal: 5,
+                  textTransform: "uppercase",
                }}
             >
                {status}
@@ -96,9 +89,9 @@ export default function ListingCard({ item, foo }) {
          Complete: "DSD Summary",
       },
       PO: {
-         "In Progress": "ASN Listing",
-         Pending: "ASN Listing",
-         Complete: "ASN Listing",
+         "In Progress": "ASN List",
+         Pending: "ASN List",
+         Complete: "ASN List",
       },
    };
    // module-specific fields
@@ -108,11 +101,11 @@ export default function ListingCard({ item, foo }) {
          title: "Reason",
       },
       DSD: {
-         field: "supplierName",
+         field: "supplierId",
          title: "Supplier",
       },
       PO: {
-         field: "supplierName",
+         field: "supplierId",
          title: "Supplier",
       },
    };
@@ -145,7 +138,7 @@ export default function ListingCard({ item, foo }) {
                      value={item[fieldMap[type].field] || "N/A"}
                   />
                </View>
-               <InfoContainer title={"Date: "} value={dateString(item.date)} />
+               <InfoContainer title={"Date: "} value={item.date} />
             </View>
          </View>
          <Pressable
