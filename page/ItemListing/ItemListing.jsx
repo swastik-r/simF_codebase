@@ -21,7 +21,6 @@ import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
 import XLSX from "xlsx";
 import uploadImage from "../../assets/uploadImage.png";
-import { handleDelete } from "../../context/functions";
 import { endpoints } from "../../context/endpoints";
 import { useIsFocused } from "@react-navigation/native";
 import { AsnCard2 } from "../../modules/PurchaseOrder/AsnCard";
@@ -34,17 +33,15 @@ export default function EntryItemDetailPage({ route }) {
    const [tempSupplier, setTempSupplier] = useState("");
    const [headerItem, setHeaderItem] = useState({});
 
-   const typesList1 = ["IA", "DSD"];
-   const typesList2 = ["PO"];
-
-   // Fetch the items
+   // fetch the items
    async function getHeaderItem() {
       if (type === "PO") {
          const response = await getData(endpoints.fetchPO);
          setHeaderItem(response.find((po) => po.id === entryItem.id));
       }
    }
-   async function getItemsAndReason() {
+   // fetch the items, reason, supplier and other details for IA and DSD
+   async function getItemsReasonSupplier() {
       if (status !== "In Progress") {
          if (type === "IA") {
             const response = await getData(
@@ -52,41 +49,48 @@ export default function EntryItemDetailPage({ route }) {
             );
             setTempItems(response.items);
             setTempReason(response.reason);
+            console.log("REASON:", response.reason);
          } else if (type === "DSD") {
             const response = await getData(
                endpoints.fetchItemsDSD + entryItem.id
             );
             setTempItems(response.items);
-            setTempSupplier(response.supplierName);
+            setTempSupplier(response.supplierId);
+            console.log("SUPPLIER:", response.supplierId);
          }
       }
    }
+   // fetch items that are under an ASN
    async function getASNItems() {
       const response = await getData(endpoints.fetchASNForPO + entryItem.id);
       setTempItems(response);
    }
+   // delete an item based on the
    function deleteItem(sku) {
       setTempItems(tempItems.filter((item) => item.sku !== sku));
    }
 
    const isFocused = useIsFocused();
+   // refresh the data for PO based on focus
    useEffect(() => {
-      if (typesList1.includes(type)) {
-         if (status !== "In Progress") {
-            getItemsAndReason();
-         }
-      } else if (typesList2.includes(type)) {
+      if (type === "PO") {
          getHeaderItem();
          getASNItems();
       }
    }, [isFocused]);
+   // refresh the data for IA/DSD on render
+   useEffect(() => {
+      if (type === "IA" || type === "DSD") {
+         getItemsReasonSupplier();
+      }
+   }, []);
 
    // Show overlay for reason or supplier based on the fetched data
    const [reasonsOverlay, setReasonsOverlay] = useState(
       isFocused && type === "IA" && !tempReason && !entryItem.reason
    );
    const [supplierOverlay, setSupplierOverlay] = useState(
-      isFocused && type === "DSD" && !tempSupplier && !entryItem.supplierName
+      isFocused && type === "DSD" && !tempSupplier && !entryItem.supplierId
    );
 
    return (
@@ -111,10 +115,7 @@ export default function EntryItemDetailPage({ route }) {
                      ({
                         IA: <ItemCard {...{ item, status, deleteItem }} />,
                         DSD: <ItemCard {...{ item, status, deleteItem }} />,
-                        PO: (
-                           // <AsnCard {...{ item, entryItem }} />
-                           <AsnCard2 {...{ item, entryItem }} />
-                        ),
+                        PO: <AsnCard2 {...{ item, entryItem }} />,
                      }[type])
                }
                ListHeaderComponent={() => (
@@ -299,10 +300,44 @@ function ButtonGroup({ entryItem, tempItems, tempReason, tempSupplier }) {
    // States and vars
    const canSaveOrSubmit =
       tempItems.length > 0 && (tempReason !== "" || tempSupplier !== "");
-
-   // Overlay states
-   const [dropdownMenu, setDropdownMenu] = useState(false);
    const [proofOverlay, setProofOverlay] = useState(false);
+   const navigation = useNavigation();
+
+   // Functions
+   async function handleSave() {
+      const requestBody = {
+         id: entryItem.id,
+         imageData: "",
+         totalSku: tempItems.reduce((acc, item) => acc + Number(item.qty), 0),
+         status: "Saved",
+         items: tempItems,
+      };
+
+      try {
+         if (entryItem.type === "IA") {
+            requestBody.reason = tempReason;
+            await postData(endpoints.saveAsDraftIA, requestBody);
+         } else if (entryItem.type === "DSD") {
+            requestBody.supplierId = tempSupplier;
+            await postData(endpoints.saveAsDraftDSD, requestBody);
+         }
+
+         Toast.show({
+            type: "success",
+            text1: "Success",
+            text2: "Data saved successfully",
+         });
+
+         navigation.goBack();
+      } catch (error) {
+         console.error("Error saving data:", error);
+         Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: "Error saving the data",
+         });
+      }
+   }
 
    return (
       <View
@@ -314,7 +349,7 @@ function ButtonGroup({ entryItem, tempItems, tempReason, tempSupplier }) {
       >
          {/* Save Button */}
          <Button
-            // disabled={!canSaveOrSubmit}
+            disabled={!canSaveOrSubmit}
             title="Save"
             titleStyle={styles.buttonTitle}
             icon={{
@@ -322,20 +357,19 @@ function ButtonGroup({ entryItem, tempItems, tempReason, tempSupplier }) {
                type: "material-community",
                color: "white",
             }}
-            buttonStyle={styles.button}
-            onPress={() => setProofOverlay(true)}
+            buttonStyle={[styles.button, { width: 100 }]}
+            onPress={handleSave}
          />
          {/* Submit Button */}
          <Button
-            // disabled={!canSaveOrSubmit}
+            disabled={!canSaveOrSubmit}
             title="Submit"
             titleStyle={styles.buttonTitle}
             icon={{
-               name: "content-save-outline",
-               type: "material-community",
+               name: "save-alt",
                color: "white",
             }}
-            buttonStyle={styles.button}
+            buttonStyle={[styles.button, { width: 100 }]}
             onPress={() => setProofOverlay(true)}
          />
 
@@ -488,7 +522,7 @@ function SupplierOverlay({
          isVisible={supplierOverlay}
          overlayStyle={{ width: "70%", padding: 20 }}
       >
-         <View style={{ flexDirection: "row" }}>
+         <View style={{ flexDirection: "row", alignSelf: "center" }}>
             <Icon
                name="person-search"
                type="material"
@@ -506,7 +540,12 @@ function SupplierOverlay({
             </Text>
          </View>
          <Input
-            placeholder="Enter a Supplier Name or ID"
+            inputStyle={{
+               fontFamily: "Montserrat-Regular",
+               fontSize: 16,
+               textAlign: "center",
+            }}
+            placeholder="Enter a Supplier Name/ID"
             value={supplierId}
             onChangeText={handleSupplierIdChange}
          />
@@ -520,7 +559,7 @@ function SupplierOverlay({
                   type="outline"
                   title={`${item.id}: ${item.name}`}
                   titleStyle={styles.buttonTitle}
-                  buttonStyle={styles.button}
+                  buttonStyle={[styles.button, { width: "100%" }]}
                   containerStyle={{ margin: 10 }}
                   onPress={() => {
                      setTempSupplier(item.id);
@@ -576,7 +615,7 @@ function ProofOverlay({
    async function handleSubmit() {
       const data = {
          id: entryItem.id,
-         totalSku: tempItems.reduce((acc, item) => acc + item.qty, 0),
+         totalSku: tempItems.reduce((acc, item) => acc + Number(item.qty), 0),
          status: "Complete",
          items: tempItems,
          imageData: image,
@@ -584,11 +623,9 @@ function ProofOverlay({
 
       if (entryItem.type === "IA") {
          data.reason = tempReason;
-         console.log("SUBMIT DATA", data);
          await postData(endpoints.submitIA, data);
       } else if (entryItem.type === "DSD") {
-         data.supplierName = tempSupplier;
-         console.log("SUBMIT DATA", data);
+         data.supplierId = tempSupplier;
          await postData(endpoints.submitDSD, data);
       }
 
@@ -599,7 +636,12 @@ function ProofOverlay({
       <Overlay
          isVisible={proofOverlay}
          onBackdropPress={() => setProofOverlay(false)}
-         overlayStyle={{ width: "50%", alignItems: "center", borderRadius: 20 }}
+         overlayStyle={{
+            width: "60%",
+            alignItems: "center",
+            borderRadius: 20,
+            padding: 20,
+         }}
       >
          <Text
             style={{
@@ -621,7 +663,7 @@ function ProofOverlay({
          >
             <Button
                title="Upload"
-               buttonStyle={styles.button}
+               buttonStyle={[styles.button, { width: 80 }]}
                titleStyle={styles.buttonTitle}
                onPress={() => {
                   pickImage();
@@ -630,7 +672,7 @@ function ProofOverlay({
             />
             <Button
                title="Skip"
-               buttonStyle={styles.button}
+               buttonStyle={[styles.button, { width: 80 }]}
                titleStyle={styles.buttonTitle}
                onPress={handleSubmit}
             />

@@ -8,6 +8,7 @@ const email = "monikakumari103@gmail.com";
 const userName = "Monika";
 const password = "abc123";
 const showToken = true;
+const prettify = false;
 
 // Function to retrieve the token
 async function getToken() {
@@ -85,7 +86,11 @@ async function getData(endpoint) {
    try {
       const response = await api.get(endpoint);
       console.log("GET:", endpoint);
-      console.log(JSON.stringify(response.data, null, 2));
+      if (prettify) {
+         console.log(JSON.stringify(response.data, null, 2));
+      } else {
+         console.log(response.data);
+      }
       console.log();
       return response.data;
    } catch (error) {
@@ -101,7 +106,11 @@ async function postData(endpoint, data = {}) {
    try {
       const response = await api.post(endpoint, data);
       console.log("POST:", endpoint);
-      console.log(JSON.stringify(response.data, null, 2));
+      if (prettify) {
+         console.log(JSON.stringify(response.data, null, 2));
+      } else {
+         console.log(response.data);
+      }
       console.log();
       return response.data;
    } catch (error) {

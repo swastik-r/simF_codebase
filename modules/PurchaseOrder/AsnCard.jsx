@@ -188,13 +188,13 @@ export function AsnCard2({ item, entryItem }) {
             </View>
             <Divider width={1} />
             <View style={styles.infoRow}>
-               <InfoContainer label="Creation Dt." value={item.creationDate} />
+               <InfoContainer label="Creation On" value={item.creationDate} />
                <InfoContainer label="Expected Qty" value={item.totalQty} />
             </View>
             <View style={styles.infoRow}>
                <InfoContainer
-                  label="Receiving Dt."
-                  value={item.receivingDate || "Not Avl."}
+                  label="Receiving On"
+                  value={item.receivingDate || "YTR"}
                />
                <InfoContainer label="Received Qty" value={item.totalQty} />
             </View>

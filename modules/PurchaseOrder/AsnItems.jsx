@@ -9,11 +9,14 @@ import { useEffect, useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import { ImageBackground, View } from "react-native";
 import backgroundImg from "../../assets/bg3.jpg";
+import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system";
+import XLSX from "xlsx";
 
 // Custom Components
 import { endpoints } from "../../context/endpoints";
 import { Button } from "@rneui/themed";
-import { FAB } from "react-native-paper";
+import { FAB, Portal } from "react-native-paper";
 import EmptyPageComponent from "../../globalComps/EmptyPageComp";
 import ItemCard from "../../page/ItemListing/ItemCard";
 import Toast from "react-native-toast-message";
@@ -145,7 +148,7 @@ export default function AsnItems({ route }) {
 
          return convertedData;
       }
-      function convertItemToSaveAsnDto(item) {
+      function convertItemToCreateAsnDto(item) {
          const asnDetails = {
             itemNumber: "string",
             itemName: "string",
@@ -186,20 +189,17 @@ export default function AsnItems({ route }) {
                   creationDate: new Date().toISOString().split("T")[0],
                   receivingDate: new Date().toISOString().split("T")[0],
                   status: "Pending",
-                  supplier: poItem.supplierName,
-                  totalQty: tempItems.reduce(
-                     (total, item) => total + Number(item.qty),
-                     0
-                  ),
-                  totalSku: tempItems.length,
+                  supplier: poItem.supplierId,
+                  totalQty: 0,
+                  totalSku: 0,
                   poNumber: poItem.id,
                },
-               asnDetails: tempItems.map(convertItemToSaveAsnDto),
+               asnDetails: tempItems.map(convertItemToCreateAsnDto),
             };
-            const saveRequestTemplate = {
+            const createRequestTemplate = {
                asn: {
-                  creationDate: "2024-08-02",
-                  receivingDate: "2024-08-02",
+                  creationDate: "2024-08-06",
+                  receivingDate: "2024-08-06",
                   status: "string",
                   supplier: "string",
                   totalQty: 0,
@@ -226,13 +226,14 @@ export default function AsnItems({ route }) {
                      sku: "string",
                      taxPercentage: "string",
                      taxCode: "string",
-                     receivedDate: "2024-08-02",
+                     type: "string",
+                     receivedDate: "2024-08-06",
                   },
                ],
             };
 
             // if the compareStructure function returns true for createRequestBody and saveRequestBody
-            if (compareStructure(createRequestBody, saveRequestTemplate)) {
+            if (compareStructure(createRequestBody, createRequestTemplate)) {
                asnId = await postData(endpoints.createAsn, createRequestBody);
             } else {
                throw new Error("Request body structure mismatch");
@@ -268,10 +269,150 @@ export default function AsnItems({ route }) {
    function deleteItem(sku) {
       setTempItems(tempItems.filter((item) => item.sku !== sku));
    }
+   async function handleExcelUpload() {
+      try {
+         console.log("Opening document picker...");
 
+         const res = await DocumentPicker.getDocumentAsync({
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+         });
+
+         if (!res.canceled && res.assets && res.assets.length > 0) {
+            const fileUri = res.assets[0].uri;
+
+            // Read the file as a base64 string
+            const fileContent = await FileSystem.readAsStringAsync(fileUri, {
+               encoding: FileSystem.EncodingType.Base64,
+            });
+
+            // Parse the file using XLSX
+            const wb = XLSX.read(fileContent, {
+               type: "base64",
+               cellDates: true,
+            });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const data = XLSX.utils.sheet_to_json(ws);
+
+            const items = [];
+            const errors = [];
+
+            for (const [index, item] of data.entries()) {
+               // Data validation
+               if (!item.SKU || !item.Quantity) {
+                  errors.push(
+                     `Row ${index + 1}: Missing item SKU or quantity.`
+                  );
+                  continue;
+               }
+               if (!item.SKU.startsWith("sku")) {
+                  errors.push(
+                     `Row ${index + 1}: Item ID must start with "sku".`
+                  );
+                  continue;
+               }
+               if (item.Quantity <= 0) {
+                  errors.push(
+                     `Row ${index + 1}: Quantity must be greater than 0.`
+                  );
+                  continue;
+               }
+
+               try {
+                  const response = await getData(
+                     `/product/findbysku/${item.SKU}/${storeName}`
+                  );
+                  const foundItem = response.items ? response.items[0] : null;
+
+                  if (!foundItem) {
+                     errors.push(`Row ${index + 1}: Item not found.`);
+                     continue;
+                  }
+
+                  // if item already exists, update the quantity
+                  // else push the item to the tempItems with
+
+                  const existingItem = tempItems.find(
+                     (i) => i.sku === foundItem.sku
+                  );
+                  if (existingItem) {
+                     existingItem.qty += item.Quantity;
+                  } else {
+                     items.push({
+                        ...foundItem,
+                        qty: item.Quantity,
+                     });
+                  }
+               } catch (e) {
+                  errors.push(`Row ${index + 1}: Error fetching item.`);
+                  continue;
+               }
+            }
+
+            // If errors exist, console.log and return
+            if (errors.length > 0) {
+               Alert.alert("Invalid data found", errors.join("\n"));
+               Toast.show({
+                  type: "error",
+                  text1: "Error!",
+                  text2: "There were errors in the data!",
+               });
+               return;
+            }
+
+            // Add the items to the tempItems
+            setTempItems([...tempItems, ...items]);
+
+            // Show a success toast
+            Toast.show({
+               type: "success",
+               text1: "Success",
+               text2: "Items added successfully",
+            });
+         }
+      } catch (error) {
+         console.log("Error reading file:", error);
+         Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: "Error reading the file",
+         });
+      }
+   }
+
+   // UseEffect: if asnId exists, get the asn items
    useEffect(() => {
       asnId && getAsnItems();
    }, []);
+
+   // FAB
+   const fabActions = [
+      {
+         icon: "qrcode-scan",
+         label: "Scan",
+         onPress: () =>
+            navigation.navigate("Add Items", {
+               type: "PO",
+               tempItems,
+               setTempItems,
+               tempSupplier: null,
+               poItem,
+            }),
+      },
+      {
+         icon: "file-excel",
+         label: "Upload Excel Data",
+         onPress: () => {
+            handleExcelUpload();
+            setState({ open: false });
+         },
+      },
+   ];
+   // FAB Group States and Properties
+   const [state, setState] = useState({ open: false });
+   const { open } = state;
+   function onStateChange({ open }) {
+      setState({ open });
+   }
 
    return (
       <ImageBackground source={backgroundImg} style={{ flex: 1 }}>
@@ -325,19 +466,17 @@ export default function AsnItems({ route }) {
 
          {/* FAB to add items */}
          {asnStatus !== "Complete" && (
-            <FAB
-               icon="qrcode-scan"
-               onPress={() =>
-                  navigation.navigate("Add Items", {
-                     type: "PO",
-                     tempItems,
-                     setTempItems,
-                     tempSupplier: null,
-                     poItem,
-                  })
-               }
-               style={{ position: "absolute", bottom: 80, right: 10 }}
-            />
+            <Portal>
+               <FAB.Group
+                  style={{ marginBottom: 70 }}
+                  open={open}
+                  visible
+                  icon={open ? "close" : "plus"}
+                  iconColor="white"
+                  actions={fabActions}
+                  onStateChange={onStateChange}
+               />
+            </Portal>
          )}
       </ImageBackground>
    );

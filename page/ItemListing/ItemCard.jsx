@@ -8,7 +8,7 @@ export default function ItemCard({ item, status, deleteItem }) {
    // States and Constants
    const [quantityOverlay, setQuantityOverlay] = useState(false);
    const [proofImagesOverlay, setProofImagesOverlay] = useState(false);
-   const completionStatus = ["Received", "Complete"];
+   const isComplete = status === "Complete";
 
    // Functions
    function uploadProof() {
@@ -64,7 +64,7 @@ export default function ItemCard({ item, status, deleteItem }) {
    return (
       <>
          <View style={styles.card}>
-            {!completionStatus.includes(status) && (
+            {!isComplete && (
                <View style={styles.deleteIconContainer}>
                   <Icon
                      onPress={() => {
@@ -99,7 +99,8 @@ export default function ItemCard({ item, status, deleteItem }) {
                <Pressable
                   style={styles.qtyContainer}
                   onPress={() => {
-                     if (!completionStatus.includes(status)) {
+                     if (!isComplete) {
+                        console.log("Not yet complete, open the qty overlay");
                         setQuantityOverlay(true);
                      }
                   }}
@@ -107,7 +108,7 @@ export default function ItemCard({ item, status, deleteItem }) {
                   <Text
                      style={[
                         styles.qty,
-                        !completionStatus.includes(status) && {
+                        !isComplete && {
                            textDecorationLine: "underline",
                         },
                      ]}
@@ -116,16 +117,10 @@ export default function ItemCard({ item, status, deleteItem }) {
                   </Text>
                </Pressable>
                <Button
-                  onPress={
-                     !completionStatus.includes(status)
-                        ? uploadProof
-                        : showProof
-                  }
+                  onPress={!isComplete ? uploadProof : showProof}
                   type="outline"
                   icon={{
-                     name: !completionStatus.includes(status)
-                        ? "upload"
-                        : "eye",
+                     name: !isComplete ? "upload" : "eye",
                      type: "material-community",
                      color: "white",
                      size: 14,
@@ -134,18 +129,14 @@ export default function ItemCard({ item, status, deleteItem }) {
                      marginRight: 5,
                      marginLeft: 0,
                   }}
-                  title={
-                     !completionStatus.includes(status)
-                        ? "Upload Proof"
-                        : "View Proof"
-                  }
+                  title={!isComplete ? "Upload Proof" : "View Proof"}
                   titleStyle={styles.uploadButtonTitle}
                   buttonStyle={styles.uploadButton}
                />
             </View>
          </View>
 
-         {!completionStatus.includes(status) &&
+         {!isComplete &&
             {
                IA: (
                   <QuantityUpdateOverlay
@@ -270,15 +261,16 @@ function QuantityUpdateOverlay({ item, quantityOverlay, setQuantityOverlay }) {
 }
 
 function QuantityUpdateOverlay2({ item, quantityOverlay, setQuantityOverlay }) {
-   const [newQty, setNewQty] = useState("");
-   const [damageQty, setDamageQty] = useState(null);
+   const [newQty, setNewQty] = useState(0);
+   const [damageQty, setDamageQty] = useState(0);
    const [damageImage, setDamageImage] = useState(null);
 
    function isValidQty(qty) {
-      return !isNaN(qty) && parseInt(qty) > 0;
+      return !isNaN(qty) && parseInt(qty) >= 0;
    }
+
    function updateQuantity(item, newQty, damageQty) {
-      if (!isValidQty(newQty) && !isValidQty(damageQty)) {
+      if (!isValidQty(newQty) || !isValidQty(damageQty)) {
          Toast.show({
             type: "error",
             text1: "Error",
@@ -290,19 +282,19 @@ function QuantityUpdateOverlay2({ item, quantityOverlay, setQuantityOverlay }) {
       if (item.expectedQty && newQty > item.expectedQty) {
          Toast.show({
             type: "info",
-            text1: "OVER-RECEIVED",
+            text1: "Over-Received",
             text2: "This item is being over-received",
          });
       }
 
       item.qty = newQty;
-      if (damageQty) {
-         item.damageQty = damageQty;
-      }
+      item.damageQty = damageQty;
+
       if (damageImage) {
          item.damageImage = damageImage;
       }
    }
+
    async function uploadDamageProof() {
       ImagePicker.requestMediaLibraryPermissionsAsync()
          .then((res) => {
@@ -373,30 +365,29 @@ function QuantityUpdateOverlay2({ item, quantityOverlay, setQuantityOverlay }) {
             Received & Damaged Quantity
          </Text>
 
-         {/* Input field */}
+         {/* Received Qty Input */}
          <Input
-            value={newQty}
-            onChangeText={(text) => setNewQty(text)}
+            value={newQty.toString()}
+            onChangeText={(text) => setNewQty(Number(text))}
             keyboardType="numeric"
             placeholder="Received Quantity"
          />
 
-         {/* Input field */}
-         <View>
-            <Input
-               value={damageQty}
-               onChangeText={(text) => setDamageQty(text)}
-               keyboardType="numeric"
-               placeholder="Damaged Quantity"
-            />
-            {/* Button to add image proof for damage */}
-            <Button
-               title="Add Damage Proof"
-               titleStyle={{ fontFamily: "Montserrat-Bold", fontSize: 12 }}
-               buttonStyle={{ alignSelf: "center" }}
-               onPress={uploadDamageProof}
-            />
-         </View>
+         {/* Damage Qty Input */}
+         <Input
+            value={damageQty.toString()}
+            onChangeText={(text) => setDamageQty(Number(text))}
+            keyboardType="numeric"
+            placeholder="Damaged Quantity"
+         />
+
+         {/* Button to add image proof for damage */}
+         <Button
+            title="Add Damage Proof"
+            titleStyle={{ fontFamily: "Montserrat-Bold", fontSize: 12 }}
+            buttonStyle={{ alignSelf: "center" }}
+            onPress={uploadDamageProof}
+         />
 
          {/*  */}
          <View
@@ -416,7 +407,7 @@ function QuantityUpdateOverlay2({ item, quantityOverlay, setQuantityOverlay }) {
                buttonStyle={{ alignSelf: "center" }}
                containerStyle={{ margin: 10 }}
                onPress={() => {
-                  updateQuantity(item, newQty);
+                  updateQuantity(item, newQty, damageQty);
                   setQuantityOverlay(false);
                }}
             />
