@@ -8,7 +8,6 @@ import { handleDelete } from "../../context/functions";
 export default function ListingCard({ item, foo }) {
    // States and Vars
    const navigation = useNavigation();
-   const { type } = item;
 
    // Functions
    function InfoContainer({ title, value }) {
@@ -28,23 +27,43 @@ export default function ListingCard({ item, foo }) {
    function ProgressChip({ status }) {
       const chipData = {
          Complete: {
-            icon: "check",
-            color: "#228B22",
+            color: "#4CAF50", // Green
             textColor: "white",
          },
          "In Progress": {
-            icon: "progress-clock",
-            color: "#ffd700",
-            textColor: "#000011",
+            color: "#FFEB3B", // Yellow
+            textColor: "#212121", // Dark grey for better contrast
          },
          Saved: {
-            icon: "content-save",
-            color: "#ff7900",
+            color: "#FFA726", // Orange
             textColor: "white",
          },
          Pending: {
-            icon: "progress-alert",
-            color: "crimson",
+            color: "#F44336", // Red
+            textColor: "white",
+         },
+         Shipped: {
+            color: "#3F51B5", // Blue
+            textColor: "white",
+         },
+         Delivered: {
+            color: "#8BC34A", // Light Green
+            textColor: "white",
+         },
+         "New Request": {
+            color: "#FF7043", // Deep Orange
+            textColor: "white",
+         },
+         Accepted: {
+            color: "#E91E63", // Pink
+            textColor: "white",
+         },
+         "Partially Accepted": {
+            color: "#9C27B0",
+            textColor: "white",
+         },
+         Rejected: {
+            color: "#607D8B",
             textColor: "white",
          },
       };
@@ -53,14 +72,16 @@ export default function ListingCard({ item, foo }) {
          <View
             style={{
                alignSelf: "center",
-               padding: 2,
+               paddingHorizontal: 2,
+               paddingVertical: 3,
                backgroundColor: chipData[status].color,
+               borderRadius: 5,
             }}
          >
             <Text
                style={{
-                  fontFamily: "Montserrat-Medium",
-                  fontSize: 12,
+                  fontFamily: "Montserrat-Bold",
+                  fontSize: 10,
                   color: chipData[status].textColor,
                   paddingHorizontal: 5,
                   textTransform: "uppercase",
@@ -71,8 +92,8 @@ export default function ListingCard({ item, foo }) {
          </View>
       );
    }
-   async function deleteEntry(itemId, type) {
-      await handleDelete(itemId, type);
+   async function deleteEntry(itemId) {
+      await handleDelete(itemId, item.type);
       foo();
    }
 
@@ -93,7 +114,38 @@ export default function ListingCard({ item, foo }) {
          Pending: "ASN List",
          Complete: "ASN List",
       },
+      TSFIN: {
+         // Transfer Items
+         "New Request": "Transfer Items",
+         "In Progress": "Transfer Items",
+         Accepted: "Transfer Items",
+         "Partially Accepted": "Transfer Items",
+         Rejected: "Transfer Items",
+         Shipped: "Transfer Items",
+         Delivered: "Transfer Items",
+         Saved: "Transfer Items",
+
+         // Transfer Summary
+         Pending: "Transfer Summary",
+         Complete: "Transfer Summary",
+      },
+      TSFOUT: {
+         // Transfer Items
+         "New Request": "Transfer Items",
+         "In Progress": "Transfer Items",
+         Accepted: "Transfer Items",
+         "Partially Accepted": "Transfer Items",
+         Rejected: "Transfer Items",
+         Shipped: "Transfer Items",
+         Delivered: "Transfer Items",
+         Saved: "Transfer Items",
+
+         // Transfer Summary
+         Pending: "Transfer Summary",
+         Complete: "Transfer Summary",
+      },
    };
+
    // module-specific fields
    const fieldMap = {
       IA: {
@@ -108,23 +160,39 @@ export default function ListingCard({ item, foo }) {
          field: "supplierId",
          title: "Supplier",
       },
+      TSFIN: {
+         field: "storeId",
+         title: "Store ID",
+      },
+      TSFOUT: {
+         field: "storeId",
+         title: "Store ID",
+      },
    };
 
-   const showDelete = item.status !== "Complete" && type !== "PO";
+   // show delete button for certain statuses
+   const deletableStatus = ["In Progress", "Saved", "Pending", "New Request"];
+   const deletableTypes = ["IA", "DSD"];
+   const showDelete =
+      deletableTypes.includes(item.type) &&
+      deletableStatus.includes(item.status);
 
    return (
       <View style={styles.card}>
+         {/* Delete button based on STATUS */}
          {showDelete && (
             <View style={styles.deleteButtonContainer}>
                <Icon
-                  name="delete"
+                  name="delete-circle-outline"
                   type="material-community"
-                  size={15}
-                  color={"white"}
-                  onPress={() => deleteEntry(item.id, type)}
+                  size={22}
+                  color={"crimson"}
+                  onPress={() => deleteEntry(item.id, item.type)}
                />
             </View>
          )}
+
+         {/* Left info container */}
          <View style={styles.cardLeft}>
             <View style={styles.cardLeftTop}>
                <InfoContainer title={"ID: "} value={item.id} />
@@ -134,13 +202,15 @@ export default function ListingCard({ item, foo }) {
             <View style={styles.cardLeftBottom}>
                <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <InfoContainer
-                     title={fieldMap[type].title + ": "}
-                     value={item[fieldMap[type].field] || "N/A"}
+                     title={fieldMap[item.type].title + ": "}
+                     value={item[fieldMap[item.type].field] || "N/A"}
                   />
                </View>
                <InfoContainer title={"Date: "} value={item.date} />
             </View>
          </View>
+
+         {/* Right pressable counts based on type */}
          <Pressable
             onPress={() => {
                navigation.navigate(pageMap[item.type][item.status], {
@@ -157,14 +227,10 @@ export default function ListingCard({ item, foo }) {
                }}
             >
                <Text style={styles.unitCount}>
-                  {type !== "PO"
-                     ? item.items
-                        ? item.items.length
-                        : item.totalSku
-                     : item.asnCount}
+                  {item.totalSku || item.asnCount || item.units || 0}
                </Text>
-               {type !== "PO" ? (
-                  <Text style={styles.unitLabel}>units</Text>
+               {item.type !== "PO" ? (
+                  <Text style={styles.unitLabel}>Units</Text>
                ) : (
                   <Text style={styles.unitLabel}>ASN</Text>
                )}
@@ -193,10 +259,9 @@ const styles = StyleSheet.create({
       position: "absolute",
       top: -5,
       right: -5,
-      padding: 3,
       zIndex: 999,
       borderRadius: 999,
-      backgroundColor: "crimson",
+      backgroundColor: "white",
    },
    cardLeft: {
       position: "relative",

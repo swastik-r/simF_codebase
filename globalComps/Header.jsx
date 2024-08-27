@@ -1,12 +1,18 @@
 import { StyleSheet, View, TouchableOpacity, Image, Text } from "react-native";
 import { Header as HeaderRNE, Icon } from "@rneui/themed";
+import { storeName } from "../context/auth";
 
 export default function Header() {
    const details = [
       {
          icon: "storefront",
          iconType: "ionicons",
-         label: "Store 101",
+         label:
+            "Store: " +
+            storeName
+               .split(" ")
+               .map((word) => word.charAt(0))
+               .join(""),
       },
       {
          icon: "user",

@@ -11,15 +11,25 @@ export const useItem = () => {
 export const ItemProvider = ({ children }) => {
    // States
    const [tempItems, setTempItems] = useState([]);
-   const [tempReasons, setTempReasons] = useState([]);
-   const [tempSupplier, setTempSupplier] = useState([]);
+   const [tempReason, setTempReason] = useState(null);
+   const [tempSupplier, setTempSupplier] = useState(null);
 
-   // Functions
+   // add a new item to the current list
    function addItem(item) {
-      setTempItems([...tempItems, item]);
+      setTempItems([item, ...tempItems]);
    }
-   function deleteItem(item) {
-      setTempItems(tempItems.filter((i) => i !== item));
+   // delete an item based on the SKU
+   function deleteItem(sku) {
+      setTempItems(tempItems.filter((item) => item.sku !== sku));
+   }
+   // fetch the items for an entry
+   async function fetchItems(entryItem) {
+      const items = [];
+      if (entryItem.type === "IA") {
+         const response = await getData(endpoints.fetchItemsIA + entryItem.id);
+         setTempItems(response.items);
+         setTempReason(response.reason);
+      }
    }
 
    const contextVal = {

@@ -10,8 +10,15 @@ import {
 import backgroundImg from "../../assets/bg3.jpg";
 import ItemCard from "./ItemCard";
 import { useNavigation } from "@react-navigation/native";
-import { Button, Overlay, Input, Image, Icon } from "@rneui/themed";
-import { PaperProvider, Portal, FAB } from "react-native-paper";
+import {
+   Button,
+   Overlay,
+   Input,
+   Image,
+   Icon,
+   BottomSheet,
+} from "@rneui/themed";
+import { PaperProvider, Portal, FAB, AnimatedFAB } from "react-native-paper";
 import SearchBar from "./SearchBar_FS";
 import EmptyPageComponent from "../../globalComps/EmptyPageComp";
 import { getData, postData, storeName } from "../../context/auth";
@@ -24,40 +31,42 @@ import uploadImage from "../../assets/uploadImage.png";
 import { endpoints } from "../../context/endpoints";
 import { useIsFocused } from "@react-navigation/native";
 import { AsnCard2 } from "../../modules/PurchaseOrder/AsnCard";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 export default function EntryItemDetailPage({ route }) {
+   const navigation = useNavigation();
    const { entryItem } = route.params;
    const { type, status } = entryItem;
    const [tempItems, setTempItems] = useState([]);
-   const [tempReason, setTempReason] = useState("");
-   const [tempSupplier, setTempSupplier] = useState("");
+   const [tempReason, setTempReason] = useState(null);
+   const [tempSupplier, setTempSupplier] = useState(null);
    const [headerItem, setHeaderItem] = useState({});
+   const completedStatuses = [
+      "Complete",
+      "Delivered",
+      "New Request",
+      "Accepted",
+      "Rejected",
+      // "Partially Accepted",
+      "Shipped",
+   ];
+   const isComplete = completedStatuses.includes(status);
 
-   // fetch the items
-   async function getHeaderItem() {
-      if (type === "PO") {
-         const response = await getData(endpoints.fetchPO);
-         setHeaderItem(response.find((po) => po.id === entryItem.id));
-      }
+   // fetch the PO header
+   async function getPoHeader() {
+      const response = await getData(endpoints.fetchPo);
+      setHeaderItem(response.find((po) => po.id === entryItem.id));
    }
-   // fetch the items, reason, supplier and other details for IA and DSD
+   // fetch the items, reason, supplier and other details for IA, DSD and TSF
    async function getItemsReasonSupplier() {
-      if (status !== "In Progress") {
-         if (type === "IA") {
-            const response = await getData(
-               endpoints.fetchItemsIA + entryItem.id
-            );
-            setTempItems(response.items);
-            setTempReason(response.reason);
-            console.log("REASON:", response.reason);
-         } else if (type === "DSD") {
-            const response = await getData(
-               endpoints.fetchItemsDSD + entryItem.id
-            );
-            setTempItems(response.items);
-            setTempSupplier(response.supplierId);
-            console.log("SUPPLIER:", response.supplierId);
-         }
+      if (type === "IA") {
+         const response = await getData(endpoints.fetchItemsIA + entryItem.id);
+         setTempItems(response.items);
+         setTempReason(response.reason);
+      } else if (type === "DSD") {
+         const response = await getData(endpoints.fetchItemsDSD + entryItem.id);
+         setTempItems(response.items);
+         setTempSupplier(response.supplierId);
       }
    }
    // fetch items that are under an ASN
@@ -65,30 +74,105 @@ export default function EntryItemDetailPage({ route }) {
       const response = await getData(endpoints.fetchASNForPO + entryItem.id);
       setTempItems(response);
    }
-   // delete an item based on the
+   async function getTsfDetails() {
+      const response = await getData(endpoints.fetchItemsTsf + entryItem.id);
+      // setTempItems to response.tsfDetailsDto but set qty of each item to receivedQty
+      setTempItems(
+         response.tsfDetailsDto.map((item) => ({
+            ...item,
+            qty: item.requestedQty,
+         }))
+      );
+      setTempReason(response.reason);
+   }
+   // delete an item based on the SKU
    function deleteItem(sku) {
       setTempItems(tempItems.filter((item) => item.sku !== sku));
    }
+   async function handleShip() {
+      // Example Request Body
+      /*
+         {
+            "tsfId": "string",
+            "status": "string",
+            "tsfDetailsUpdationDto": [
+               {
+                  "qty": 0,
+                  "sku": "string"
+               }
+            ]
+         }
+      */
+
+      // const navigation = useNavigation();
+      const requestBody = {
+         tsfId: entryItem.id,
+         status: "Shipped",
+         tsfDetailsUpdationDto: tempItems.map((item) => ({
+            qty: item.qty,
+            sku: item.sku,
+         })),
+      };
+
+      console.log("Processing SHIP request:", requestBody);
+
+      try {
+         await postData(endpoints.shipTsf + storeName, requestBody);
+         Toast.show({
+            type: "success",
+            text1: "Success",
+            text2: "Items shipped successfully",
+         });
+         navigation.goBack();
+      } catch (error) {
+         console.error("Error shipping items:", error);
+         Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: "Error shipping the items",
+         });
+      }
+   }
 
    const isFocused = useIsFocused();
-   // refresh the data for PO based on focus
+   // ––--––--––--––-- (useEffect) ––--––--––--––-- //
+   // refresh the data for PO based on FOCUS
    useEffect(() => {
       if (type === "PO") {
-         getHeaderItem();
+         getPoHeader();
          getASNItems();
       }
    }, [isFocused]);
-   // refresh the data for IA/DSD on render
+
+   // refresh the data for IA/DSD on RENDER
    useEffect(() => {
-      if (type === "IA" || type === "DSD") {
-         getItemsReasonSupplier();
-      }
+      if (type === "IA" || type === "DSD") getItemsReasonSupplier();
+      else if (type === "TSFIN" || type === "TSFOUT") getTsfDetails();
    }, []);
 
-   // Show overlay for reason or supplier based on the fetched data
-   const [reasonsOverlay, setReasonsOverlay] = useState(
-      isFocused && type === "IA" && !tempReason && !entryItem.reason
-   );
+   useEffect(() => {
+      if (tempReason || entryItem.reason) {
+         setReasonsOverlay(false);
+      }
+   }, [tempReason, entryItem.reason]);
+
+   // reason/supplier selection overlay, opens on FOCUS
+   const [reasonsOverlay, setReasonsOverlay] = useState(false);
+   useEffect(() => {
+      // Update reasonsOverlay based on the availability of reasons
+      if (isFocused) {
+         if (
+            (type === "IA" || type === "TSFIN" || type === "TSFOUT") &&
+            !tempReason &&
+            !entryItem.reason
+         ) {
+            setReasonsOverlay(true);
+         } else {
+            setReasonsOverlay(false);
+         }
+      }
+   }, [isFocused, tempReason, entryItem.reason, type]);
+
    const [supplierOverlay, setSupplierOverlay] = useState(
       isFocused && type === "DSD" && !tempSupplier && !entryItem.supplierId
    );
@@ -106,6 +190,8 @@ export default function EntryItemDetailPage({ route }) {
                         IA: sku,
                         DSD: sku,
                         PO: asnNumber,
+                        TSFIN: sku,
+                        TSFOUT: sku,
                      }[type])
                }
                renderItem={
@@ -116,10 +202,13 @@ export default function EntryItemDetailPage({ route }) {
                         IA: <ItemCard {...{ item, status, deleteItem }} />,
                         DSD: <ItemCard {...{ item, status, deleteItem }} />,
                         PO: <AsnCard2 {...{ item, entryItem }} />,
+                        TSFIN: <ItemCard {...{ item, status, deleteItem }} />,
+                        TSFOUT: <ItemCard {...{ item, status, deleteItem }} />,
                      }[type])
                }
                ListHeaderComponent={() => (
                   <>
+                     {/* Header */}
                      <DetailsTab
                         {...{
                            type,
@@ -131,25 +220,58 @@ export default function EntryItemDetailPage({ route }) {
                         }}
                      />
 
-                     {status !== "Complete" && type !== "PO" && (
-                        <ButtonGroup
+                     {/* Button Group for IA/DSD */}
+                     {status !== "Complete" &&
+                        type !== "PO" &&
+                        type !== "TSFIN" &&
+                        type !== "TSFOUT" && (
+                           <ButtonGroup
+                              {...{
+                                 entryItem,
+                                 tempItems,
+                                 tempReason,
+                                 setTempReason,
+                                 tempSupplier,
+                                 setTempSupplier,
+                              }}
+                           />
+                        )}
+
+                     {/* Button Group for TSF */}
+                     {(type === "TSFIN" || type === "TSFOUT") && (
+                        <TsfButtonGroup
                            {...{
                               entryItem,
                               tempItems,
                               tempReason,
-                              setTempReason,
-                              tempSupplier,
-                              setTempSupplier,
                            }}
                         />
                      )}
 
+                     {/* FAB Group */}
                      {status === "Complete" && type !== "PO" && (
                         <SearchBar {...{ setTempItems, entryItem }} />
                      )}
 
+                     {/* Partially Accepted Transfers Helper Text */}
+                     {status === "Partially Accepted" && (
+                        <Text
+                           style={{
+                              fontFamily: "Montserrat-Bold",
+                              fontSize: 12,
+                              color: "black",
+                              opacity: 0.5,
+                              textAlign: "center",
+                           }}
+                        >
+                           This is a partially accepted transfer. Please modify
+                           the item quantities as required.
+                        </Text>
+                     )}
+
                      <ReasonsOverlay
                         {...{
+                           type,
                            setTempReason,
                            reasonsOverlay,
                            setReasonsOverlay,
@@ -166,17 +288,45 @@ export default function EntryItemDetailPage({ route }) {
                   </>
                )}
                ListFooterComponent={
-                  status !== "Complete" && (
-                     <MyFabGroup
-                        {...{
-                           entryItem,
-                           tempItems,
-                           setTempItems,
-                           tempSupplier,
-                           getASNItems,
-                        }}
-                     />
-                  )
+                  <>
+                     {!isComplete &&
+                        ![
+                           "Accepted",
+                           "Partially Accepted",
+                           "Rejected",
+                        ].includes(status) && (
+                           <MyFabGroup
+                              {...{
+                                 entryItem,
+                                 tempItems,
+                                 setTempItems,
+                                 tempSupplier,
+                                 getASNItems,
+                              }}
+                           />
+                        )}
+
+                     {type === "TSFOUT" && (
+                        <Portal>
+                           <FAB
+                              onPress={handleShip}
+                              disabled={
+                                 !["Accepted", "Partially Accepted"].includes(
+                                    status
+                                 )
+                              }
+                              label="SHIP"
+                              icon="truck-delivery"
+                              style={{
+                                 position: "absolute",
+                                 margin: 16,
+                                 right: 10,
+                                 bottom: 80,
+                              }}
+                           />
+                        </Portal>
+                     )}
+                  </>
                }
                ListEmptyComponent={<EmptyPageComponent />}
                contentContainerStyle={{
@@ -198,26 +348,49 @@ export function DetailsTab({
    tempSupplier,
    headerItem,
 }) {
+   const [tsfHeader, setTsfHeader] = useState([]);
+   async function fetchTsfHeader() {
+      const response = await getData(endpoints.fetchItemsTsf + entryItem.id);
+      return [
+         { label: "ID", value: response.tsfId },
+         {
+            label: "From",
+            value: response.storeFrom,
+         },
+         {
+            label: "To",
+            value: response.storeTo,
+         },
+         {
+            label: "Reason",
+            value: response.reason || tempReason,
+         },
+         {
+            label: "Start Date",
+            value: response.notAfter || "Not Specified",
+         },
+         {
+            label: "End Date",
+            value: response.notBefore || "Not Specified",
+         },
+         {
+            label: "Total SKU",
+            value: tempItems.length || response.tsfDetailsDto.length,
+         },
+      ];
+   }
+
+   useEffect(() => {
+      if (type === "TSFIN" || type === "TSFOUT")
+         fetchTsfHeader().then(setTsfHeader);
+   }, []);
+
    function Detail({ label, value }) {
       return (
          <View
             style={{
                marginVertical: 5,
                flexDirection: "row",
-            }}
-         >
-            <Text style={styles.label}>{label}</Text>
-            <Text style={styles.value}>{value}</Text>
-         </View>
-      );
-   }
-   function DetailRight({ label, value }) {
-      return (
-         <View
-            style={{
-               marginVertical: 5,
-               flexDirection: "row",
-               justifyContent: "flex-end",
             }}
          >
             <Text style={styles.label}>{label}</Text>
@@ -261,6 +434,8 @@ export function DetailsTab({
             value: headerItem.damageQty,
          },
       ],
+      TSFIN: tsfHeader,
+      TSFOUT: tsfHeader,
    };
 
    return (
@@ -298,8 +473,7 @@ export function DetailsTab({
 
 function ButtonGroup({ entryItem, tempItems, tempReason, tempSupplier }) {
    // States and vars
-   const canSaveOrSubmit =
-      tempItems.length > 0 && (tempReason !== "" || tempSupplier !== "");
+   const canSaveOrSubmit = tempItems.length > 0;
    const [proofOverlay, setProofOverlay] = useState(false);
    const navigation = useNavigation();
 
@@ -338,6 +512,19 @@ function ButtonGroup({ entryItem, tempItems, tempReason, tempSupplier }) {
          });
       }
    }
+
+   const tsfButtons = [
+      {
+         title: "Save",
+         icon: "content-save-outline",
+         onPress: handleSave,
+      },
+      {
+         title: "Submit",
+         icon: "save-alt",
+         onPress: () => setProofOverlay(true),
+      },
+   ];
 
    return (
       <View
@@ -389,7 +576,377 @@ function ButtonGroup({ entryItem, tempItems, tempReason, tempSupplier }) {
    );
 }
 
-function ReasonsOverlay({ setTempReason, reasonsOverlay, setReasonsOverlay }) {
+function TsfButtonGroup({ entryItem, tempItems, tempReason }) {
+   /*
+      This is the button group for the TSF item listing.
+      
+      For Store 1 (TSFIN), it contains the Request and Receive buttons.
+         Request: Create a transfer request that is sent to Store 2.
+         Receive: Receive and report damage for the items that were sent by Store 2.
+
+      For Store 2 (TSFOUT), it contains the Accept, Reject, Partially Accept and Ship buttons.
+         Accept: Accept the transfer request.
+         Reject: Reject the transfer request.
+         Partially Accept: Accept some items and reject the rest.
+         Ship: Ship the accepted items to Store 1.
+
+      The buttons are conditionally rendered based on the basis of type which can be either TSFIN or TSFOUT.
+      The buttons are also conditionally disabled based on the status of the entry item.
+   */
+
+   // Functions for Store 1
+   async function handleRequest(startDate, endDate) {
+      /*
+      Example Request Body:
+      {
+         "storeTo": "string",
+         "id": "string",
+         "reason": "string",
+         "image": "string",
+         "notAfter": "2024-08-18",
+         "notBefore": "2024-08-18",
+         "tsfDetailsDto": [
+            {
+               "sku": "string",
+               "upc": "string",
+               "qty": 0,
+               "image": "string",
+               "type": "string"
+            }
+         ]
+      }
+      */
+
+      const requestBody = {
+         storeTo: "",
+         id: entryItem.id,
+         reason: tempReason,
+         image: "",
+         notAfter: startDate,
+         notBefore: endDate,
+         tsfDetailsDto: tempItems.map((item) => ({
+            sku: item.sku,
+            upc: item.upc,
+            qty: item.qty,
+            image: "",
+            type: "TSFIN",
+         })),
+      };
+
+      try {
+         await postData(endpoints.requestTsf, requestBody);
+         Toast.show({
+            type: "success",
+            text1: "Success",
+            text2: "Transfer Request sent successfully",
+         });
+         navigation.goBack();
+      } catch (error) {
+         console.error("Error sending request:", error);
+         Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: "Error sending the request",
+         });
+      }
+   }
+   async function handleReceive() {
+      // Example Request Body
+      /*
+         {
+            "tsfId": "string",
+            "image": "string",
+            "tsfDetailsSaveDto": [
+               {
+                  "receivedQty": 0,
+                  "damageQty": 0,
+                  "damageProof": "string",
+                  "upc": "string",
+                  "sku": "string"
+               }
+            ]
+         }
+      */
+
+      const requestBody = {
+         tsfId: entryItem.id,
+         image: "",
+         tsfDetailsSaveDto: tempItems.map((item) => ({
+            receivedQty: item.qty,
+            damageQty: 0,
+            damageProof: "",
+            upc: item.upc,
+            sku: item.sku,
+         })),
+      };
+
+      try {
+         await postData(endpoints.receiveTsf, requestBody);
+         Toast.show({
+            type: "success",
+            text1: "Success",
+            text2: "Items received successfully",
+         });
+         navigation.goBack();
+      } catch (error) {
+         console.error("Error receiving items:", error);
+         Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: "Error receiving the items",
+         });
+      }
+   }
+
+   // Functions for Store 2
+   async function handleAcceptance(acceptance) {
+      /*
+      Example Request Body:
+      {
+         "tsfId": "string",
+         "status": "string",
+         "tsfDetailsUpdationDto": [
+            {
+               "qty": 0,
+               "sku": "string"
+            }
+         ]
+      }
+      */
+      const requestBody = {
+         tsfId: entryItem.id,
+         status: acceptance,
+         tsfDetailsUpdationDto: tempItems.map((item) => ({
+            qty: item.qty,
+            sku: item.sku,
+         })),
+      };
+
+      try {
+         console.log("Processing request:", requestBody);
+         await postData(endpoints.tsfAcceptance, requestBody);
+
+         Toast.show({
+            type: "success",
+            text1: "Success",
+            text2: "Transfer request processed successfully",
+         });
+         navigation.goBack();
+      } catch (error) {
+         console.error("Error processing request:", error);
+         Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: "Error processing the request",
+         });
+      }
+   }
+
+   // Constants
+   const navigation = useNavigation();
+   const [dateOverlay, setDateOverlay] = useState(false);
+   const { status, type } = entryItem;
+   const TsfInButtons = [
+      {
+         title: "Request",
+         icon: "send",
+         iconType: "material",
+         onPress: () => setDateOverlay(true),
+         enableStatus: ["In Progress"],
+      },
+      {
+         title: "Receive",
+         icon: "move-to-inbox",
+         iconType: "material",
+         onPress: handleReceive,
+         enableStatus: ["Shipped"],
+      },
+   ];
+   const TsfOutButtons = [
+      {
+         title: "Accept",
+         icon: "check-all",
+         iconType: "material-community",
+         onPress: () => handleAcceptance("Accepted"),
+         enableStatus: ["New Request"],
+      },
+      {
+         title: "Reject",
+         icon: "close",
+         iconType: "material-community",
+         onPress: () => handleAcceptance("Rejected"),
+         enableStatus: ["New Request"],
+      },
+      {
+         title: "Part. Accept",
+         icon: "check",
+         iconType: "material-community",
+         onPress: () => handleAcceptance("Partially Accepted"),
+         enableStatus: ["New Request"],
+      },
+   ];
+
+   return (
+      <>
+         <View
+            style={{
+               flexDirection: "row",
+               justifyContent: "space-evenly",
+               marginVertical: 10,
+            }}
+         >
+            {
+               // Render the buttons based on the type
+               {
+                  TSFIN: TsfInButtons,
+                  TSFOUT: TsfOutButtons,
+               }[type].map(
+                  ({ title, icon, iconType, onPress, enableStatus }) => (
+                     <Button
+                        key={title}
+                        title={title}
+                        titleStyle={
+                           type === "TSFIN"
+                              ? styles.buttonTitle
+                              : [styles.buttonTitle, { fontSize: 9 }]
+                        }
+                        icon={{
+                           name: icon,
+                           type: iconType,
+                           color: "white",
+                        }}
+                        buttonStyle={
+                           // type === "TSFIN"
+                           styles.button
+                           // : [styles.button, { padding: 2 }]
+                        }
+                        onPress={onPress}
+                        disabled={
+                           !enableStatus.includes(status) ||
+                           tempItems.length === 0
+                        }
+                     />
+                  )
+               )
+            }
+         </View>
+
+         <DateFilterBottomSheet
+            {...{
+               handleRequest,
+               dateOverlay,
+               setDateOverlay,
+            }}
+         />
+      </>
+   );
+}
+
+function DateFilterBottomSheet({ handleRequest, dateOverlay, setDateOverlay }) {
+   function DateRangePicker() {
+      // States and Vars
+      const [startDate, setStartDate] = useState(new Date());
+      const [endDate, setEndDate] = useState(new Date());
+      const [showStartPicker, setShowStartPicker] = useState(false);
+      const [showEndPicker, setShowEndPicker] = useState(false);
+
+      // Functions
+      function onStartChange(event, selectedDate) {
+         setShowStartPicker(false);
+         if (selectedDate) {
+            setStartDate(selectedDate);
+         }
+      }
+      function onEndChange(event, selectedDate) {
+         setShowEndPicker(false);
+         if (selectedDate) {
+            setEndDate(selectedDate);
+         }
+      }
+
+      return (
+         <View style={{ flexDirection: "row" }}>
+            <View style={styles.container}>
+               <View style={styles.picker}>
+                  <Button
+                     onPress={() => setShowStartPicker(true)}
+                     title="Start Date"
+                     titleStyle={{ fontFamily: "Montserrat-Bold" }}
+                     icon={{
+                        name: "calendar",
+                        type: "material-community",
+                        color: "white",
+                     }}
+                  />
+                  {showStartPicker && (
+                     <DateTimePicker
+                        testID="startDateTimePicker"
+                        value={startDate}
+                        mode="date"
+                        display="default"
+                        onChange={onStartChange}
+                        minimumDate={new Date()}
+                     />
+                  )}
+                  <Text style={styles.dateText}>
+                     {startDate.toDateString()}
+                  </Text>
+               </View>
+               <View style={styles.picker}>
+                  <Button
+                     onPress={() => setShowEndPicker(true)}
+                     title="End Date"
+                     titleStyle={{ fontFamily: "Montserrat-Bold" }}
+                     icon={{
+                        name: "calendar",
+                        type: "material-community",
+                        color: "white",
+                     }}
+                  />
+                  {showEndPicker && (
+                     <DateTimePicker
+                        testID="endDateTimePicker"
+                        value={endDate}
+                        mode="date"
+                        display="default"
+                        onChange={onEndChange}
+                        minimumDate={new Date()}
+                     />
+                  )}
+
+                  <Text style={styles.dateText}>{endDate.toDateString()}</Text>
+               </View>
+            </View>
+            <View style={styles.container}>
+               <Button
+                  title="Create Request"
+                  titleStyle={{ fontFamily: "Montserrat-Bold" }}
+                  buttonStyle={{ backgroundColor: "green", borderRadius: 30 }}
+                  onPress={() => handleRequest(startDate, endDate)}
+               />
+            </View>
+         </View>
+      );
+   }
+
+   return (
+      <BottomSheet
+         isVisible={dateOverlay}
+         onBackdropPress={() => setDateOverlay(false)}
+      >
+         <View style={styles.bottomSheet}>
+            <DateRangePicker />
+         </View>
+      </BottomSheet>
+   );
+}
+
+function ReasonsOverlay({
+   type,
+   setTempReason,
+   reasonsOverlay,
+   setReasonsOverlay,
+}) {
    // USEEFFECT: Fetch the reasons
    useEffect(() => {
       fetchReasons().then((data) => setReasons(data));
@@ -401,7 +958,9 @@ function ReasonsOverlay({ setTempReason, reasonsOverlay, setReasonsOverlay }) {
 
    // Functions
    async function fetchReasons() {
-      return await getData(endpoints.fetchReasons);
+      if (type === "IA") return await getData(endpoints.fetchReasons);
+      else if (type === "TSFIN" || type === "TSFOUT")
+         return await getData(endpoints.fetchTsfReasons);
    }
    function setReason(item) {
       setTempReason(item);
@@ -421,7 +980,7 @@ function ReasonsOverlay({ setTempReason, reasonsOverlay, setReasonsOverlay }) {
    return (
       <Overlay
          isVisible={reasonsOverlay}
-         overlayStyle={{ width: "60%", borderRadius: 20 }}
+         overlayStyle={{ width: "75%", borderRadius: 20 }}
       >
          <FlatList
             data={reasons}
@@ -681,13 +1240,7 @@ function ProofOverlay({
    );
 }
 
-function MyFabGroup({
-   entryItem,
-   tempItems,
-   setTempItems,
-   tempSupplier,
-   getASNItems,
-}) {
+function MyFabGroup({ entryItem, tempItems, setTempItems, tempSupplier }) {
    // FAB Group States and Properties
    const [state, setState] = useState({ open: false });
    const { open } = state;
@@ -815,7 +1368,7 @@ function MyFabGroup({
       });
    }
 
-   const validActions = [
+   const actionsIA = [
       {
          icon: "file-excel",
          label: "Upload Excel Data",
@@ -836,15 +1389,38 @@ function MyFabGroup({
             }),
       },
    ];
-   const actionsIA = validActions;
-   const actionsDSD = validActions.filter(
-      (action) => action.label !== "Upload Excel Data"
-   );
+   const actionsDSD = [
+      {
+         icon: "qrcode-scan",
+         label: "Add Item",
+         onPress: () =>
+            navigation.navigate("Add Items", {
+               type: entryItem.type,
+               tempItems,
+               setTempItems,
+               tempSupplier,
+            }),
+      },
+   ];
    const actionsPO = [
       {
          icon: "plus",
          label: "Create ASN",
          onPress: navigateToCreateASN,
+      },
+   ];
+   const actionsTSF = [
+      // Add items
+      {
+         icon: "qrcode-scan",
+         label: "Add Item",
+         onPress: () =>
+            navigation.navigate("Add Items", {
+               type: entryItem.type,
+               tempItems,
+               setTempItems,
+               tempSupplier,
+            }),
       },
    ];
 
@@ -853,6 +1429,8 @@ function MyFabGroup({
       IA: actionsIA,
       DSD: actionsDSD,
       PO: actionsPO,
+      TSFIN: actionsTSF,
+      TSFOUT: [],
    }[type];
 
    // use FAB for single action, FAB.Group for multiple actions
@@ -901,13 +1479,13 @@ const styles = StyleSheet.create({
    },
 
    button: {
-      borderRadius: 10,
-      width: 120,
+      borderRadius: 20,
       alignSelf: "center",
    },
    buttonTitle: {
       fontFamily: "Montserrat-Bold",
-      fontSize: 14,
+      fontSize: 10,
+      textTransform: "uppercase",
    },
 
    asnCountContainer: {
@@ -924,5 +1502,33 @@ const styles = StyleSheet.create({
       fontFamily: "Montserrat-Bold",
       fontSize: 20,
       color: "black",
+   },
+
+   // Date Picker Styles
+   container: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 16,
+   },
+   picker: {
+      marginVertical: 10,
+      alignItems: "center",
+   },
+   dateText: {
+      marginTop: 10,
+      fontSize: 16,
+      fontFamily: "Montserrat-Medium",
+   },
+   bottomSheet: {
+      backgroundColor: "white",
+      padding: 10,
+   },
+   buttonContainer: {
+      paddingVertical: 5,
+      paddingHorizontal: 6,
+      marginHorizontal: 5,
+      backgroundColor: "#112d4e",
+      borderRadius: 10,
    },
 });

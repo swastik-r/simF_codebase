@@ -16,6 +16,7 @@ import { useFonts } from "expo-font";
 import AdjustmentDetailProvider from "./context/DataContext";
 import DataContextProvider from "./context/DataContext3";
 import AppContainer from "./AppContainer";
+import Login from "./modules/Login/Login";
 
 // Main App Component
 export default function App() {
@@ -39,7 +40,8 @@ export default function App() {
          <Toast config={toastConfig} />
       </ThemeProvider>
    );
-   // return <Text>Hello World!</Text>;
+
+   // return <Login />;
 }
 
 // Load Fonts

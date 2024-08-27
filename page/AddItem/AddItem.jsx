@@ -24,12 +24,13 @@ export default function AddItem({ route }) {
          IA: generalItemSearch,
          DSD: supplierItemSearch,
          PO: poItemSearch,
+         TSFIN: generalItemSearch,
+         TSFOUT: generalItemSearch,
       };
 
       // Set suggestions array based on search results from functions
       setSuggestions(await searchFunctions[type](searchStr));
    }
-
    // Search Function for IA
    async function generalItemSearch(searchStr) {
       const searchResult = await getData(

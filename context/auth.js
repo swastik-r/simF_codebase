@@ -8,7 +8,7 @@ const email = "monikakumari103@gmail.com";
 const userName = "Monika";
 const password = "abc123";
 const showToken = true;
-const prettify = false;
+const prettify = true;
 
 // Function to retrieve the token
 async function getToken() {
@@ -165,10 +165,13 @@ function compareStructure(obj1, obj2) {
 }
 
 export {
+   // Functions
    getData,
    postData,
    deleteData,
    compareStructure,
+
+   // Constants
    baseURL,
    storeName,
    email,

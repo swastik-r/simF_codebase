@@ -8,8 +8,6 @@ import { Icon, SearchBar, ListItem } from "@rneui/themed";
 
 // Custom Components
 import { BottomSheet, Button } from "@rneui/base";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { useDataContext } from "../../context/DataContext3";
 import { getData } from "../../context/auth";
 import { searchEntry, sortEntry } from "../../context/functions";
 
@@ -546,111 +544,6 @@ function ReasonFilterBottomSheet({
                </ListItem.Content>
             </ListItem>
          ))}
-      </BottomSheet>
-   );
-}
-
-function DateFilterBottomSheet({ dateFilterVisible, setDateFilterVisible }) {
-   function DateRangePicker() {
-      // States and Vars
-      const [startDate, setStartDate] = useState(new Date());
-      const [endDate, setEndDate] = useState(new Date());
-      const [showStartPicker, setShowStartPicker] = useState(false);
-      const [showEndPicker, setShowEndPicker] = useState(false);
-      const { data, setData, initialData } = useDataContext();
-
-      // Functions
-      function onStartChange(event, selectedDate) {
-         setShowStartPicker(false);
-         if (selectedDate) {
-            setStartDate(selectedDate);
-         }
-      }
-      function onEndChange(event, selectedDate) {
-         setShowEndPicker(false);
-         if (selectedDate) {
-            setEndDate(selectedDate);
-         }
-      }
-      function filterDate(startDate, endDate) {
-         const filteredData = data.filter((item) => {
-            const itemDate = new Date(item.date);
-            return itemDate >= startDate && itemDate <= endDate;
-         });
-         setData(filteredData);
-      }
-
-      return (
-         <View style={{ flexDirection: "row" }}>
-            <View style={styles.container}>
-               <View style={styles.picker}>
-                  <Button
-                     onPress={() => setShowStartPicker(true)}
-                     title="Start Date"
-                     titleStyle={{ fontFamily: "Montserrat-Bold" }}
-                     icon={{
-                        name: "calendar",
-                        type: "material-community",
-                        color: "white",
-                     }}
-                  />
-                  {showStartPicker && (
-                     <DateTimePicker
-                        testID="startDateTimePicker"
-                        value={startDate}
-                        mode="date"
-                        display="default"
-                        onChange={onStartChange}
-                     />
-                  )}
-                  <Text style={styles.dateText}>
-                     {startDate.toDateString()}
-                  </Text>
-               </View>
-               <View style={styles.picker}>
-                  <Button
-                     onPress={() => setShowEndPicker(true)}
-                     title="End Date"
-                     titleStyle={{ fontFamily: "Montserrat-Bold" }}
-                     icon={{
-                        name: "calendar",
-                        type: "material-community",
-                        color: "white",
-                     }}
-                  />
-                  {showEndPicker && (
-                     <DateTimePicker
-                        testID="endDateTimePicker"
-                        value={endDate}
-                        mode="date"
-                        display="default"
-                        onChange={onEndChange}
-                     />
-                  )}
-
-                  <Text style={styles.dateText}>{endDate.toDateString()}</Text>
-               </View>
-            </View>
-            <View style={styles.container}>
-               <Button
-                  title="Apply Filter"
-                  titleStyle={{ fontFamily: "Montserrat-Bold" }}
-                  buttonStyle={{ backgroundColor: "green" }}
-                  onPress={() => filterDate(startDate, endDate)}
-               />
-            </View>
-         </View>
-      );
-   }
-
-   return (
-      <BottomSheet
-         isVisible={dateFilterVisible}
-         onBackdropPress={() => setDateFilterVisible(false)}
-      >
-         <View style={styles.bottomSheet}>
-            <DateRangePicker />
-         </View>
       </BottomSheet>
    );
 }

@@ -1,5 +1,4 @@
 import { useRef, useEffect } from "react";
-
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import {
    View,
@@ -10,13 +9,11 @@ import {
 } from "react-native";
 import DsdNavigator from "./modules/DirectStoreDelivery/DsdNavigator";
 import IaNavigator from "./modules/InventoryAdjustment/IaNavigator";
+import GsNavigator from "./modules/GlobalSearch/GsNavigator";
 import PoNavigator from "./modules/PurchaseOrder/PoNavigator";
+import TransferNavigator from "./modules/Transfer/TransferNavigator";
 import { Icon, useTheme, Text } from "@rneui/themed";
-import DownloadExcelFile from "./modules/GlobalSearch/GlobalSearch";
 import { LinearGradient } from "expo-linear-gradient";
-
-import AsnCard from "./modules/PurchaseOrder/AsnCard";
-import AsnItemCard from "./modules/PurchaseOrder/AsnItemCard";
 
 const Tab = createBottomTabNavigator();
 
@@ -25,7 +22,7 @@ export default function AppContainer() {
 
    return (
       <Tab.Navigator
-         initialRouteName="Purchase Order"
+         initialRouteName="Global Search Module"
          screenOptions={({ route }) => ({
             headerTitleAlign: "center",
             headerTitleStyle: {
@@ -54,7 +51,7 @@ export default function AppContainer() {
                      focused: "book",
                      unfocused: "book-outline",
                   },
-                  "Global Search": {
+                  "Global Search Module": {
                      focused: "qrcode",
                      unfocused: "qrcode-scan",
                   },
@@ -62,7 +59,7 @@ export default function AppContainer() {
                      focused: "cart",
                      unfocused: "cart-outline",
                   },
-                  Transfer: {
+                  Transfers: {
                      focused: "swap-horizontal-bold",
                      unfocused: "swap-horizontal",
                   },
@@ -95,14 +92,14 @@ export default function AppContainer() {
                   case "Inventory Adjustment":
                      labelName = "IA";
                      break;
-                  case "Global Search":
+                  case "Global Search Module":
                      labelName = "GS";
                      break;
                   case "Purchase Order":
                      labelName = "PO";
                      break;
-                  case "Transfer":
-                     labelName = "Transfer";
+                  case "Transfers":
+                     labelName = "TSF";
                      break;
                }
                return (
@@ -122,15 +119,11 @@ export default function AppContainer() {
             },
          })}
       >
-         {/* IA Navigator */}
          <Tab.Screen name="Inventory Adjustment" component={IaNavigator} />
-
-         {/* DSD Navigator */}
          <Tab.Screen name="Direct Store Delivery" component={DsdNavigator} />
-
-         {/* Global Search Navigator */}
          <Tab.Screen
-            name="Global Search"
+            name="Global Search Module"
+            component={GsNavigator}
             options={{
                tabBarButton: (props) => (
                   <CustomTabBarButton {...props}>
@@ -143,24 +136,9 @@ export default function AppContainer() {
                   </CustomTabBarButton>
                ),
             }}
-            listeners={({ navigation }) => ({
-               tabPress: () => {
-                  navigation.navigate("Global Search");
-               },
-            })}
-         >
-            {() => <DownloadExcelFile />}
-         </Tab.Screen>
-
-         {/* PO Navigator */}
-         <Tab.Screen name="Purchase Order" component={PoNavigator} />
-
-         {/* TSF Navigator */}
-         <Tab.Screen
-            name="Transfer"
-            component={Screen}
-            initialParams={{ title: "Transfer" }}
          />
+         <Tab.Screen name="Purchase Order" component={PoNavigator} />
+         <Tab.Screen name="Transfers" component={TransferNavigator} />
       </Tab.Navigator>
    );
 }
@@ -217,14 +195,6 @@ const AnimatedIcon = ({ name, type, focused, color }) => {
       </Animated.View>
    );
 };
-
-function Screen({ route }) {
-   return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-         <Text>{route.params?.title}</Text>
-      </View>
-   );
-}
 
 const styles = StyleSheet.create({
    customButton: {

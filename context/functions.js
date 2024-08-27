@@ -9,8 +9,13 @@ async function fetchData(type) {
    } else if (type === "DSD") {
       data = await getData(endpoints.fetchDSD);
    } else if (type === "PO") {
-      data = await getData(endpoints.fetchPO);
+      data = await getData(endpoints.fetchPo);
+   } else if (type === "TSFIN") {
+      data = await getData(endpoints.fetchTsfIn + storeName);
+   } else if (type === "TSFOUT") {
+      data = await getData(endpoints.fetchTsfOut + storeName);
    }
+
    return data;
 }
 
@@ -19,6 +24,10 @@ async function createEntry(type) {
       return await postData(endpoints.createIA + `${storeName}/${userName}`);
    } else if (type === "DSD") {
       return await postData(endpoints.createDSD + `${storeName}/${userName}`);
+   } else if (type === "TSFIN") {
+      return await postData(
+         endpoints.createTsf + `${storeName}/${userName}/Ambience Mall`
+      );
    }
 }
 

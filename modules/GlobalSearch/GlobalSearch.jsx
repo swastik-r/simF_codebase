@@ -1,79 +1,179 @@
-import * as React from "react";
-import { View, StyleSheet, Button, Platform, Text } from "react-native";
-import * as Print from "expo-print";
-import { shareAsync } from "expo-sharing";
+import React, { useEffect, useState } from "react";
+import { View, Text, StyleSheet, Image } from "react-native";
+import { SearchBar, Button } from "@rneui/themed";
+import { endpoints } from "../../context/endpoints";
+import { storeName, getData } from "../../context/auth";
+import { useNavigation } from "@react-navigation/native";
 
-const html = `
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
-  </head>
-  <body style="text-align: center;">
-    <h1 style="font-size: 50px; font-family: Helvetica Neue; font-weight: normal;">
-      Hello Expo!
-    </h1>
-    <img
-      src="https://d30j33t1r58ioz.cloudfront.net/static/guides/sdk.png"
-      style="width: 90vw;" />
-  </body>
-</html>
-`;
+export default function GlobalSearch() {
+   // Constants and Variables
+   const [sku, setSku] = useState("");
+   const [item, setItem] = useState(null);
 
-export default function App() {
-   const [selectedPrinter, setSelectedPrinter] = React.useState();
+   // Search Function
+   async function searchSku(sku) {
+      if (sku === "") {
+         setItem(null);
+         return;
+      }
 
-   const print = async () => {
-      // On iOS/android prints the given html. On web prints the HTML from the current page.
-      await Print.printAsync({
-         html,
-      });
-   };
+      try {
+         const response = await getData(
+            `${endpoints.storeItemDetails}${sku}/${storeName}`
+         );
+         setItem(response);
+      } catch (error) {
+         setItem(null);
+      }
+   }
 
-   const printToFile = async () => {
-      // On iOS/android prints the given html. On web prints the HTML from the current page.
-      const { uri } = await Print.printToFileAsync({ html });
-      console.log("File has been saved to:", uri);
-      await shareAsync(uri, { UTI: ".pdf", mimeType: "application/pdf" });
-   };
-
-   const selectPrinter = async () => {
-      const printer = await Print.selectPrinterAsync(); // iOS only
-      setSelectedPrinter(printer);
-   };
+   // UseEffect: Search on SKU modification
+   useEffect(() => {
+      searchSku(sku); // Call the searchSku function whenever SKU changes
+   }, [sku]);
 
    return (
-      <View style={styles.container}>
-         <Button title="Print" onPress={print} />
-         <View style={styles.spacer} />
-         <Button title="Print to PDF file" onPress={printToFile} />
-         {Platform.OS === "ios" && (
-            <>
-               <View style={styles.spacer} />
-               <Button title="Select printer" onPress={selectPrinter} />
-               <View style={styles.spacer} />
-               {selectedPrinter ? (
-                  <Text
-                     style={styles.printer}
-                  >{`Selected printer: ${selectedPrinter.name}`}</Text>
-               ) : undefined}
-            </>
-         )}
+      <View style={styles.page}>
+         <Scanner {...{ setSku }} />
+         <ManualSearch {...{ sku, setSku, item }} />
+      </View>
+   );
+}
+
+function Scanner({ setSku }) {
+   return <View style={styles.scannerContainer}></View>;
+}
+
+function ManualSearch({ sku, setSku, item }) {
+   return (
+      <View style={styles.manualContainer}>
+         {/* Search Bar */}
+         <SearchBar
+            placeholder="Search an item SKU here..."
+            value={sku}
+            onChangeText={setSku}
+            containerStyle={styles.searchContainer}
+            inputContainerStyle={styles.searchInput}
+         />
+
+         {/* Item Card */}
+         {item && <ItemCard {...{ item }} />}
+      </View>
+   );
+}
+
+function ItemCard({ item }) {
+   const navigation = useNavigation();
+
+   function InfoSection({ label, value }) {
+      return (
+         <View style={{ flexDirection: "column" }}>
+            <Text style={styles.label}>{label}</Text>
+            <Text style={styles.value}>{value}</Text>
+         </View>
+      );
+   }
+   function selectItem() {
+      navigation.navigate("Item Stock", { item });
+   }
+
+   return (
+      <View style={styles.itemCard}>
+         <Image source={{ uri: item.imageData }} style={styles.itemImage} />
+         <View
+            style={{
+               flexDirection: "column",
+               justifyContent: "space-between",
+            }}
+         >
+            <InfoSection label="SKU" value={item.sku} />
+            <View>
+               <Text
+                  style={{
+                     fontFamily: "Montserrat-Bold",
+                     fontSize: 16,
+                     color: "#f0f0f0",
+                  }}
+               >
+                  {item.itemName}
+               </Text>
+               <Text
+                  style={{
+                     fontFamily: "Montserrat-Regular",
+                     fontSize: 12,
+                     color: "#f0f0f0",
+                  }}
+               >
+                  {item.size} / {item.color}
+               </Text>
+            </View>
+         </View>
+         <Button
+            title="Select"
+            titleStyle={{ fontFamily: "Montserrat-Regular", color: "#000" }}
+            buttonStyle={{
+               backgroundColor: "#f0f0f0",
+               borderRadius: 10,
+            }}
+            onPress={selectItem}
+         />
       </View>
    );
 }
 
 const styles = StyleSheet.create({
-   container: {
+   page: {
+      flex: 0.89,
+      justifyContent: "space-evenly",
+      alignItems: "center",
+   },
+   scannerContainer: {
       flex: 1,
+      width: "100%",
       justifyContent: "center",
-      backgroundColor: "#ecf0f1",
-      flexDirection: "column",
-      padding: 8,
+      alignItems: "center",
+      backgroundColor: "black",
    },
-   spacer: {
-      height: 8,
+   manualContainer: {
+      flex: 1,
+      width: "100%",
+      justifyContent: "space-evenly",
+      alignItems: "center",
    },
-   printer: {
-      textAlign: "center",
+   searchContainer: {
+      width: "90%",
+      backgroundColor: "transparent",
+      borderTopWidth: 0,
+      borderBottomWidth: 0,
+   },
+   searchInput: {
+      backgroundColor: "#fff",
+      borderRadius: 10,
+   },
+   itemCard: {
+      width: "80%",
+      padding: 20,
+      borderWidth: 1,
+      borderRadius: 20,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      backgroundColor: "#112d4e",
+   },
+   itemImage: {
+      width: 100,
+      height: 100,
+      backgroundColor: "#f0f0f0",
+      borderRadius: 10,
+   },
+   label: {
+      fontFamily: "Montserrat-Regular",
+      fontSize: 12,
+      color: "#f0f0f0",
+      textTransform: "uppercase",
+   },
+   value: {
+      fontFamily: "Montserrat-Bold",
+      fontSize: 15,
+      color: "#fff",
    },
 });

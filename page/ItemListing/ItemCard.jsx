@@ -8,7 +8,16 @@ export default function ItemCard({ item, status, deleteItem }) {
    // States and Constants
    const [quantityOverlay, setQuantityOverlay] = useState(false);
    const [proofImagesOverlay, setProofImagesOverlay] = useState(false);
-   const isComplete = status === "Complete";
+   const completedStatuses = [
+      "Complete",
+      "Delivered",
+      "New Request",
+      "Accepted",
+      "Rejected",
+      "Shipped",
+   ];
+   const isComplete = completedStatuses.includes(status);
+   const partiallyAccepted = status === "Partially Accepted";
 
    // Functions
    function uploadProof() {
@@ -64,7 +73,7 @@ export default function ItemCard({ item, status, deleteItem }) {
    return (
       <>
          <View style={styles.card}>
-            {!isComplete && (
+            {!isComplete && !partiallyAccepted && (
                <View style={styles.deleteIconContainer}>
                   <Icon
                      onPress={() => {
@@ -97,10 +106,17 @@ export default function ItemCard({ item, status, deleteItem }) {
             </View>
             <View style={styles.qtyAndUploadContainer}>
                <Pressable
-                  style={styles.qtyContainer}
+                  style={
+                     partiallyAccepted
+                        ? [
+                             styles.qtyContainer,
+                             { borderWidth: 2, borderColor: "crimson" },
+                          ]
+                        : styles.qtyContainer
+                  }
                   onPress={() => {
                      if (!isComplete) {
-                        console.log("Not yet complete, open the qty overlay");
+                        console.log();
                         setQuantityOverlay(true);
                      }
                   }}
@@ -116,6 +132,7 @@ export default function ItemCard({ item, status, deleteItem }) {
                      {item.qty || item.shippedQty}
                   </Text>
                </Pressable>
+
                <Button
                   onPress={!isComplete ? uploadProof : showProof}
                   type="outline"
@@ -136,6 +153,7 @@ export default function ItemCard({ item, status, deleteItem }) {
             </View>
          </View>
 
+         {/* Quantity Update Overlay */}
          {!isComplete &&
             {
                IA: (
@@ -165,9 +183,37 @@ export default function ItemCard({ item, status, deleteItem }) {
                      }}
                   />
                ),
+               TSF: (
+                  <QuantityUpdateOverlay
+                     {...{
+                        item,
+                        quantityOverlay,
+                        setQuantityOverlay,
+                     }}
+                  />
+               ),
+               TSFIN: (
+                  <QuantityUpdateOverlay
+                     {...{
+                        item,
+                        quantityOverlay,
+                        setQuantityOverlay,
+                     }}
+                  />
+               ),
+               TSFOUT: (
+                  <QuantityUpdateOverlay
+                     {...{
+                        item,
+                        quantityOverlay,
+                        setQuantityOverlay,
+                     }}
+                  />
+               ),
             }[item.type]}
 
-         {status === "Complete" && (
+         {/* Proof Images Overlay */}
+         {isComplete && (
             <ProofImagesOverlay
                {...{
                   item,
@@ -231,11 +277,16 @@ function QuantityUpdateOverlay({ item, quantityOverlay, setQuantityOverlay }) {
          {/* Input field */}
          <Input
             value={newQty}
+            inputStyle={{
+               fontFamily: "Montserrat-Regular",
+               fontSize: 20,
+               textAlign: "center",
+            }}
+            placeholder="Quantity"
             onChangeText={(text) => setNewQty(text)}
             keyboardType="numeric"
          />
 
-         {/*  */}
          <View style={{ flexDirection: "row" }}>
             <Button
                type="outline"
