@@ -12,11 +12,10 @@ import Toast from "react-native-toast-message";
 import * as Sharing from "expo-sharing";
 import * as FileSystem from "expo-file-system";
 import XLSX from "xlsx";
-import { endpoints } from "../../context/endpoints";
 
-export default function SearchBar_FS({ setTempItems, entryItem }) {
+export default function SearchBar_FS({ entryItem, tempItems, setTempItems }) {
    // States and Vars
-   const { id, type } = entryItem;
+   const { id } = entryItem;
    const [searchStr, setSearchStr] = useState("");
 
    // Search Application
@@ -65,22 +64,22 @@ export default function SearchBar_FS({ setTempItems, entryItem }) {
    }, [searchStr]);
 
    async function handleExcelDownload() {
+      /*
+         params: tempItems, type
+         process: define the fields to be exported based on the type
+      */
+
       try {
-         let items;
-         if (type === "IA") {
-            const response = await getData(endpoints.fetchItemsIA + id);
-            items = response.items;
-         } else if (type === "DSD") {
-            const response = await getData(endpoints.fetchItemsDSD + id);
-            items = response.items;
-         }
+         const items = tempItems;
 
          const sheetData = items.map((item) => ({
-            ID: item.itemNumber,
             Name: item.itemName,
+            ID: item.itemNumber,
+            SKU: item.sku,
             Color: item.color,
             Size: item.size,
             Quantity: item.qty,
+            Variance: item.variance,
          }));
 
          const wb = XLSX.utils.book_new();
@@ -88,7 +87,8 @@ export default function SearchBar_FS({ setTempItems, entryItem }) {
          XLSX.utils.book_append_sheet(wb, ws, "Items");
          const wbout = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
 
-         const uri = FileSystem.documentDirectory + entryItem.id + ".xlsx";
+         const uri =
+            FileSystem.documentDirectory + `Variance_${entryItem.id}.xlsx`;
          await FileSystem.writeAsStringAsync(uri, wbout, {
             encoding: FileSystem.EncodingType.Base64,
          });
@@ -99,7 +99,7 @@ export default function SearchBar_FS({ setTempItems, entryItem }) {
             text2: "Excel file created successfully.",
          });
 
-         // download the excel file
+         // share/download the created excel workbook
          if (await Sharing.isAvailableAsync()) {
             await Sharing.shareAsync(uri);
          } else {
@@ -152,12 +152,6 @@ export default function SearchBar_FS({ setTempItems, entryItem }) {
                   color={"white"}
                />
             </Pressable>
-            {/* <Pressable
-               style={styles.buttonContainer}
-               onPress={() => {}}
-            >
-               <Icon name="eye" type="material-community" color={"white"} />
-            </Pressable> */}
          </View>
       </>
    );

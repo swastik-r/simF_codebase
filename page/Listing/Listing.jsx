@@ -6,68 +6,79 @@ import {
    FlatList,
    ImageBackground,
 } from "react-native";
-import { FAB, Overlay, Icon, Input, Button } from "@rneui/themed";
+import {
+   FAB,
+   Overlay,
+   Icon,
+   Input,
+   Button,
+   useTheme,
+   BottomSheet,
+} from "@rneui/themed";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
+// Custom Comps and Functions
 import ListingCard from "./ListingCard";
-import { useTheme } from "@rneui/themed";
 import EmptyPageComponent from "../../globalComps/EmptyPageComp";
 import SearchBar from "./SearchBar_FS";
 import { fetchData, createEntry } from "../../context/functions";
-import { useIsFocused, useNavigation } from "@react-navigation/native";
-import { postData, storeName, userName } from "../../context/auth";
+import { format } from "date-fns";
+import { getData, postData, storeName, userName } from "../../context/auth";
 import { endpoints } from "../../context/endpoints";
-import { getData } from "../../context/auth";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 export default function ListingPage({ type }) {
-   // auto-refresh listing data on focus
-   const isFocused = useIsFocused();
-   useEffect(() => {
-      if (isFocused) {
-         foo();
-      }
-   }, [isFocused]);
-
-   // States and Vars
-   const { theme } = useTheme();
-   const [listingData, setListingData] = useState([]);
+   // Navigation
    const navigation = useNavigation();
-   const pageMap = {
-      IA: {
-         "In Progress": "IA Items",
-      },
-      DSD: {
-         "In Progress": "DSD Items",
-      },
-      TSFIN: {
-         "In Progress": "Transfer Items",
-      },
-   };
+   // Navigation FOCUS Listener
+   const isFocused = useIsFocused();
+   // Theme Context
+   const { theme } = useTheme();
 
-   // Functions
-   async function foo() {
+   // ------------ Listing Data State ------------
+
+   const [listingData, setListingData] = useState([]);
+   // useEffect: Refresh Listing Page Data on Focus
+   useEffect(() => {
+      refreshListingData();
+   }, [isFocused]);
+   // Function to refresh Listing Data
+   async function refreshListingData() {
       setListingData(await fetchData(type));
    }
+
+   // ------------ Create Mech -------------------
+
+   // No Create FAB on "PO" and "TSFOUT" pages
+   const showCreateFab = !["PO", "TSFOUT"].includes(type);
+   // Function to create a new entry for the current module
    async function handleCreate() {
-      try {
-         if (type !== "TSFIN") {
-            const response = await createEntry(type);
-            navigation.navigate(pageMap[type][response.status], {
-               entryItem: response,
-            });
-         } else {
-            // open the TSF Supplier Search Overlay
+      let newEntry;
+      switch (type) {
+         case "IA":
+            newEntry = await createEntry(type);
+            navigation.navigate("IA Items", { entryItem: newEntry });
+            break;
+         case "DSD":
+            newEntry = await createEntry(type);
+            navigation.navigate("DSD Items", { entryItem: newEntry });
+            break;
+         case "TSFIN":
             setSupplierOverlay(true);
-         }
-      } catch (error) {
-         console.error("Failed to create entry", error);
+            break;
+         case "SC":
+            setScDateOverlay(true);
+            break;
+         default:
+            console.error("Invalid type to create entry");
       }
    }
 
-   // FAB: No FAB on PO and TSFOUT
-   const nonCreatePages = ["PO", "TSFOUT"];
-   const showCreateFab = !nonCreatePages.includes(type);
+   // ------------ Overlays ----------------------
 
-   // Supplier Overlay States
-   const [supplierOverlay, setSupplierOverlay] = useState(false);
+   // Supplier Overlay for TSF
+   const [tsfSupplierOverlay, setSupplierOverlay] = useState(false);
+   // Date Overlay for SC
+   const [scDateOverlay, setScDateOverlay] = useState(false);
 
    return (
       <ImageBackground
@@ -77,7 +88,9 @@ export default function ListingPage({ type }) {
          <FlatList
             data={listingData}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <ListingCard {...{ item, foo }} />}
+            renderItem={({ item }) => (
+               <ListingCard {...{ item, refreshListingData }} />
+            )}
             ListHeaderComponent={<SearchBar {...{ type, setListingData }} />}
             ListEmptyComponent={<EmptyPageComponent />}
             contentContainerStyle={{
@@ -87,7 +100,7 @@ export default function ListingPage({ type }) {
             }}
          />
 
-         {/* FAB: Add a new entry */}
+         {/* Create FAB */}
          {showCreateFab && (
             <FAB
                title={"Create"}
@@ -115,8 +128,18 @@ export default function ListingPage({ type }) {
          {type === "TSFIN" && (
             <TsfSupplierOverlay
                {...{
-                  supplierOverlay,
+                  tsfSupplierOverlay,
                   setSupplierOverlay,
+               }}
+            />
+         )}
+
+         {/* Date Overlay */}
+         {type === "SC" && (
+            <DateFilterBottomSheet
+               {...{
+                  scDateOverlay,
+                  setScDateOverlay,
                }}
             />
          )}
@@ -124,7 +147,7 @@ export default function ListingPage({ type }) {
    );
 }
 
-function TsfSupplierOverlay({ supplierOverlay, setSupplierOverlay }) {
+function TsfSupplierOverlay({ tsfSupplierOverlay, setSupplierOverlay }) {
    // States and vars
    const navigation = useNavigation();
    const [suggestions, setSuggestions] = useState([]);
@@ -185,9 +208,10 @@ function TsfSupplierOverlay({ supplierOverlay, setSupplierOverlay }) {
 
    return (
       <Overlay
-         isVisible={supplierOverlay}
+         isVisible={tsfSupplierOverlay}
          overlayStyle={{ width: "70%", padding: 20 }}
       >
+         {/* Title */}
          <View style={{ flexDirection: "row", alignSelf: "center" }}>
             <Icon
                name="warehouse"
@@ -205,6 +229,8 @@ function TsfSupplierOverlay({ supplierOverlay, setSupplierOverlay }) {
                Select From Store
             </Text>
          </View>
+
+         {/* Supplier ID Input */}
          <Input
             inputStyle={{
                fontFamily: "Montserrat-Regular",
@@ -216,7 +242,7 @@ function TsfSupplierOverlay({ supplierOverlay, setSupplierOverlay }) {
             onChangeText={handleSupplierIdChange}
          />
 
-         {/* Each suggestion should show the info like: Sup101: ABC Industries */}
+         {/* Supplier Suggestion List */}
          <FlatList
             data={suggestions}
             keyExtractor={(item) => item.id}
@@ -232,7 +258,7 @@ function TsfSupplierOverlay({ supplierOverlay, setSupplierOverlay }) {
                   }}
                />
             )}
-            ListFooterComponent={
+            ListrefreshListingDataterComponent={
                <Button
                   type="clear"
                   title="Cancel"
@@ -253,6 +279,128 @@ function TsfSupplierOverlay({ supplierOverlay, setSupplierOverlay }) {
    );
 }
 
+function DateFilterBottomSheet({ scDateOverlay, setScDateOverlay }) {
+   // Date Range Picker Component
+   function DateRangePicker() {
+      // States and Vars
+      const [startDate, setStartDate] = useState(
+         format(new Date(), "yyyy-MM-dd")
+      );
+      const [endDate, setEndDate] = useState(format(new Date(), "yyyy-MM-dd"));
+      const [showStartPicker, setShowStartPicker] = useState(false);
+      const [showEndPicker, setShowEndPicker] = useState(false);
+
+      // Functions
+      function onStartChange(event, selectedDate) {
+         setShowStartPicker(false);
+         if (selectedDate) {
+            const formattedDate = format(selectedDate, "yyyy-MM-dd");
+            setStartDate(formattedDate);
+         }
+      }
+
+      function onEndChange(event, selectedDate) {
+         setShowEndPicker(false);
+         if (selectedDate) {
+            const formattedDate = format(selectedDate, "yyyy-MM-dd");
+            setEndDate(formattedDate);
+         }
+      }
+
+      return (
+         <View style={{ flexDirection: "row" }}>
+            <View style={styles.container}>
+               <View style={styles.picker}>
+                  <Button
+                     onPress={() => setShowStartPicker(true)}
+                     title="Start Date"
+                     titleStyle={{ fontFamily: "Montserrat-Bold" }}
+                     icon={{
+                        name: "calendar",
+                        type: "material-community",
+                        color: "white",
+                     }}
+                  />
+                  {showStartPicker && (
+                     <DateTimePicker
+                        testID="startDateTimePicker"
+                        value={new Date(startDate)}
+                        mode="date"
+                        display="default"
+                        onChange={onStartChange}
+                        minimumDate={new Date()}
+                     />
+                  )}
+                  <Text style={styles.dateText}>{startDate}</Text>
+               </View>
+               <View style={styles.picker}>
+                  <Button
+                     onPress={() => setShowEndPicker(true)}
+                     title="End Date"
+                     titleStyle={{ fontFamily: "Montserrat-Bold" }}
+                     icon={{
+                        name: "calendar",
+                        type: "material-community",
+                        color: "white",
+                     }}
+                  />
+                  {showEndPicker && (
+                     <DateTimePicker
+                        testID="endDateTimePicker"
+                        value={new Date(endDate)}
+                        mode="date"
+                        display="default"
+                        onChange={onEndChange}
+                        minimumDate={new Date()}
+                     />
+                  )}
+                  <Text style={styles.dateText}>{endDate}</Text>
+               </View>
+            </View>
+            <View style={styles.container}>
+               <Button
+                  title="Create SC"
+                  titleStyle={{ fontFamily: "Montserrat-Bold" }}
+                  buttonStyle={{ backgroundColor: "green", borderRadius: 30 }}
+                  onPress={() => handleCreateSc(startDate, endDate)}
+               />
+            </View>
+         </View>
+      );
+   }
+
+   // Functions
+   async function handleCreateSc(startDate, endDate) {
+      try {
+         const createResponse = await postData(
+            endpoints.createSc + `${storeName}/${startDate}/${endDate}`
+         );
+         const scItem = await getData(
+            endpoints.fetchScItems + createResponse.id
+         );
+         scItem.type = "SC";
+         scItem.category = "Sportswear";
+         setScDateOverlay(false);
+         navigation.navigate("SC Items", { entryItem: scItem });
+      } catch (error) {
+         console.error("Failed to create SC Request", error);
+      }
+   }
+
+   const navigation = useNavigation();
+
+   return (
+      <BottomSheet
+         isVisible={scDateOverlay}
+         onBackdropPress={() => setScDateOverlay(false)}
+      >
+         <View style={styles.bottomSheet}>
+            <DateRangePicker />
+         </View>
+      </BottomSheet>
+   );
+}
+
 const styles = StyleSheet.create({
    text: {
       color: "white",
@@ -261,7 +409,35 @@ const styles = StyleSheet.create({
    },
    fab: {
       position: "absolute",
-      right: 15,
-      bottom: 90,
+      right: 20,
+      bottom: 20,
+   },
+
+   // Date Picker Styles
+   container: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 16,
+   },
+   picker: {
+      marginVertical: 10,
+      alignItems: "center",
+   },
+   dateText: {
+      marginTop: 10,
+      fontSize: 16,
+      fontFamily: "Montserrat-Medium",
+   },
+   bottomSheet: {
+      backgroundColor: "white",
+      padding: 10,
+   },
+   buttonContainer: {
+      paddingVertical: 5,
+      paddingHorizontal: 6,
+      marginHorizontal: 5,
+      backgroundColor: "#112d4e",
+      borderRadius: 10,
    },
 });

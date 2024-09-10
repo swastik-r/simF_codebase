@@ -4,26 +4,38 @@ import { Button, Icon, Overlay, Input, Divider } from "@rneui/themed";
 import * as ImagePicker from "expo-image-picker";
 import Toast from "react-native-toast-message";
 
-export default function ItemCard({ item, status, deleteItem }) {
+/*
+   COMPONENT MAP
+
+   - ItemCard
+      - QuantityUpdateOverlay
+      - QuantityUpdateOverlay2
+      - ProofImagesOverlay
+*/
+const completedStatuses = [
+   "Complete",
+   "complete",
+   "Delivered",
+   "New Request",
+   "Accepted",
+   "Rejected",
+   "Shipped",
+];
+
+export default function ItemCard({ item, status, recountStatus, deleteItem }) {
    // States and Constants
    const [quantityOverlay, setQuantityOverlay] = useState(false);
    const [proofImagesOverlay, setProofImagesOverlay] = useState(false);
-   const completedStatuses = [
-      "Complete",
-      "Delivered",
-      "New Request",
-      "Accepted",
-      "Rejected",
-      "Shipped",
-   ];
+   // const isComplete =
+   //    completedStatuses.includes(status) && recountStatus?.includes("complete");
    const isComplete = completedStatuses.includes(status);
+
    const partiallyAccepted = status === "Partially Accepted";
 
    // Functions
    function uploadProof() {
       ImagePicker.requestMediaLibraryPermissionsAsync()
          .then((res) => {
-            console.log("Permission response: ", res);
             if (res.status === "granted") {
                ImagePicker.launchImageLibraryAsync({
                   mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -32,13 +44,13 @@ export default function ItemCard({ item, status, deleteItem }) {
                   quality: 1,
                })
                   .then((res) => {
-                     console.log("Image Picker response: ", res);
                      if (
                         !res.canceled &&
                         res.assets &&
                         res.assets.length > 0 &&
                         res.assets[0].uri
                      ) {
+                        // get image URI
                         const imageUri = res.assets[0].uri;
                         // append image to proofImages array
                         item.image = imageUri;
@@ -67,7 +79,7 @@ export default function ItemCard({ item, status, deleteItem }) {
          });
    }
    function showProof() {
-      item.imageData && setProofImagesOverlay(true);
+      setProofImagesOverlay(true);
    }
 
    return (
@@ -116,7 +128,6 @@ export default function ItemCard({ item, status, deleteItem }) {
                   }
                   onPress={() => {
                      if (!isComplete) {
-                        console.log();
                         setQuantityOverlay(true);
                      }
                   }}
@@ -132,24 +143,57 @@ export default function ItemCard({ item, status, deleteItem }) {
                      {item.qty || item.shippedQty}
                   </Text>
                </Pressable>
-
-               <Button
-                  onPress={!isComplete ? uploadProof : showProof}
-                  type="outline"
-                  icon={{
-                     name: !isComplete ? "upload" : "eye",
-                     type: "material-community",
-                     color: "white",
-                     size: 14,
-                  }}
-                  iconContainerStyle={{
-                     marginRight: 5,
-                     marginLeft: 0,
-                  }}
-                  title={!isComplete ? "Upload Proof" : "View Proof"}
-                  titleStyle={styles.uploadButtonTitle}
-                  buttonStyle={styles.uploadButton}
-               />
+               {item.variance ? (
+                  // Variance in case of Stock Count items
+                  <View
+                     style={{
+                        backgroundColor: "white",
+                        borderRadius: 10,
+                        paddingHorizontal: 10,
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                     }}
+                  >
+                     <Text
+                        style={{
+                           fontFamily: "Montserrat-Regular",
+                           fontSize: 13,
+                           marginRight: 5,
+                        }}
+                     >
+                        VAR
+                     </Text>
+                     <Text
+                        style={{
+                           fontFamily: "Montserrat-Bold",
+                           fontSize: 13,
+                        }}
+                     >
+                        {item.variance}
+                     </Text>
+                  </View>
+               ) : (
+                  // Proof Upload/View Button for all other items
+                  <Button
+                     disabled={!item.image}
+                     onPress={!isComplete ? uploadProof : showProof}
+                     type="outline"
+                     icon={{
+                        name: !isComplete ? "upload" : "eye",
+                        type: "material-community",
+                        color: "white",
+                        size: 14,
+                     }}
+                     iconContainerStyle={{
+                        marginRight: 5,
+                        marginLeft: 0,
+                     }}
+                     title={!isComplete ? "Upload Proof" : "View Proof"}
+                     titleStyle={styles.uploadButtonTitle}
+                     buttonStyle={styles.uploadButton}
+                  />
+               )}
             </View>
          </View>
 
@@ -202,6 +246,15 @@ export default function ItemCard({ item, status, deleteItem }) {
                   />
                ),
                TSFOUT: (
+                  <QuantityUpdateOverlay
+                     {...{
+                        item,
+                        quantityOverlay,
+                        setQuantityOverlay,
+                     }}
+                  />
+               ),
+               SC: (
                   <QuantityUpdateOverlay
                      {...{
                         item,

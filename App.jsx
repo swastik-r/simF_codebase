@@ -2,21 +2,16 @@
 import "react-native-gesture-handler";
 import { Provider as PaperProvider } from "react-native-paper";
 import { NavigationContainer } from "@react-navigation/native";
-import { Text } from "react-native";
 
 // React Native Elements UI Library
 import { createTheme, ThemeProvider } from "@rneui/themed";
 
 // Custom Components
-import Header from "./globalComps/Header";
 import Toast, { BaseToast } from "react-native-toast-message";
 
 // Contexts and Fonts
 import { useFonts } from "expo-font";
-import AdjustmentDetailProvider from "./context/DataContext";
-import DataContextProvider from "./context/DataContext3";
 import AppContainer from "./AppContainer";
-import Login from "./modules/Login/Login";
 
 // Main App Component
 export default function App() {
@@ -27,21 +22,17 @@ export default function App() {
 
    return (
       <ThemeProvider theme={theme}>
-         <Header />
-         <PaperProvider>
-            <AdjustmentDetailProvider>
-               <DataContextProvider>
-                  <NavigationContainer>
-                     <AppContainer />
-                  </NavigationContainer>
-               </DataContextProvider>
-            </AdjustmentDetailProvider>
-         </PaperProvider>
-         <Toast config={toastConfig} />
+         <NavigationContainer>
+            {/* APP CONTAINER */}
+            <PaperProvider>
+               <AppContainer />
+               {/* <Login /> */}
+            </PaperProvider>
+            {/* TOAST */}
+            <Toast config={toastConfig} />
+         </NavigationContainer>
       </ThemeProvider>
    );
-
-   // return <Login />;
 }
 
 // Load Fonts

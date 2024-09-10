@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 // React Native Imports
 import { View, Pressable, StyleSheet, Text } from "react-native";
@@ -7,35 +7,52 @@ import { View, Pressable, StyleSheet, Text } from "react-native";
 import { Icon, SearchBar, ListItem } from "@rneui/themed";
 
 // Custom Components
-import { BottomSheet, Button } from "@rneui/base";
+import { BottomSheet } from "@rneui/base";
 import { getData } from "../../context/auth";
-import { searchEntry, sortEntry } from "../../context/functions";
+import {
+   searchEntry,
+   sortEntry,
+   filterEntry,
+   fetchData,
+} from "../../context/functions";
 
 export default function SearchBar_FS({ type, setListingData }) {
-   // States and Vars
+   // Search string state
    const [searchStr, setSearchStr] = useState("");
 
-   // Functions
-   async function fetchData() {
+   // Search Function
+   async function searchData() {
       try {
          if (searchStr.length === 0) {
             setListingData(await fetchData(type));
             return;
          }
-
          const searchResults = await searchEntry(type, searchStr);
          setListingData(searchResults);
       } catch (error) {
          console.error("Error fetching data:", error);
       }
    }
+   // useEffect: Search string
+   useEffect(() => {
+      searchData();
+   }, [searchStr]);
 
    // Visibility States
    const [sortVisible, setSortVisible] = useState(false);
    const [filterVisible, setFilterVisible] = useState(false);
-   // const [dateFilterVisible, setDateFilterVisible] = useState(false);
    const [reasonFilterVisible, setReasonFilterVisible] = useState(false);
    const [statusFilterVisible, setStatusFilterVisible] = useState(false);
+
+   /*
+      The sorting is by "oldest" and "latest" entries for all the modules.
+      
+      The filtering is as follows:
+         Inventory Adjustment: Reason, Status
+         Direct Store Delivery: Status, Supplier
+         Purchase Order: Status, Supplier
+         In Transfer/Out Transfer: Status
+   */
 
    return (
       <>
@@ -60,7 +77,6 @@ export default function SearchBar_FS({ type, setListingData }) {
                value={searchStr}
                onChangeText={(text) => {
                   setSearchStr(text);
-                  fetchData();
                }}
             />
 
@@ -99,7 +115,6 @@ export default function SearchBar_FS({ type, setListingData }) {
                setFilterVisible,
                setReasonFilterVisible,
                setStatusFilterVisible,
-               // setDateFilterVisible,
                setListingData,
             }}
          />
@@ -123,13 +138,6 @@ export default function SearchBar_FS({ type, setListingData }) {
                setListingData,
             }}
          />
-
-         {/* Date Filter Bottom Sheet */}
-         {/* <DateFilterBottomSheet
-            dateFilterVisible={dateFilterVisible}
-            setDateFilterVisible={setDateFilterVisible}
-            setListingData={setListingData}
-         /> */}
       </>
    );
 }
@@ -229,17 +237,16 @@ function SortBottomSheet({
 }
 
 function FilterBottomSheet({
+   type,
    filterVisible,
    setFilterVisible,
    setStatusFilterVisible,
    setReasonFilterVisible,
-   setDateFilterVisible,
    setListingData,
 }) {
    async function resetFilter() {
       try {
-         const data = await getData("/inventoryadjustment/all/adjustments");
-         setListingData(data);
+         setListingData(await fetchData(type));
       } catch (error) {
          console.error("Error fetching data:", error);
       }
@@ -253,7 +260,7 @@ function FilterBottomSheet({
             fontFamily: "Montserrat-Regular",
             fontSize: 25,
          },
-         containerStyle: [styles.sortOptContainer, { paddingTop: 0 }],
+         containerStyle: [styles.sortOptContainer, { paddingTop: 10 }],
       },
       {
          title: "Status",
@@ -277,19 +284,8 @@ function FilterBottomSheet({
          titleStyle: styles.bottomSheetOpt,
          containerStyle: styles.sortOptContainer,
       },
-      // {
-      //    title: "Date",
-      //    icon: {
-      //       name: "date-range",
-      //       type: "material",
-      //       color: "black",
-      //       size: 30,
-      //    },
-      //    titleStyle: styles.bottomSheetOpt,
-      //    containerStyle: styles.sortOptContainer,
-      // },
       {
-         title: "Reset Filter",
+         title: "Reset",
          icon: { name: "refresh", type: "material", color: "white" },
          containerStyle: [
             styles.sortOptContainer,
@@ -312,15 +308,14 @@ function FilterBottomSheet({
                onPress={() => {
                   setFilterVisible(false);
 
-                  if (opt.title === "Status") {
-                     setStatusFilterVisible(true);
-                  } else if (opt.title === "Reason") {
-                     setReasonFilterVisible(true);
-                  } else if (opt.title === "Date") {
-                     setDateFilterVisible(true);
-                  } else if (opt.title === "Reset Filter") {
-                     resetFilter();
-                  }
+                  const actions = {
+                     Status: () => setStatusFilterVisible(true),
+                     Reason: () => setReasonFilterVisible(true),
+                     Reset: resetFilter,
+                  };
+
+                  const action = actions[opt.title];
+                  action ? action() : console.error("Invalid filter option");
                }}
             >
                <ListItem.Content>
@@ -336,6 +331,7 @@ function FilterBottomSheet({
 }
 
 function StatusFilterBottomSheet({
+   type,
    statusFilterVisible,
    setStatusFilterVisible,
    setListingData,
@@ -394,16 +390,12 @@ function StatusFilterBottomSheet({
    // Functions
    async function filterStatus(status) {
       if (status === "reset") {
-         const data = await getData("/inventoryadjustment/all/adjustments");
-         setListingData(data);
+         setListingData(await fetchData(type));
          return;
       }
 
       try {
-         const data = await getData(
-            "/inventoryadjustment/filter/adjustments/" + status
-         );
-         setListingData(data);
+         setListingData(await filterEntry(type, status));
       } catch (error) {
          console.error("Error fetching data:", error);
       }
@@ -436,6 +428,7 @@ function StatusFilterBottomSheet({
 }
 
 function ReasonFilterBottomSheet({
+   type,
    reasonFilterVisible,
    setReasonFilterVisible,
    setListingData,

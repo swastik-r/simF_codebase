@@ -26,12 +26,13 @@ export default function AddItem({ route }) {
          PO: poItemSearch,
          TSFIN: generalItemSearch,
          TSFOUT: generalItemSearch,
+         SC: catItemSearch,
       };
 
       // Set suggestions array based on search results from functions
       setSuggestions(await searchFunctions[type](searchStr));
    }
-   // Search Function for IA
+   // Search Function for All Items
    async function generalItemSearch(searchStr) {
       const searchResult = await getData(
          endpoints.generalItemSearch + `${searchStr}/${storeName}/IA`
@@ -64,6 +65,7 @@ export default function AddItem({ route }) {
          return [];
       }
    }
+   // Search function for PO
    async function poItemSearch(searchStr) {
       const searchResult = await getData(
          endpoints.fetchPoItems + `${poItem.id}/${searchStr}/PO`
@@ -79,9 +81,27 @@ export default function AddItem({ route }) {
          return [];
       }
    }
+   // Search cat-specific items for Stock Count
+   async function catItemSearch(searchStr) {
+      const searchResult = await getData(
+         endpoints.searchCatItems + `${searchStr}/${storeName}/Sportswear`
+      );
+
+      if (searchResult.items.length > 0) {
+         // for all items, set type to "SC"
+         searchResult.items.forEach((item) => (item.type = "SC"));
+         return searchResult.items;
+      } else {
+         Alert.alert(
+            "Is the SKU correct?",
+            `No valid items found for the searched SKU "${searchStr}" in the store "${storeName}"`
+         );
+         return [];
+      }
+   }
 
    return (
-      <View style={{ flex: 0.89 }}>
+      <View style={{ flex: 1 }}>
          <View style={{ flex: 1, backgroundColor: "black" }}>
             {/* <Scanner /> */}
          </View>

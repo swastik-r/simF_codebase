@@ -30,12 +30,3 @@ export default function PoNavigator() {
       </Stack.Navigator>
    );
 }
-
-// export default function PoNavigator() {
-//    return (
-//       <>
-//          <PoCard />
-//          <AsnCard />
-//       </>
-//    );
-// }

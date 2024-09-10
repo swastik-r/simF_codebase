@@ -32,41 +32,70 @@ import { endpoints } from "../../context/endpoints";
 import { useIsFocused } from "@react-navigation/native";
 import { AsnCard2 } from "../../modules/PurchaseOrder/AsnCard";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import * as Sharing from "expo-sharing";
 
 export default function EntryItemDetailPage({ route }) {
    const navigation = useNavigation();
+
+   // Extract the entryItem from the route params
    const { entryItem } = route.params;
    const { type, status } = entryItem;
+
+   // Temporary states for items, reason and supplier
    const [tempItems, setTempItems] = useState([]);
    const [tempReason, setTempReason] = useState(null);
    const [tempSupplier, setTempSupplier] = useState(null);
    const [headerItem, setHeaderItem] = useState({});
    const completedStatuses = [
       "Complete",
+      "complete",
       "Delivered",
       "New Request",
       "Accepted",
       "Rejected",
-      // "Partially Accepted",
       "Shipped",
    ];
    const isComplete = completedStatuses.includes(status);
+   const isRecounted = entryItem.recountStatus === "complete";
 
-   // fetch the PO header
+   // fetch the PO header, needs to be updated on FOCUS
    async function getPoHeader() {
       const response = await getData(endpoints.fetchPo);
       setHeaderItem(response.find((po) => po.id === entryItem.id));
    }
    // fetch the items, reason, supplier and other details for IA, DSD and TSF
    async function getItemsReasonSupplier() {
-      if (type === "IA") {
-         const response = await getData(endpoints.fetchItemsIA + entryItem.id);
-         setTempItems(response.items);
-         setTempReason(response.reason);
-      } else if (type === "DSD") {
-         const response = await getData(endpoints.fetchItemsDSD + entryItem.id);
-         setTempItems(response.items);
-         setTempSupplier(response.supplierId);
+      let response;
+
+      switch (type) {
+         case "IA":
+            response = await getData(endpoints.fetchItemsIA + entryItem.id);
+            setTempItems(response.items);
+            setTempReason(response.reason);
+            break;
+         case "DSD":
+            response = await getData(endpoints.fetchItemsDSD + entryItem.id);
+            setTempItems(response.items);
+            setTempSupplier(response.supplierId);
+            break;
+         case "SC":
+            response = await getData(endpoints.fetchScItems + entryItem.id);
+            setTempItems(response.items);
+            setTempReason(response.reason);
+            break;
+         case "TSFIN":
+         case "TSFOUT":
+            response = await getData(endpoints.fetchItemsTsf + entryItem.id);
+            setTempItems(
+               response.tsfDetailsDto.map((item) => ({
+                  ...item,
+                  qty: item.requestedQty,
+               }))
+            );
+            setTempReason(response.reason);
+            break;
+         default:
+            console.error("Unknown type:", type);
       }
    }
    // fetch items that are under an ASN
@@ -74,17 +103,7 @@ export default function EntryItemDetailPage({ route }) {
       const response = await getData(endpoints.fetchASNForPO + entryItem.id);
       setTempItems(response);
    }
-   async function getTsfDetails() {
-      const response = await getData(endpoints.fetchItemsTsf + entryItem.id);
-      // setTempItems to response.tsfDetailsDto but set qty of each item to receivedQty
-      setTempItems(
-         response.tsfDetailsDto.map((item) => ({
-            ...item,
-            qty: item.requestedQty,
-         }))
-      );
-      setTempReason(response.reason);
-   }
+   async function getTsfDetails() {}
    // delete an item based on the SKU
    function deleteItem(sku) {
       setTempItems(tempItems.filter((item) => item.sku !== sku));
@@ -114,8 +133,6 @@ export default function EntryItemDetailPage({ route }) {
          })),
       };
 
-      console.log("Processing SHIP request:", requestBody);
-
       try {
          await postData(endpoints.shipTsf + storeName, requestBody);
          Toast.show({
@@ -144,10 +161,19 @@ export default function EntryItemDetailPage({ route }) {
       }
    }, [isFocused]);
 
-   // refresh the data for IA/DSD on RENDER
+   // refresh the data for IA/DSD/SC on RENDER
    useEffect(() => {
-      if (type === "IA" || type === "DSD") getItemsReasonSupplier();
-      else if (type === "TSFIN" || type === "TSFOUT") getTsfDetails();
+      switch (type) {
+         case "IA":
+         case "DSD":
+         case "SC":
+            getItemsReasonSupplier();
+            break;
+         case "TSFIN":
+         case "TSFOUT":
+            getTsfDetails();
+            break;
+      }
    }, []);
 
    useEffect(() => {
@@ -162,7 +188,10 @@ export default function EntryItemDetailPage({ route }) {
       // Update reasonsOverlay based on the availability of reasons
       if (isFocused) {
          if (
-            (type === "IA" || type === "TSFIN" || type === "TSFOUT") &&
+            (type === "IA" ||
+               type === "TSFIN" ||
+               type === "TSFOUT" ||
+               type === "SC") &&
             !tempReason &&
             !entryItem.reason
          ) {
@@ -192,23 +221,40 @@ export default function EntryItemDetailPage({ route }) {
                         PO: asnNumber,
                         TSFIN: sku,
                         TSFOUT: sku,
+                        SC: sku,
                      }[type])
                }
-               renderItem={
-                  // if type is IA or DSD, render ItemCard
-                  // if type is PO, render AsnCard
-                  ({ item }) =>
-                     ({
-                        IA: <ItemCard {...{ item, status, deleteItem }} />,
-                        DSD: <ItemCard {...{ item, status, deleteItem }} />,
-                        PO: <AsnCard2 {...{ item, entryItem }} />,
-                        TSFIN: <ItemCard {...{ item, status, deleteItem }} />,
-                        TSFOUT: <ItemCard {...{ item, status, deleteItem }} />,
-                     }[type])
-               }
+               renderItem={({ item }) => {
+                  switch (type) {
+                     case "PO":
+                        return <AsnCard2 {...{ item, entryItem }} />;
+                     case "SC":
+                        return (
+                           <ItemCard
+                              {...{
+                                 item,
+                                 status,
+                                 recountStatus: entryItem.recountStatus,
+                                 deleteItem,
+                              }}
+                           />
+                        );
+                     default:
+                        return (
+                           <ItemCard
+                              {...{
+                                 item,
+                                 status,
+                                 recountStatus: null,
+                                 deleteItem,
+                              }}
+                           />
+                        );
+                  }
+               }}
                ListHeaderComponent={() => (
                   <>
-                     {/* Header */}
+                     {/* Header Table */}
                      <DetailsTab
                         {...{
                            type,
@@ -220,7 +266,7 @@ export default function EntryItemDetailPage({ route }) {
                         }}
                      />
 
-                     {/* Button Group for IA/DSD */}
+                     {/* IA/DSD: Button Group */}
                      {status !== "Complete" &&
                         type !== "PO" &&
                         type !== "TSFIN" &&
@@ -237,7 +283,14 @@ export default function EntryItemDetailPage({ route }) {
                            />
                         )}
 
-                     {/* Button Group for TSF */}
+                     {/* FAB Group */}
+                     {status === "Complete" && type !== "PO" && (
+                        <SearchBar
+                           {...{ entryItem, tempItems, setTempItems }}
+                        />
+                     )}
+
+                     {/* TSF: Button Group */}
                      {(type === "TSFIN" || type === "TSFOUT") && (
                         <TsfButtonGroup
                            {...{
@@ -248,12 +301,7 @@ export default function EntryItemDetailPage({ route }) {
                         />
                      )}
 
-                     {/* FAB Group */}
-                     {status === "Complete" && type !== "PO" && (
-                        <SearchBar {...{ setTempItems, entryItem }} />
-                     )}
-
-                     {/* Partially Accepted Transfers Helper Text */}
+                     {/* TSF: Partially-Accepted Transfers Helper Text */}
                      {status === "Partially Accepted" && (
                         <Text
                            style={{
@@ -266,6 +314,21 @@ export default function EntryItemDetailPage({ route }) {
                         >
                            This is a partially accepted transfer. Please modify
                            the item quantities as required.
+                        </Text>
+                     )}
+
+                     {/* SC: Re-counted Helper Text */}
+                     {isRecounted && (
+                        <Text
+                           style={{
+                              fontFamily: "Montserrat-Bold",
+                              fontSize: 12,
+                              color: "grey",
+                              textAlign: "center",
+                              marginVertical: 10,
+                           }}
+                        >
+                           This stock count has been re-counted.
                         </Text>
                      )}
 
@@ -289,6 +352,7 @@ export default function EntryItemDetailPage({ route }) {
                )}
                ListFooterComponent={
                   <>
+                     {/* FAB Group */}
                      {!isComplete &&
                         ![
                            "Accepted",
@@ -306,6 +370,7 @@ export default function EntryItemDetailPage({ route }) {
                            />
                         )}
 
+                     {/* Ship Button for TSFOUT */}
                      {type === "TSFOUT" && (
                         <Portal>
                            <FAB
@@ -436,6 +501,25 @@ export function DetailsTab({
       ],
       TSFIN: tsfHeader,
       TSFOUT: tsfHeader,
+      SC: [
+         { label: "ID", value: entryItem.id },
+         { label: "Created On", value: entryItem.creationDate },
+         { label: "Start Date", value: entryItem.startDate },
+         { label: "End Date", value: entryItem.endDate },
+         {
+            label: "Reason",
+            value: entryItem.reason || tempReason,
+         },
+         { label: "Total SKU", value: tempItems.length },
+         {
+            label: "Category",
+            value: entryItem.category || "Sportswear",
+         },
+         {
+            label: "Variance",
+            value: entryItem.totalVariance || "Not Specified",
+         },
+      ],
    };
 
    return (
@@ -474,6 +558,8 @@ export function DetailsTab({
 function ButtonGroup({ entryItem, tempItems, tempReason, tempSupplier }) {
    // States and vars
    const canSaveOrSubmit = tempItems.length > 0;
+   const isStockCount = entryItem.type === "SC";
+   const isRecounted = entryItem.recountStatus === "complete";
    const [proofOverlay, setProofOverlay] = useState(false);
    const navigation = useNavigation();
 
@@ -512,19 +598,137 @@ function ButtonGroup({ entryItem, tempItems, tempReason, tempSupplier }) {
          });
       }
    }
+   async function draftSc() {
+      // Example Request Body
+      /*
+         {
+            "id": "string",
+            "reason": "string",
+            "category": "string",
+            "items": [
+               {
+                  "sku": "string",
+                  "upc": "string",
+                  "qty": 0
+               }
+            ]
+         }
+      */
 
-   const tsfButtons = [
-      {
-         title: "Save",
-         icon: "content-save-outline",
-         onPress: handleSave,
-      },
-      {
-         title: "Submit",
-         icon: "save-alt",
-         onPress: () => setProofOverlay(true),
-      },
-   ];
+      const requestBody = {
+         id: entryItem.id,
+         reason: tempReason,
+         category: "Sportswear",
+         items: tempItems.map(({ sku, upc, qty }) => ({ sku, upc, qty })),
+      };
+
+      try {
+         console.log("Drafting SC:", requestBody);
+         await postData(endpoints.draftSc, requestBody);
+         Toast.show({
+            type: "success",
+            text1: "Success",
+            text2: "Data saved successfully",
+         });
+
+         navigation.goBack();
+      } catch (error) {
+         console.error("Error saving data:", error);
+         Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: "Error saving the data",
+         });
+      }
+   }
+   async function addItemsToSc() {
+      // Example Request Body
+      /*
+         {
+            "id": "string",
+            "reason": "string",
+            "category": "string",
+            "items": [
+               {
+                  "sku": "string",
+                  "upc": "string",
+                  "qty": 0
+               }
+            ]
+         }
+      */
+
+      const requestBody = {
+         id: entryItem.id,
+         reason: tempReason,
+         category: "Sportswear",
+         items: tempItems.map(({ sku, upc, qty }) => ({ sku, upc, qty })),
+      };
+
+      try {
+         console.log(JSON.stringify(requestBody));
+         await postData(endpoints.addItemsToSc, requestBody);
+         Toast.show({
+            type: "success",
+            text1: "Success",
+            text2: "Items added successfully",
+         });
+         navigation.goBack();
+      } catch (error) {
+         console.error("Error adding items:", error);
+         Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: "Error adding the items",
+         });
+      }
+   }
+   async function handleExcelDownload() {
+      try {
+         const items = tempItems;
+
+         const sheetData = items.map((item) => ({
+            ID: item.id,
+            Name: item.name,
+            Color: item.color,
+            Size: item.size,
+            Quantity: item.quantity,
+            Variance: item.variance,
+         }));
+
+         const wb = XLSX.utils.book_new();
+         const ws = XLSX.utils.json_to_sheet(sheetData);
+         XLSX.utils.book_append_sheet(wb, ws, "Items");
+         const wbout = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+
+         const uri =
+            FileSystem.documentDirectory + `Variance_${entryItem.id}.xlsx`;
+         await FileSystem.writeAsStringAsync(uri, wbout, {
+            encoding: FileSystem.EncodingType.Base64,
+         });
+         console.log("Excel file written successfully.");
+
+         Toast.show({
+            type: "success",
+            text1: "Success!",
+            text2: "Excel file created successfully.",
+         });
+         // download the excel file
+         if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(uri);
+         } else {
+            Alert.alert("Error", "Sharing is not available on this device");
+         }
+         console.log("Sharing dialog closed.");
+      } catch (err) {
+         console.error("Error handling Excel download:", err);
+         Toast.show({
+            type: "error",
+            text1: "Error!",
+            text2: "Failed to create Excel file.",
+         });
+      }
+   }
 
    return (
       <View
@@ -534,31 +738,75 @@ function ButtonGroup({ entryItem, tempItems, tempReason, tempSupplier }) {
             marginVertical: 10,
          }}
       >
-         {/* Save Button */}
-         <Button
-            disabled={!canSaveOrSubmit}
-            title="Save"
-            titleStyle={styles.buttonTitle}
-            icon={{
-               name: "content-save-outline",
-               type: "material-community",
-               color: "white",
-            }}
-            buttonStyle={[styles.button, { width: 100 }]}
-            onPress={handleSave}
-         />
-         {/* Submit Button */}
-         <Button
-            disabled={!canSaveOrSubmit}
-            title="Submit"
-            titleStyle={styles.buttonTitle}
-            icon={{
-               name: "save-alt",
-               color: "white",
-            }}
-            buttonStyle={[styles.button, { width: 100 }]}
-            onPress={() => setProofOverlay(true)}
-         />
+         {/* Add & Save Button */}
+         {isStockCount ? (
+            <>
+               <Button
+                  disabled={!canSaveOrSubmit || entryItem.status === "complete"}
+                  title="Draft"
+                  titleStyle={styles.buttonTitle}
+                  icon={{
+                     name: "content-save-outline",
+                     type: "material-community",
+                     color: "white",
+                  }}
+                  buttonStyle={[styles.button, { width: 100 }]}
+                  onPress={draftSc}
+               />
+               <Button
+                  disabled={!canSaveOrSubmit || isRecounted}
+                  title={entryItem.status === "complete" ? "Re-Count" : "Add"}
+                  titleStyle={styles.buttonTitle}
+                  icon={{
+                     name: "content-save-outline",
+                     type: "material-community",
+                     color: "white",
+                  }}
+                  buttonStyle={[styles.button, { width: 100 }]}
+                  onPress={addItemsToSc}
+               />
+               <Button
+                  disabled={!isRecounted}
+                  title="Variance"
+                  titleStyle={styles.buttonTitle}
+                  icon={{
+                     name: "download",
+                     type: "material-community",
+                     color: "white",
+                  }}
+                  buttonStyle={[styles.button, { width: 100 }]}
+                  onPress={handleExcelDownload}
+               />
+            </>
+         ) : (
+            <>
+               {/* Save Button */}
+               <Button
+                  disabled={!canSaveOrSubmit}
+                  title="Save"
+                  titleStyle={styles.buttonTitle}
+                  icon={{
+                     name: "content-save-outline",
+                     type: "material-community",
+                     color: "white",
+                  }}
+                  buttonStyle={[styles.button, { width: 100 }]}
+                  onPress={handleSave}
+               />
+               {/* Submit Button */}
+               <Button
+                  disabled={!canSaveOrSubmit}
+                  title="Submit"
+                  titleStyle={styles.buttonTitle}
+                  icon={{
+                     name: "save-alt",
+                     color: "white",
+                  }}
+                  buttonStyle={[styles.button, { width: 100 }]}
+                  onPress={() => setProofOverlay(true)}
+               />
+            </>
+         )}
 
          {/* Proof Overlay */}
          <ProofOverlay
@@ -947,7 +1195,7 @@ function ReasonsOverlay({
    reasonsOverlay,
    setReasonsOverlay,
 }) {
-   // USEEFFECT: Fetch the reasons
+   // USEEFFECT: Fetch the reasons and set the overlay options
    useEffect(() => {
       fetchReasons().then((data) => setReasons(data));
    }, []);
@@ -958,9 +1206,18 @@ function ReasonsOverlay({
 
    // Functions
    async function fetchReasons() {
-      if (type === "IA") return await getData(endpoints.fetchReasons);
-      else if (type === "TSFIN" || type === "TSFOUT")
-         return await getData(endpoints.fetchTsfReasons);
+      switch (type) {
+         case "IA":
+            return await getData(endpoints.fetchReasons);
+         case "TSFIN":
+         case "TSFOUT":
+            return await getData(endpoints.fetchTsfReasons);
+         case "SC":
+            return await getData(endpoints.fetchScReasons);
+         // return ["Damaged", "Expired", "Wrong Item"];
+         default:
+            return [];
+      }
    }
    function setReason(item) {
       setTempReason(item);
@@ -1431,13 +1688,27 @@ function MyFabGroup({ entryItem, tempItems, setTempItems, tempSupplier }) {
       PO: actionsPO,
       TSFIN: actionsTSF,
       TSFOUT: [],
+      SC: [
+         // Add items
+         {
+            icon: "qrcode-scan",
+            label: "Add Item",
+            onPress: () =>
+               navigation.navigate("Add Items", {
+                  type: entryItem.type,
+                  tempItems,
+                  setTempItems,
+                  tempSupplier,
+               }),
+         },
+      ],
    }[type];
 
    // use FAB for single action, FAB.Group for multiple actions
    return selectedActions.length === 1 ? (
       <Portal>
          <FAB
-            style={{ position: "absolute", bottom: 80, right: 10 }}
+            style={{ position: "absolute", bottom: 20, right: 20 }}
             icon={selectedActions[0].icon}
             onPress={selectedActions[0].onPress}
          />
@@ -1445,7 +1716,6 @@ function MyFabGroup({ entryItem, tempItems, setTempItems, tempSupplier }) {
    ) : (
       <Portal>
          <FAB.Group
-            style={{ marginBottom: 70 }}
             open={open}
             visible
             icon={open ? "close" : "plus"}
@@ -1470,7 +1740,7 @@ const styles = StyleSheet.create({
       fontFamily: "Montserrat-Regular",
       fontSize: 13,
       color: "white",
-      marginRight: 10,
+      marginRight: 5,
    },
    value: {
       fontFamily: "Montserrat-Bold",

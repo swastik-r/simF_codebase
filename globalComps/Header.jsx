@@ -1,5 +1,5 @@
-import { StyleSheet, View, TouchableOpacity, Image, Text } from "react-native";
-import { Header as HeaderRNE, Icon } from "@rneui/themed";
+import { StyleSheet, View, Image, Text } from "react-native";
+import { Icon } from "@rneui/themed";
 import { storeName } from "../context/auth";
 
 export default function Header() {
@@ -20,70 +20,45 @@ export default function Header() {
          label: "swastik-r",
       },
    ];
+
    return (
-      <HeaderRNE
-         containerStyle={styles.header}
-         leftContainerStyle={styles.headerContainer}
-         centerContainerStyle={styles.headerContainer}
-         rightContainerStyle={styles.headerContainer}
-         leftComponent={
-            <TouchableOpacity>
-               <Icon name="menu" color="#f0f0f0" size={32} />
-            </TouchableOpacity>
-         }
-         centerComponent={
-            <Image
-               source={require("../assets/kpmgLogo.png")}
-               style={styles.logo}
-            />
-         }
-         rightComponent={
-            <View>
-               {details.map((detail, index) => (
-                  <TouchableOpacity
-                     key={index}
-                     style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginBottom: index === details.length - 1 ? 0 : 10,
-                     }}
-                  >
-                     <Icon
-                        name={detail.icon}
-                        type={detail.iconType}
-                        color="#fff"
-                        size={17}
-                     />
-                     <View style={styles.storeInfoContainer}>
-                        <Text style={styles.storeId}>{detail.label}</Text>
-                     </View>
-                  </TouchableOpacity>
-               ))}
-            </View>
-         }
-      />
+      <View style={styles.header}>
+         <Image
+            source={require("../assets/kpmgLogo.png")}
+            style={{
+               width: 80,
+               height: 30,
+            }}
+         />
+         <View style={styles.storeInfoContainer}>
+            {details.map((detail, index) => (
+               <View key={index} style={{ flexDirection: "row" }}>
+                  <Icon
+                     name={detail.icon}
+                     type={detail.iconType}
+                     size={20}
+                     color="white"
+                  />
+                  <Text style={styles.storeId}>{detail.label}</Text>
+               </View>
+            ))}
+         </View>
+      </View>
    );
 }
 
 const styles = StyleSheet.create({
    header: {
-      borderBottomWidth: 0,
-   },
-   headerContainer: {
-      marginTop: 10,
-      justifyContent: "center",
-   },
-   logo: {
-      height: 25,
-      marginRight: 10,
-      resizeMode: "contain",
-   },
-   storeInfoContainer: {
-      marginHorizontal: 5,
+      backgroundColor: "#112d4e",
+      paddingHorizontal: 20,
+      paddingTop: 30,
+      // marginTop: 20,
+      flexDirection: "row",
+      justifyContent: "space-between",
    },
    storeId: {
       fontFamily: "Montserrat-Medium",
       color: "white",
-      fontSize: 13,
+      fontSize: 12,
    },
 });

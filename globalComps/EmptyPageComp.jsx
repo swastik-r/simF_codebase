@@ -3,8 +3,6 @@ import { View, Text } from "react-native";
 import { useTheme, Icon } from "@rneui/themed";
 
 export default function EmptyPageComponent() {
-   const { theme } = useTheme();
-
    return (
       // Empty DSD Listing
       <View
@@ -12,24 +10,24 @@ export default function EmptyPageComponent() {
             flex: 1,
             justifyContent: "center",
             alignItems: "center",
-            marginVertical: 150,
+            marginVertical: 180,
          }}
       >
-         <View style={{ opacity: 0.5 }}>
+         <View style={{ opacity: 0.7 }}>
             <Icon
                name="playlist-remove"
                type="material-community"
-               size={90}
-               color={theme.colors.text}
+               size={100}
+               color={"#112d4e"}
             />
             <Text
                style={{
-                  fontFamily: "Montserrat-Regular",
-                  fontSize: 14,
-                  color: theme.colors.text,
+                  fontFamily: "Montserrat-Medium",
+                  fontSize: 16,
+                  color: "#112d4e",
                }}
             >
-               No items found
+               No entries exist
             </Text>
          </View>
       </View>

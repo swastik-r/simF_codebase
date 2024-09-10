@@ -4,12 +4,16 @@ import { StyleSheet, Text, View } from "react-native";
 import { Pressable } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { handleDelete } from "../../context/functions";
+import { getData } from "../../context/auth";
+import { endpoints } from "../../context/endpoints";
 
-export default function ListingCard({ item, foo }) {
-   // States and Vars
+export default function ListingCard({ item, refreshListingData }) {
+   // Navigation
    const navigation = useNavigation();
 
-   // Functions
+   // Sub-Components for the Listing Card: InfoContainer / ProgressChip
+
+   // Unit section of the listing card -> (LABEL, VALUE)
    function InfoContainer({ title, value }) {
       return (
          <View
@@ -24,10 +28,15 @@ export default function ListingCard({ item, foo }) {
          </View>
       );
    }
+   // Progress Chip to denote the status of the entry item
    function ProgressChip({ status }) {
       const chipData = {
          Complete: {
             color: "#4CAF50", // Green
+            textColor: "white",
+         },
+         complete: {
+            color: "#4CAF50",
             textColor: "white",
          },
          "In Progress": {
@@ -40,6 +49,10 @@ export default function ListingCard({ item, foo }) {
          },
          Pending: {
             color: "#F44336", // Red
+            textColor: "white",
+         },
+         pending: {
+            color: "#F44336",
             textColor: "white",
          },
          Shipped: {
@@ -65,6 +78,14 @@ export default function ListingCard({ item, foo }) {
          Rejected: {
             color: "#607D8B",
             textColor: "white",
+         },
+         New: {
+            color: "#FFEB3B",
+            textColor: "#212121",
+         },
+         Dispatched: {
+            color: "#4CAF50",
+            textColor: "#fff",
          },
       };
 
@@ -92,13 +113,33 @@ export default function ListingCard({ item, foo }) {
          </View>
       );
    }
+
+   // Functions
+
+   // Async function to delete an entry item, if deletable
    async function deleteEntry(itemId) {
       await handleDelete(itemId, item.type);
-      foo();
+      refreshListingData();
+   }
+
+   // Separate function to handle the Stock Count navigation as the listing item does not have sufficient data
+   async function navigateToItemsSc() {
+      const response = await getData(endpoints.fetchScItems + `${item.id}`);
+      response.type = "SC";
+      navigation.navigate("SC Items", {
+         entryItem: response,
+      });
+   }
+
+   // Navigation function for Listing Card, navigates on basis of TYPE and STATUS
+   function navigateToItems() {
+      navigation.navigate(redirectionMap[item.type][item.status], {
+         entryItem: item,
+      });
    }
 
    // redirection map based on type and status
-   const pageMap = {
+   const redirectionMap = {
       IA: {
          "In Progress": "IA Items",
          Saved: "IA Items",
@@ -144,8 +185,18 @@ export default function ListingCard({ item, foo }) {
          Pending: "Transfer Summary",
          Complete: "Transfer Summary",
       },
+      SC: {
+         New: "SC Items",
+         pending: "SC Items",
+         "In Progress": "SC Items",
+         complete: "SC Items",
+      },
+      RTV: {
+         "In Progress": "RTV Items",
+         Saved: "RTV Items",
+         Complete: "RTV Summary",
+      },
    };
-
    // module-specific fields
    const fieldMap = {
       IA: {
@@ -168,10 +219,25 @@ export default function ListingCard({ item, foo }) {
          field: "storeId",
          title: "Store ID",
       },
+      SC: {
+         field: "reason",
+         title: "Reason",
+      },
+      RTV: {
+         field: "supplierId",
+         title: "Supplier",
+      },
    };
 
-   // show delete button for certain statuses
-   const deletableStatus = ["In Progress", "Saved", "Pending", "New Request"];
+   // Delete button visibility based on STATUS and TYPE
+   const deletableStatus = [
+      "In Progress",
+      "Saved",
+      "Pending",
+      "New Request",
+      "New",
+      "pending",
+   ];
    const deletableTypes = ["IA", "DSD"];
    const showDelete =
       deletableTypes.includes(item.type) &&
@@ -212,11 +278,7 @@ export default function ListingCard({ item, foo }) {
 
          {/* Right pressable counts based on type */}
          <Pressable
-            onPress={() => {
-               navigation.navigate(pageMap[item.type][item.status], {
-                  entryItem: item,
-               });
-            }}
+            onPress={item.type === "SC" ? navigateToItemsSc : navigateToItems}
             style={styles.cardRight}
          >
             <View

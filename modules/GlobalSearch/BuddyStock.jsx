@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, Text, FlatList } from "react-native";
-import { Divider, Icon } from "@rneui/themed";
+import { View, StyleSheet, Text, FlatList, Pressable } from "react-native";
+import { Divider, Icon, Image } from "@rneui/themed";
 import { storeName, getData } from "../../context/auth";
 import { endpoints } from "../../context/endpoints";
 import { SearchBar } from "@rneui/themed";
+import { useNavigation } from "@react-navigation/native";
 
 export default function BuddyStock({ route }) {
-   const sku = route.params.item.sku;
+   const { currentItem, setSelectedStore } = route.params;
+   const sku = currentItem.sku;
    const [fullStores, setFullStores] = useState([]);
    const [filteredStores, setFilteredStores] = useState([]);
    const [searchTerm, setSearchTerm] = useState("");
@@ -43,7 +45,10 @@ export default function BuddyStock({ route }) {
 
    return (
       <View style={styles.page}>
-         <Text style={styles.heading}>Buddy Stock</Text>
+         {/* Display the current item */}
+         <ItemDisplay {...{ currentItem }} />
+
+         {/* Search bar */}
          <SearchBar
             placeholder="Search a store here..."
             value={searchTerm}
@@ -51,9 +56,18 @@ export default function BuddyStock({ route }) {
             containerStyle={styles.searchContainer}
             inputContainerStyle={styles.searchInput}
          />
+
+         {/* Display the stores */}
          <FlatList
             data={filteredStores}
-            renderItem={({ item }) => <StoreCard store={item} />}
+            renderItem={({ item }) => (
+               <StoreCard
+                  {...{
+                     store: item,
+                     setSelectedStore,
+                  }}
+               />
+            )}
             keyExtractor={(item) => item.storeId}
             style={{ width: "100%" }}
             contentContainerStyle={{ alignItems: "center", flexGrow: 1 }}
@@ -76,12 +90,38 @@ export default function BuddyStock({ route }) {
    );
 }
 
-function StoreCard({ store }) {
+function ItemDisplay({ currentItem }) {
+   return (
+      <>
+         <Image
+            source={{ uri: currentItem.imageData }}
+            style={styles.productImage}
+         />
+
+         <Text style={styles.productName}>{currentItem.itemName}</Text>
+         <Text style={styles.productIdSku}>
+            {currentItem.itemNumber} / {currentItem.sku}
+         </Text>
+      </>
+   );
+}
+
+function StoreCard({ store, setSelectedStore }) {
    const labels = ["Store ID", "Address", "Distance"];
-   const values = [store.storeId, store.storeAddress, store.distance];
+   const values = [
+      store.storeId,
+      store.storeAddress,
+      `${store.distance.toFixed(2)} KM`,
+   ];
+   const navigation = useNavigation();
+
+   function handleStoreSelection() {
+      setSelectedStore(store);
+      navigation.goBack();
+   }
 
    return (
-      <View style={styles.storeCard}>
+      <Pressable style={styles.storeCard} onPress={handleStoreSelection}>
          <View style={styles.cardLeft}>
             <Text style={styles.storeName}>{store.storeName}</Text>
             <Divider style={{ marginBottom: 10 }} />
@@ -104,22 +144,34 @@ function StoreCard({ store }) {
          <View style={styles.qtyContainer}>
             <Text style={styles.qty}>{store.storeStock}</Text>
          </View>
-      </View>
+      </Pressable>
    );
 }
 
 const styles = StyleSheet.create({
    page: {
-      flex: 0.89,
+      flex: 1,
       backgroundColor: "white",
       alignItems: "center",
       justifyContent: "flex-start",
    },
-   heading: {
+   productImage: {
+      width: 200,
+      height: 200,
+   },
+   productIdSku: {
       fontFamily: "Montserrat-Bold",
-      fontSize: 20,
+      fontSize: 14,
       color: "#112d4e",
-      marginVertical: 30,
+      opacity: 0.3,
+      textAlign: "center",
+      marginBottom: 20,
+   },
+   productName: {
+      fontFamily: "Montserrat-Bold",
+      fontSize: 18,
+      color: "#112d4e",
+      textAlign: "center",
    },
    searchContainer: {
       width: "90%",

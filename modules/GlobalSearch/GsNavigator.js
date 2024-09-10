@@ -20,7 +20,7 @@ export default function GsNavigator() {
             }}
          />
          <Stack.Screen name="Item Stock" component={ItemStock} />
-         <Stack.Screen name="Buddy Stock" component={BuddyStock} />
+         <Stack.Screen name="Buddy Store Stock" component={BuddyStock} />
       </Stack.Navigator>
    );
 }

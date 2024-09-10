@@ -1,4 +1,10 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import {
+   View,
+   Text,
+   TouchableOpacity,
+   StyleSheet,
+   ImageBackground,
+} from "react-native";
 import { Icon } from "@rneui/base";
 import { useTheme } from "@rneui/themed";
 import { useNavigation } from "@react-navigation/native";
@@ -6,14 +12,14 @@ import { useNavigation } from "@react-navigation/native";
 export default function Footer() {
    const { theme } = useTheme();
    const navigation = useNavigation();
-   // Footer items with Title and Icon
    const footerItems = [
       {
          icon: {
             name: "transfer",
             type: "material-community",
          },
-         title: "Transfer",
+         title: "TSF",
+         redirectTo: "Transfer",
       },
       {
          icon: {
@@ -25,10 +31,11 @@ export default function Footer() {
       },
       {
          icon: {
-            name: "view-dashboard",
+            name: "magnify",
             type: "material-community",
          },
-         title: "Dashboard",
+         title: "Search",
+         redirectTo: "Item Lookup",
       },
       {
          icon: {
@@ -36,24 +43,30 @@ export default function Footer() {
             type: "material-community",
          },
          title: "PO",
+         redirectTo: "Purchase Order",
       },
       {
          icon: {
-            name: "shopping-store",
-            type: "fontisto",
-            size: 20,
-            containerStyle: { marginBottom: 5 },
+            name: "truck-delivery",
+            type: "material-community",
          },
          title: "DSD",
-         redirectTo: "Direct Store Deliveries",
+         redirectTo: "Direct Store Delivery",
       },
    ];
 
    return (
+      // <ImageBackground
+      //    source={require("../assets/bg1.jpg")}
+      //    style={{
+      //       ...styles.footer,
+      //       backgroundColor: theme.colors.primary,
+      //    }}
+      // >
       <View
          style={{
             ...styles.footer,
-            backgroundColor: theme.colors.primary,
+            backgroundColor: "#112d4e",
          }}
       >
          {footerItems.map((item, index) => (
@@ -62,11 +75,19 @@ export default function Footer() {
                style={styles.footerButton}
                onPress={() => navigation.navigate(item.redirectTo)}
             >
-               <Icon color="white" size={25} {...item.icon} />
+               <Icon
+                  color="white"
+                  size={25}
+                  {...item.icon}
+                  iconStyle={{
+                     marginBottom: 5,
+                  }}
+               />
                <Text style={styles.footerContent}>{item.title}</Text>
             </TouchableOpacity>
          ))}
       </View>
+      // </ImageBackground>
    );
 }
 

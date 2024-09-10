@@ -2,32 +2,52 @@ import { deleteData, getData, postData } from "../context/auth";
 import { endpoints } from "./endpoints";
 import { storeName, userName } from "../context/auth";
 
-async function fetchData(type) {
-   let data;
-   if (type === "IA") {
-      data = await getData(endpoints.fetchIA);
-   } else if (type === "DSD") {
-      data = await getData(endpoints.fetchDSD);
-   } else if (type === "PO") {
-      data = await getData(endpoints.fetchPo);
-   } else if (type === "TSFIN") {
-      data = await getData(endpoints.fetchTsfIn + storeName);
-   } else if (type === "TSFOUT") {
-      data = await getData(endpoints.fetchTsfOut + storeName);
-   }
+// Complete list of modules
+const modules = {
+   IA: "Inventory Adjustment",
+   DSD: "Direct Store Delivery",
+   PO: "Purchase Order",
+   TSFIN: "In Transfer",
+   TSFOUT: "Out Transfer",
+   SC: "Stock Count",
+   RTV: "Return to Vendor",
+};
 
-   return data;
+async function fetchData(type) {
+   switch (type) {
+      case "IA":
+         return await getData(endpoints.fetchIa);
+      case "DSD":
+         return await getData(endpoints.fetchDsd);
+      case "PO":
+         return await getData(endpoints.fetchPo);
+      case "TSFIN":
+         return await getData(endpoints.fetchTsfIn + storeName);
+      case "TSFOUT":
+         return await getData(endpoints.fetchTsfOut + storeName);
+      case "SC":
+         return await getData(endpoints.fetchSc);
+      case "RTV":
+         return await getData(endpoints.fetchRtv);
+      default:
+         console.error("Invalid type for fetching data");
+   }
 }
 
 async function createEntry(type) {
-   if (type === "IA") {
-      return await postData(endpoints.createIA + `${storeName}/${userName}`);
-   } else if (type === "DSD") {
-      return await postData(endpoints.createDSD + `${storeName}/${userName}`);
-   } else if (type === "TSFIN") {
-      return await postData(
-         endpoints.createTsf + `${storeName}/${userName}/Ambience Mall`
-      );
+   switch (type) {
+      case "IA":
+         return await postData(endpoints.createIA + `${storeName}/${userName}`);
+      case "DSD":
+         return await postData(
+            endpoints.createDSD + `${storeName}/${userName}`
+         );
+      case "TSFIN":
+         return await postData(
+            endpoints.createTsf + `${storeName}/${userName}/Ambience Mall`
+         );
+      default:
+         console.error("Invalid type for creating an entry");
    }
 }
 
@@ -40,25 +60,45 @@ async function handleDelete(itemId, type) {
 }
 
 async function searchEntry(type, str) {
-   let data;
-   if (type === "IA") {
-      data = await getData(endpoints.searchIA + str);
-   } else if (type === "DSD") {
-      data = await getData(endpoints.searchDSD + str);
-   } else if (type === "PO") {
-      data = await getData(endpoints.searchPo + str);
+   switch (type) {
+      case "IA":
+         return await getData(endpoints.searchIA + str);
+      case "DSD":
+         return await getData(endpoints.searchDSD + str);
+      case "PO":
+         return await getData(endpoints.searchPo + str);
+      default:
+         console.error("Invalid type for search");
    }
-   return data;
 }
 
 async function sortEntry(type, sortType) {
-   let data;
-   if (type === "IA") {
-      data = await getData(endpoints.sortIA + `${sortType}/adjustments`);
-   } else if (type === "DSD") {
-      data = await getData(endpoints.sortDSD + `${sortType}/Dsd`);
+   switch (type) {
+      case "IA":
+         return await getData(endpoints.sortIA + `${sortType}/adjustments`);
+      case "DSD":
+         return await getData(endpoints.sortDSD + `${sortType}/Dsd`);
+      default:
+         console.error("Invalid type for sorting");
    }
-   return data;
 }
 
-export { fetchData, createEntry, handleDelete, searchEntry, sortEntry };
+async function filterEntry(type, filterParam) {
+   switch (type) {
+      case "IA":
+         return await getData(endpoints.filterIA + `${filterParam}`);
+      case "DSD":
+         return await getData(endpoints.filterDSD + `${filterParam}`);
+      default:
+         console.error("Invalid type for filtering");
+   }
+}
+
+export {
+   fetchData,
+   createEntry,
+   handleDelete,
+   searchEntry,
+   sortEntry,
+   filterEntry,
+};

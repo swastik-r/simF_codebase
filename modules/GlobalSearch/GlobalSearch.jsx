@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Image } from "react-native";
-import { SearchBar, Button } from "@rneui/themed";
+import { SearchBar, Button, Icon } from "@rneui/themed";
 import { endpoints } from "../../context/endpoints";
 import { storeName, getData } from "../../context/auth";
 import { useNavigation } from "@react-navigation/native";
@@ -29,7 +29,7 @@ export default function GlobalSearch() {
 
    // UseEffect: Search on SKU modification
    useEffect(() => {
-      searchSku(sku); // Call the searchSku function whenever SKU changes
+      searchSku(sku);
    }, [sku]);
 
    return (
@@ -41,7 +41,16 @@ export default function GlobalSearch() {
 }
 
 function Scanner({ setSku }) {
-   return <View style={styles.scannerContainer}></View>;
+   return (
+      <View style={styles.scannerContainer}>
+         <Icon
+            name="camera"
+            type="material-community"
+            size={100}
+            color="#f0f0f0"
+         />
+      </View>
+   );
 }
 
 function ManualSearch({ sku, setSku, item }) {
@@ -123,7 +132,7 @@ function ItemCard({ item }) {
 
 const styles = StyleSheet.create({
    page: {
-      flex: 0.89,
+      flex: 1,
       justifyContent: "space-evenly",
       alignItems: "center",
    },
