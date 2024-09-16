@@ -28,6 +28,10 @@ const endpoints = {
 
    fetchTsfIn: "/transferreceive/get/intransfers/",
    fetchTsfOut: "/transferreceive/get/outtransfers/",
+   searchTsfIn: "/transferreceive/search/In/Tsf/",
+   searchTsfOut: "/transferreceive/search/Out/Tsf/",
+   sortTsf: "/transferreceive/sort/",
+   filterTsf: "/transferreceive/filter/",
    createTsf: "/transferreceive/create/transfer/",
    fetchTsfReasons: "/transferreceive/get/reasoncodes",
    fetchItemsTsf: "/transferreceive/getProducts/byTransferid/",
@@ -42,6 +46,7 @@ const endpoints = {
 
    fetchPo: "/purchaseOrder/getall/po",
    searchPo: "/purchaseOrder/getMatched/Po/",
+   sortPo: "/purchaseOrder/sort/",
    submitAsnItems: "/purchaseOrder/save/po_receive/",
    saveAsnItems: "/purchaseOrder/save/draft/po/",
    fetchASNForPO: "/purchaseOrder/get/asn/list/by/ponumber/",
@@ -60,6 +65,7 @@ const endpoints = {
    // Return to Vendor
 
    fetchRtv: "/returntovendor/all/rtv",
+   sortRtv: "/returntovendor/sort/",
 
    // Miscellaneous Endpoints
 

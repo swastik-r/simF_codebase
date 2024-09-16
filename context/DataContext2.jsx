@@ -951,7 +951,7 @@ export default function DataContextProvider({ children }) {
       deleteDSDItem,
       fetchDSDItems,
 
-      // Common
+      // Common for all modules
       handleSearchEntry,
       sampleItemsToAdd,
       handleExcelUpload,

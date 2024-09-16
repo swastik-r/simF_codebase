@@ -67,6 +67,10 @@ async function searchEntry(type, str) {
          return await getData(endpoints.searchDSD + str);
       case "PO":
          return await getData(endpoints.searchPo + str);
+      case "TSFIN":
+         return await getData(endpoints.searchTsfIn + `${str}/${storeName}`);
+      case "TSFOUT":
+         return await getData(endpoints.searchTsfOut + `${str}/${storeName}`);
       default:
          console.error("Invalid type for search");
    }
@@ -78,6 +82,18 @@ async function sortEntry(type, sortType) {
          return await getData(endpoints.sortIA + `${sortType}/adjustments`);
       case "DSD":
          return await getData(endpoints.sortDSD + `${sortType}/Dsd`);
+      case "PO":
+         return await getData(endpoints.sortPo + `${sortType}/po`);
+      case "TSFIN":
+         return await getData(
+            endpoints.sortTsf + `${sortType}/In/Tsf/${storeName}`
+         );
+      case "TSFOUT":
+         return await getData(
+            endpoints.sortTsf + `${sortType}/Out/Tsf/${storeName}`
+         );
+      case "RTV":
+         return await getData(endpoints.sortRtv + `${sortType}/rtv`);
       default:
          console.error("Invalid type for sorting");
    }
@@ -89,6 +105,14 @@ async function filterEntry(type, filterParam) {
          return await getData(endpoints.filterIA + `${filterParam}`);
       case "DSD":
          return await getData(endpoints.filterDSD + `${filterParam}`);
+      case "TSFIN":
+         return await getData(
+            endpoints.filterTsf + `Out/Tsf/${filterParam}/${storeName}`
+         );
+      case "TSFOUT":
+         return await getData(
+            endpoints.filterTsf + `In/Tsf/${filterParam}/${storeName}`
+         );
       default:
          console.error("Invalid type for filtering");
    }
