@@ -44,19 +44,10 @@ export default function SearchBar_FS({ type, setListingData }) {
    const [reasonFilterVisible, setReasonFilterVisible] = useState(false);
    const [statusFilterVisible, setStatusFilterVisible] = useState(false);
 
-   /*
-      The sorting is by "oldest" and "latest" entries for all the modules.
-      
-      The filtering is as follows:
-         Inventory Adjustment: Reason, Status
-         Direct Store Delivery: Status, Supplier
-         Purchase Order: Status, Supplier
-         In Transfer/Out Transfer: Status
-   */
-
    return (
       <>
          <View style={styles.searchBarAndOpts}>
+            {/* Search Bar */}
             <SearchBar
                placeholder="Enter a search criteria"
                containerStyle={{
@@ -252,15 +243,31 @@ function FilterBottomSheet({
       }
    }
 
+   // Filter Info
+   /*
+      The sorting is by "oldest" and "latest" entries for all the modules based on the primary date data.
+      
+      The filtering is as follows:
+         Inventory Adjustment: Status, Reason
+         Direct Store Delivery: Status, Supplier
+         Purchase Order: Status, Supplier
+         In Transfer/Out Transfer: Status, Supplier
+         Stock Count: Status, Reason
+         Return to Vendor: Status, Reason, Category, Vendor
+
+      On the basis of this data, create a filter options array for all the modules, and select the appropriate filter options for each module.   
+   */
+
    // States and Vars
    const filterOpts = [
       {
          title: "Filter by",
          titleStyle: {
-            fontFamily: "Montserrat-Regular",
             fontSize: 25,
          },
-         containerStyle: [styles.sortOptContainer, { paddingTop: 10 }],
+         containerStyle: {
+            paddingTop: 10,
+         },
       },
       {
          title: "Status",
@@ -271,7 +278,6 @@ function FilterBottomSheet({
             size: 30,
          },
          titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
       },
       {
          title: "Reason",
@@ -282,15 +288,11 @@ function FilterBottomSheet({
             size: 30,
          },
          titleStyle: styles.bottomSheetOpt,
-         containerStyle: styles.sortOptContainer,
       },
       {
          title: "Reset",
          icon: { name: "refresh", type: "material", color: "white" },
-         containerStyle: [
-            styles.sortOptContainer,
-            { backgroundColor: "darkred" },
-         ],
+         containerStyle: { backgroundColor: "darkred" },
          titleStyle: styles.sortOptCancel,
          type: "reset",
       },
@@ -304,23 +306,24 @@ function FilterBottomSheet({
          {filterOpts.map((opt, i) => (
             <ListItem
                key={i}
-               containerStyle={opt.containerStyle}
+               containerStyle={[styles.sortOptContainer, opt.containerStyle]}
                onPress={() => {
                   setFilterVisible(false);
-
+                  // Actions defined for each filter option
                   const actions = {
                      Status: () => setStatusFilterVisible(true),
                      Reason: () => setReasonFilterVisible(true),
                      Reset: resetFilter,
                   };
-
                   const action = actions[opt.title];
                   action ? action() : console.error("Invalid filter option");
                }}
             >
                <ListItem.Content>
                   <Icon {...opt.icon} />
-                  <ListItem.Title style={opt.titleStyle}>
+                  <ListItem.Title
+                     style={[styles.bottomSheetOpt, opt.titleStyle]}
+                  >
                      {opt.title}
                   </ListItem.Title>
                </ListItem.Content>
@@ -555,6 +558,7 @@ const styles = StyleSheet.create({
    bottomSheetOpt: {
       fontFamily: "Montserrat-Medium",
       fontSize: 16,
+      marginTop: 10,
    },
    sortOptCancel: {
       fontFamily: "Montserrat-Medium",

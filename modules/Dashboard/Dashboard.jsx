@@ -50,6 +50,11 @@ export default function Dashboard({ navigation }) {
             endpoints.fetchTransfersStatus + storeName
          );
 
+         console.log("Data fetched:");
+         console.log(response1);
+         console.log(response2);
+         console.log(response3);
+
          setData({
             taskCardData: updatedTaskCardData,
             varianceData: response2,
@@ -175,7 +180,7 @@ export default function Dashboard({ navigation }) {
                <Text style={styles.sectionHeading}>My Tasks</Text>
 
                {/* Cards */}
-               <Carousel
+               {/* <Carousel
                   loop
                   mode="parallax"
                   width={380}
@@ -189,7 +194,7 @@ export default function Dashboard({ navigation }) {
                   )}
                   pagingEnabled={true}
                   onSnapToItem={(index) => setActiveIndex(index)} // Update activeIndex on snap
-               />
+               /> */}
 
                {/* Pagination for the Carousel */}
 

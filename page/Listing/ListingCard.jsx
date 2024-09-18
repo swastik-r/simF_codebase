@@ -272,7 +272,11 @@ export default function ListingCard({ item, refreshListingData }) {
                      value={item[fieldMap[item.type].field] || "N/A"}
                   />
                </View>
-               <InfoContainer title={"Date: "} value={item.date} />
+               <InfoContainer
+                  title={"Date: "}
+                  // date for all modules, creationDate for SC
+                  value={item.date || item.creationDate}
+               />
             </View>
          </View>
 
