@@ -51,6 +51,7 @@ const endpoints = {
    saveAsnItems: "/purchaseOrder/save/draft/po/",
    fetchASNForPO: "/purchaseOrder/get/asn/list/by/ponumber/",
    fetchPoItems: "/purchaseOrder/get/itemBy/po/",
+   filterPo: "/purchaseOrder/filter/po/",
 
    // Stock Count
 
@@ -66,6 +67,8 @@ const endpoints = {
 
    fetchRtv: "/returntovendor/all/rtv",
    sortRtv: "/returntovendor/sort/",
+   createRtv: "/returntovendor/create/rtv/",
+   fetchRtvItems: "/returntovendor/getRtv/products/id/",
 
    // Miscellaneous Endpoints
 

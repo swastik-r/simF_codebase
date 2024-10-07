@@ -101,7 +101,7 @@ export default function AddItem({ route }) {
    }
 
    return (
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 0.9 }}>
          <View style={{ flex: 1, backgroundColor: "black" }}>
             {/* <Scanner /> */}
          </View>

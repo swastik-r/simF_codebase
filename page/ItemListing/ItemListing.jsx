@@ -161,7 +161,7 @@ export default function EntryItemDetailPage({ route }) {
       }
    }, [isFocused]);
 
-   // refresh the data for IA/DSD/SC on RENDER
+   // refresh the data for IA/DSD/SC/TSF on RENDER
    useEffect(() => {
       switch (type) {
          case "IA":
@@ -207,7 +207,7 @@ export default function EntryItemDetailPage({ route }) {
    );
 
    return (
-      <ImageBackground source={backgroundImg} style={{ flex: 1 }}>
+      <ImageBackground source={backgroundImg} style={{ flex: 0.9 }}>
          <PaperProvider>
             <FlatList
                data={tempItems}
@@ -513,6 +513,10 @@ export function DetailsTab({
          { label: "Total SKU", value: tempItems.length },
          {
             label: "Category",
+            value: entryItem.category || "Sportswear",
+         },
+         {
+            label: "Sub-Category",
             value: entryItem.category || "Sportswear",
          },
          {
@@ -1708,7 +1712,7 @@ function MyFabGroup({ entryItem, tempItems, setTempItems, tempSupplier }) {
    return selectedActions.length === 1 ? (
       <Portal>
          <FAB
-            style={{ position: "absolute", bottom: 20, right: 20 }}
+            style={{ position: "absolute", bottom: 10, right: 10 }}
             icon={selectedActions[0].icon}
             onPress={selectedActions[0].onPress}
          />
@@ -1724,6 +1728,14 @@ function MyFabGroup({ entryItem, tempItems, setTempItems, tempSupplier }) {
             onStateChange={onStateChange}
          />
       </Portal>
+   );
+}
+
+function CategoryOverlay() {
+   return (
+      <Overlay>
+         <Text>Hello!</Text>
+      </Overlay>
    );
 }
 

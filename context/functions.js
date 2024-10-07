@@ -2,8 +2,8 @@ import { deleteData, getData, postData } from "../context/auth";
 import { endpoints } from "./endpoints";
 import { storeName, userName } from "../context/auth";
 
-// Complete list of modules
-const modules = {
+/*
+Complete list of modules
    IA: "Inventory Adjustment",
    DSD: "Direct Store Delivery",
    PO: "Purchase Order",
@@ -11,7 +11,7 @@ const modules = {
    TSFOUT: "Out Transfer",
    SC: "Stock Count",
    RTV: "Return to Vendor",
-};
+*/
 
 async function fetchData(type) {
    switch (type) {
@@ -45,6 +45,10 @@ async function createEntry(type) {
       case "TSFIN":
          return await postData(
             endpoints.createTsf + `${storeName}/${userName}/Ambience Mall`
+         );
+      case "RTV":
+         return await postData(
+            endpoints.createRtv + `${storeName}/${userName}`
          );
       default:
          console.error("Invalid type for creating an entry");
@@ -113,8 +117,10 @@ async function filterEntry(type, filterParam) {
          return await getData(
             endpoints.filterTsf + `In/Tsf/${filterParam}/${storeName}`
          );
+      case "PO":
+         return await getData(endpoints.filterPo + `${filterParam}`);
       default:
-         console.error("Invalid type for filtering");
+         console.error("Filtering not available for this module");
    }
 }
 

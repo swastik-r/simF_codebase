@@ -132,7 +132,7 @@ function ItemCard({ item }) {
 
 const styles = StyleSheet.create({
    page: {
-      flex: 1,
+      flex: 0.9,
       justifyContent: "space-evenly",
       alignItems: "center",
    },

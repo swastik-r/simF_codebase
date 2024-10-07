@@ -2,6 +2,7 @@
 import "react-native-gesture-handler";
 import { Provider as PaperProvider } from "react-native-paper";
 import { NavigationContainer } from "@react-navigation/native";
+import { View, ActivityIndicator } from "react-native";
 
 // React Native Elements UI Library
 import { createTheme, ThemeProvider } from "@rneui/themed";
@@ -13,11 +14,24 @@ import Toast, { BaseToast } from "react-native-toast-message";
 import { useFonts } from "expo-font";
 import AppContainer from "./AppContainer";
 
+// implement a loader for the app content
+
 // Main App Component
 export default function App() {
+   // Loader for the app
+   function Loader() {
+      return (
+         <View
+            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+         >
+            <ActivityIndicator size="large" color="#0000ff" />
+         </View>
+      );
+   }
+   // Load Fonts
    const [loaded] = loadFonts();
    if (!loaded) {
-      return null;
+      return <Loader />;
    }
 
    return (

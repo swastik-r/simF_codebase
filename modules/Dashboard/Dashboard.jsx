@@ -193,7 +193,7 @@ export default function Dashboard({ navigation }) {
                      <TaskCard info={data.taskCardData[index]} />
                   )}
                   pagingEnabled={true}
-                  onSnapToItem={(index) => setActiveIndex(index)} // Update activeIndex on snap
+                  onSnapToItem={(index) => setActiveIndex(index)}
                /> */}
 
                {/* Pagination for the Carousel */}

@@ -117,6 +117,7 @@ export default function ItemCard({ item, status, recountStatus, deleteItem }) {
                </View>
             </View>
             <View style={styles.qtyAndUploadContainer}>
+               {/* Quantity Container */}
                <Pressable
                   style={
                      partiallyAccepted
@@ -143,6 +144,7 @@ export default function ItemCard({ item, status, recountStatus, deleteItem }) {
                      {item.qty || item.shippedQty}
                   </Text>
                </Pressable>
+
                {item.variance ? (
                   // Variance in case of Stock Count items
                   <View
@@ -176,7 +178,6 @@ export default function ItemCard({ item, status, recountStatus, deleteItem }) {
                ) : (
                   // Proof Upload/View Button for all other items
                   <Button
-                     disabled={!item.image}
                      onPress={!isComplete ? uploadProof : showProof}
                      type="outline"
                      icon={{

@@ -293,7 +293,9 @@ export default function ListingCard({ item, refreshListingData }) {
                }}
             >
                <Text style={styles.unitCount}>
-                  {item.totalSku || item.asnCount || item.units || 0}
+                  {item.type === "PO"
+                     ? item.asnCount
+                     : item.totalSku || item.units || 0}
                </Text>
                {item.type !== "PO" ? (
                   <Text style={styles.unitLabel}>Units</Text>

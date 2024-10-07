@@ -150,7 +150,7 @@ function StoreCard({ store, setSelectedStore }) {
 
 const styles = StyleSheet.create({
    page: {
-      flex: 1,
+      flex: 0.9,
       backgroundColor: "white",
       alignItems: "center",
       justifyContent: "flex-start",

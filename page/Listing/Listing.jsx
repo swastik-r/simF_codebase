@@ -35,7 +35,7 @@ export default function ListingPage({ type }) {
    const { theme } = useTheme();
 
    // ------------ Listing Data State ------------
-
+   // Listing data states
    const [listingData, setListingData] = useState([]);
    // useEffect: Refresh Listing Page Data on Focus
    useEffect(() => {
@@ -47,7 +47,6 @@ export default function ListingPage({ type }) {
    }
 
    // ------------ Create Mech -------------------
-
    // No Create FAB on "PO" and "TSFOUT" pages
    const showCreateFab = !["PO", "TSFOUT"].includes(type);
    // Function to create a new entry for the current module
@@ -68,8 +67,25 @@ export default function ListingPage({ type }) {
          case "SC":
             setScDateOverlay(true);
             break;
+         case "RTV":
+            handleCreateRtv();
+            break;
          default:
             console.error("Invalid type to create entry");
+      }
+   }
+   async function handleCreateRtv() {
+      try {
+         const createResponse = await postData(
+            endpoints.createRtv + `${entryItem.id}/${storeName}`
+         );
+         const rtvItem = await getData(
+            endpoints.fetchRtvItems + createResponse.id
+         );
+         rtvItem.type = "SC";
+         navigation.navigate("SC Items", { entryItem: rtvItem });
+      } catch (error) {
+         console.error("Failed to create SC Request", error);
       }
    }
 
@@ -83,7 +99,7 @@ export default function ListingPage({ type }) {
    return (
       <ImageBackground
          source={require("../../assets/bg3.jpg")}
-         style={{ flex: 1 }}
+         style={{ flex: 0.9 }}
       >
          <FlatList
             data={listingData}
@@ -94,8 +110,7 @@ export default function ListingPage({ type }) {
             ListHeaderComponent={<SearchBar {...{ type, setListingData }} />}
             ListEmptyComponent={<EmptyPageComponent />}
             contentContainerStyle={{
-               paddingTop: 10,
-               paddingBottom: 150,
+               paddingVertical: 10,
                paddingHorizontal: 15,
             }}
          />
@@ -409,8 +424,8 @@ const styles = StyleSheet.create({
    },
    fab: {
       position: "absolute",
-      right: 20,
-      bottom: 20,
+      right: 15,
+      bottom: 15,
    },
 
    // Date Picker Styles

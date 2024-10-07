@@ -10,7 +10,7 @@ export default function EmptyPageComponent() {
             flex: 1,
             justifyContent: "center",
             alignItems: "center",
-            marginVertical: 180,
+            marginVertical: 100,
          }}
       >
          <View style={{ opacity: 0.7 }}>
